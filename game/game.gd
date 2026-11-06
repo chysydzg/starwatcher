@@ -8,7 +8,9 @@ signal toast(text: String, kind: String)
 var SAVE := "user://savegame.json"
 var SAVE_BAK := "user://savegame.bak.json"
 const ART := "res://game/art/"
-const FS := 20               # rozmiar fontu VT323 (natywna siatka 8 px na znak)
+const FS := 16               # Pixel Operator (UI): siatka 100/1600 em – przy 16 px piksel czcionki = piksel ekranu
+const OS_FS := 20            # VT323 w komputerze (AstroOS)
+const TITLE_FS := 8          # Press Start 2P na nagłówki: siatka 125/1000 em – rozmiary 8, 16, 24
 
 # ---------------------------------------------------------------- balans (GDD 25)
 const NIGHT_BASE := 240.0
@@ -206,8 +208,9 @@ var location := "balcony"
 var stage_done := false
 var settings := {"fullscreen": false, "crt": true}
 var pad := false           # ostatnie urządzenie: pad?
-var font: FontFile
-var font_big: FontFile
+var font: FontFile          # UI
+var font_os: FontFile       # komputer
+var font_title: FontFile    # nagłówki
 var _ding: AudioStreamWAV
 var theme: Theme
 var _textures := {}
@@ -270,15 +273,21 @@ func tex(file: String) -> Texture2D:
 	return _textures[file]
 
 
-func _setup_theme() -> void:
-	var path := "res://game/fonts/VT323-Regular.ttf"
-	font = load(path) if ResourceLoader.exists(path) else FontFile.new()
+func _font(file: String) -> FontFile:
+	var path := "res://game/fonts/" + file
+	var f: FontFile = load(path) if ResourceLoader.exists(path) else FontFile.new()
 	if not ResourceLoader.exists(path):
-		font.load_dynamic_font(path)
-	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE  # VT323 przy 20 px = 1 piksel na piksel
-	font.hinting = TextServer.HINTING_NONE
-	font.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
-	font_big = font
+		f.load_dynamic_font(path)
+	f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	f.hinting = TextServer.HINTING_NONE
+	f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	return f
+
+
+func _setup_theme() -> void:
+	font = _font("PixelOperatorPL.ttf")  # Pixel Operator (CC0) z dorysowanymi polskimi znakami
+	font_os = _font("VT323-Regular.ttf")
+	font_title = _font("PressStart2P-Regular.ttf")
 	theme = Theme.new()
 	theme.default_font = font
 	theme.default_font_size = FS
@@ -566,6 +575,7 @@ func can_buy_science(row: Array) -> String:
 
 func buy_science(row: Array) -> void:
 	pw -= row[2]
+	today.bought = today.get("bought", []) + [["Badanie: " + row[1], row[2], "PW"]]
 	science[row[0]] = true
 	if row[0] == "kometa" and comet.left == 0:
 		comet = {"left": COMET_NIGHTS, "gap": 0, "seed": randi()}
@@ -585,6 +595,7 @@ func can_buy_shop(row: Array) -> String:
 
 func buy_shop(row: Array) -> void:
 	money -= row[2]
+	today.bought = today.get("bought", []) + [["Zakup: " + row[1], row[2], "$"]]
 	pending.append(row[0])
 	changed.emit()
 	toast.emit("Zamówiono: %s. Kurier przyjdzie przy zmianie pory dnia." % row[1], "info")
@@ -593,8 +604,8 @@ func buy_shop(row: Array) -> void:
 func unpack_all() -> void:
 	for id in parcels:
 		shop[id] = true
-	if not parcels.is_empty():
-		toast.emit("Rozpakowano: " + ", ".join(parcels.map(func(i): return _shop_name(i))), "good")
+	for id in parcels:  # każdy przedmiot osobno: napisy układają się jeden pod drugim
+		toast.emit("Rozpakowano: " + _shop_name(id), "good")
 	parcels.clear()
 	changed.emit()
 

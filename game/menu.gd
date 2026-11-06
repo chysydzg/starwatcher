@@ -25,8 +25,8 @@ func _ready() -> void:
 	add_child(_ui)
 	var title := Label.new()
 	title.text = "STAR WATCHER"
-	title.add_theme_font_override("font", Game.font_big)
-	title.add_theme_font_size_override("font_size", 40)
+	title.add_theme_font_override("font", Game.font_title)
+	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color("ffe9b0"))
 	title.add_theme_color_override("font_shadow_color", Color("1a1426"))
 	title.add_theme_constant_override("shadow_offset_y", 2)

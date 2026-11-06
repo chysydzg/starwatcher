@@ -70,6 +70,21 @@ func _ready() -> void:
 		await shot("os_" + id)
 	w.viewport.close()
 	await get_tree().create_timer(0.3).timeout
+	w._say("Kiedyś narysuję własną mapę nieba.")
+	w._toast("Rozpakowano: Używany Statyw Drewniany", "good")
+	w._toast("Rozpakowano: Modem Dial-Up 56k", "good")
+	await shot("monolog")
+	Game.night = true
+	Game.rain = true
+	w._enter("balcony", true)
+	w._apply_phase(true)
+	w._refresh()
+	await shot("deszcz")
+	Game.rain = false
+	Game.night = false
+	w._enter("room", true)
+	w._apply_phase(true)
+	w._refresh()
 	w._toggle_phase()
 	await get_tree().create_timer(1.8).timeout
 	await shot("zmierzch")

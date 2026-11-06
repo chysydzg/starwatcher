@@ -112,6 +112,8 @@ func _box(bg: Color, border: Color, w := 1) -> StyleBoxFlat:
 
 func _make_theme() -> Theme:
 	var th: Theme = Game.theme.duplicate()
+	th.default_font = Game.font_os  # komputer ma własny, „terminalowy” krój
+	th.default_font_size = Game.OS_FS
 	th.set_stylebox("normal", "Button", _box(Color("e4e4ea"), Color("6a6a80")))
 	th.set_stylebox("hover", "Button", _box(Color("ffffff"), Color("2a5ad8")))
 	th.set_stylebox("pressed", "Button", _box(Color("c8d4f0"), Color("2a5ad8")))
@@ -171,15 +173,15 @@ func _draw_bar() -> void:
 	bar.draw_rect(Rect2(0, BAR - 1, 640, 1), Color("4a4a5c"))
 	bar.draw_rect(Rect2(572, 2, 64, 18), Color("f4f4f8"))
 	bar.draw_rect(Rect2(572, 2, 64, 18), Color("4a4a5c"), false)
-	bar.draw_string(Game.font, Vector2(572, 16), "Wyłącz", HORIZONTAL_ALIGNMENT_CENTER, 64, Game.FS, INK)
+	bar.draw_string(Game.font_os, Vector2(572, 16), "Wyłącz", HORIZONTAL_ALIGNMENT_CENTER, 64, Game.OS_FS, INK)
 	bar.draw_texture_rect(Game.tex("os/icon_etap"), Rect2(4, 3, 16, 16), false)
 	var os_name := "AstroOS XP" if Game.has("lcd") else "AstroOS"
 	for dx in 2:  # pogrubienie: tekst dwa razy z przesunięciem o 1 px
-		bar.draw_string(Game.font, Vector2(24 + dx, 16), os_name, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, INK)
-	var x := 24 + Game.font.get_string_size(os_name, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x + 16
+		bar.draw_string(Game.font_os, Vector2(24 + dx, 16), os_name, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, INK)
+	var x := 24 + Game.font_os.get_string_size(os_name, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 16
 	for s in [["$ %d" % Game.money, Color("2a7a3a")], ["PW %d" % Game.pw, Color("6a3ac8")], [Game.calendar(), Color("3a3a50")]]:
-		bar.draw_string(Game.font, Vector2(x, 16), s[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, s[1])
-		x += Game.font.get_string_size(s[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x + 16
+		bar.draw_string(Game.font_os, Vector2(x, 16), s[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, s[1])
+		x += Game.font_os.get_string_size(s[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 16
 
 
 # ---------------------------------------------------------------- okna
@@ -249,8 +251,8 @@ func _draw_frame() -> void:
 		win.draw_rect(Rect2(4 + i * 16, 3, 12, 12), Color("6a6a80"), false)
 	win.draw_rect(Rect2(7, 6, 6, 6), Color("4a4a5c"))
 	var title: String = TITLES[app]
-	win.draw_string(Game.font, Vector2(46, 15), title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, INK)
-	tabs_x = 46 + Game.font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x + 10
+	win.draw_string(Game.font_os, Vector2(46, 15), title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, INK)
+	tabs_x = 46 + Game.font_os.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 10
 	for i in APPS.size():  # karty programów: przełączanie bez wychodzenia na pulpit
 		var r := Rect2(tabs_x + i * 24, 1, 22, TB - 2)
 		var on: bool = APPS[i][0] == app
@@ -343,7 +345,7 @@ func _gielda() -> void:
 	_label(body, "    %-28s%7s%8s" % ["Obiekt", "Jakość", "Cena"], Vector2(6, 40), Color("6a8aa8"))
 	var v := _scroll(body, Rect2(4, 60, 440, 80))  # 4 pełne wiersze, przewijanie co wiersz
 	var total := _label(body, "", Vector2(460, 22), Color("6aff8a"))
-	total.add_theme_font_size_override("font_size", Game.FS * 2)
+	total.add_theme_font_size_override("font_size", Game.OS_FS * 2)
 	var sell := _button("WYŚLIJ RAPORT", func():
 		Game.send_report(stored.filter(func(e): return selected.get(e.uid, false)))
 		selected.clear()
@@ -432,19 +434,19 @@ func _draw_market() -> void:
 		var d := _change(c)
 		var a := "%s %d " % [Game.CATS[c].to_upper(), int(round(_dem(-1, c) * 100))]
 		var b := "%+d%%   " % d
-		var wa := Game.font.get_string_size(a, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+		var wa := Game.font_os.get_string_size(a, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x
 		items.append([a, b, d >= 0, wa])
-		cycle += wa + 10 + Game.font.get_string_size(b, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+		cycle += wa + 10 + Game.font_os.get_string_size(b, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x
 	var x := -fposmod(t * 40.0, cycle)
 	while x < 640:
 		for it in items:
-			n.draw_string(Game.font, Vector2(x, 15), it[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("c8d8e8"))
+			n.draw_string(Game.font_os, Vector2(x, 15), it[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("c8d8e8"))
 			x += it[3]
 			var col := Color("4ae87a") if it[2] else Color("ff5a4a")
 			n.draw_colored_polygon(PackedVector2Array([Vector2(x, 13), Vector2(x + 8, 13), Vector2(x + 4, 7)] if it[2] else
 				[Vector2(x, 7), Vector2(x + 8, 7), Vector2(x + 4, 13)]), col)
-			n.draw_string(Game.font, Vector2(x + 10, 15), it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, col)
-			x += 10 + Game.font.get_string_size(it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+			n.draw_string(Game.font_os, Vector2(x + 10, 15), it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, col)
+			x += 10 + Game.font_os.get_string_size(it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x
 	n.draw_rect(Rect2(0, 151, 640, 1), Color("1e3248"))
 	# wykres popytu (indeks = mnożnik × 100): tylko zaznaczone kategorie
 	var r := Rect2(230, 158, 404, 156)
@@ -454,16 +456,16 @@ func _draw_market() -> void:
 	for v in [70, 100, 130, 160]:
 		var y: float = r.end.y - (v - lo) / (hi - lo) * r.size.y
 		n.draw_rect(Rect2(r.position.x, y, r.size.x, 1), Color("1e3248") if v != 100 else Color("3a5a78"))
-		n.draw_string(Game.font, Vector2(r.position.x + 2, y - 2), str(v), HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("3a5a78"))
+		n.draw_string(Game.font_os, Vector2(r.position.x + 2, y - 2), str(v), HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("3a5a78"))
 	var hist: Array = Game.demand_log
 	if hist.size() < 2:
-		n.draw_string(Game.font, r.position + Vector2(120, 80), "Za mało notowań", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("6a8aa8"))
+		n.draw_string(Game.font_os, r.position + Vector2(120, 80), "Za mało notowań", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("6a8aa8"))
 		return
 	var step := (r.size.x - 40) / (hist.size() - 1)
 	for c in Game.CATS:
 		if Game.tips.chart.get(c, false):
 			_line(n, r, hist, c, step, lo, hi, Color(CAT_COL[c]), 2.0)
-	n.draw_string(Game.font, Vector2(r.end.x - 116, r.end.y - 4), "dziś", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("6a8aa8"))
+	n.draw_string(Game.font_os, Vector2(r.end.x - 116, r.end.y - 4), "dziś", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("6a8aa8"))
 
 
 func _line(n: Control, r: Rect2, hist: Array, c: String, step: float, lo: float, hi: float, col: Color, w: float) -> void:
@@ -487,8 +489,9 @@ func _sklep() -> void:
 		b.text = SHOP_SHORT[i]
 		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.position = Vector2(6, 6 + i * 82)
-		b.size = Vector2(96, 76)
+		b.position = Vector2(6, 6 + i * 92)  # równe odstępy, ten sam rozmiar
+		b.custom_minimum_size = Vector2(96, 84)
+		b.size = Vector2(96, 84)
 		b.focus_mode = Control.FOCUS_NONE
 		var on := i == shop_cat
 		b.add_theme_stylebox_override("normal", _box(Color("e6ecf6") if on else Color("3a5aa0"), Color("ffcf4a") if on else Color("1a2a5a"), 2 if on else 1))
@@ -521,45 +524,43 @@ func _sklep() -> void:
 		grid.add_child(_card(r, st))
 
 
-func _card(r: Array, st: String) -> Button:
-	var c := Button.new()
+func _card(r: Array, st: String) -> Panel:
+	var c := Panel.new()  # karta tylko informuje; kupuje się zielonym przyciskiem KUP
 	c.custom_minimum_size = Vector2(168, 74)
-	c.focus_mode = Control.FOCUS_NONE
 	var bg: Color = {"owned": Color("d8f4d8"), "ok": Color("ffffff"), "cost": Color("d4d6de"), "req": Color("d4d6de")}[st]  # nie stać nas = szare jak zablokowane
-	c.add_theme_stylebox_override("normal", _box(bg, Color("6a6a80")))
-	c.add_theme_stylebox_override("hover", _box(bg.lightened(0.3), Color("2a5ad8"), 2))
-	c.add_theme_stylebox_override("pressed", _box(Color("c8d4f0"), Color("2a5ad8"), 2))
+	c.add_theme_stylebox_override("panel", _box(bg, Color("6a6a80")))
 	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 132)
 	title.max_lines_visible = 2
 	_label(c, "T%d" % r[3], Vector2(144, 2), Color("8a8aa0"))
 	var price := _label(c, "$%d" % r[2], Vector2(6, 52), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
-	var tag: String = {"owned": "W drodze" if (r[0] in Game.pending or r[0] in Game.parcels) else "Posiadane", "ok": "KUP", "cost": "Za mało $", "req": "Zablokowane"}[st]
-	var l := _label(c, tag, Vector2(0, 52), Color("1a5ad0") if st == "ok" else Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
-	l.size.x = 160
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	if st == "ok":  # zielony kwadratowy przycisk KUP
-		l.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
-		l.add_theme_color_override("font_color", Color.WHITE)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.position = Vector2(110, 48)
-		l.size = Vector2(50, 22)
 	if st == "owned":
 		price.text = ""
-	c.mouse_entered.connect(func(): info.text = _desc(r, Game.can_buy_shop(r), true))
-	c.pressed.connect(func():
-		if Game.can_buy_shop(r) == "ok":
+	if st == "ok":
+		var buy := _button("KUP", func():
 			Game.buy_shop(r)
 			Game.ding(1.2)
-			_rebuild()
-		else:
-			info.text = _desc(r, Game.can_buy_shop(r), true))
+			_rebuild())
+		buy.position = Vector2(112, 46)
+		buy.size = Vector2(50, 24)
+		buy.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
+		buy.add_theme_stylebox_override("hover", _box(Color("5ae88a"), Color("0a3a1a"), 2))  # podświetlenie pod kursorem
+		buy.add_theme_stylebox_override("pressed", _box(Color("1a8a3a"), Color("0a3a1a"), 2))
+		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+			buy.add_theme_color_override(k, Color.WHITE)
+		c.add_child(buy)
+	else:
+		var tag: String = {"owned": "W drodze" if (r[0] in Game.pending or r[0] in Game.parcels) else "Posiadane", "cost": "Za mało $", "req": "Zablokowane"}[st]
+		var l := _label(c, tag, Vector2(0, 52), Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
+		l.size.x = 160
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	c.mouse_entered.connect(func(): info.text = _desc(r, Game.can_buy_shop(r), true))
 	return c
 
 
 func _desc(r: Array, st: String, is_shop: bool) -> String:
 	var cost := ("$%d" if is_shop else "%d PW") % r[2]
 	var why: String = {"owned": "Posiadane." if not (r[0] in Game.pending or r[0] in Game.parcels) else "W drodze – kurier dostarczy przy zmianie pory dnia.",
-		"ok": "Kliknij, aby kupić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
+		"ok": "Kliknij KUP, aby zamówić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
 		"tier": "Tier %d odblokuje się po %s." % [r[3], "3 węzłach z Tier 1" if r[3] == 2 else "4 węzłach z Tier 2"]}.get(st, "")
 	return "%s  [%s]  %s\n%s" % [r[1], cost, why, r[6]]
 
@@ -637,10 +638,10 @@ func _draw_tree() -> void:
 	var root := Rect2(240, 4, 160, 54)
 	n.draw_rect(root, Color("ffcf4a"))
 	n.draw_rect(root, INK, false, 2)
-	n.draw_string(Game.font, root.position + Vector2(15, 22), "Poziom Wiedzy", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, INK)  # 25 px: równe kreski VT323
-	n.draw_string(Game.font, root.position + Vector2(0, 46), "%d PW" % Game.pw, HORIZONTAL_ALIGNMENT_CENTER, root.size.x, 25, INK)
+	n.draw_string(Game.font_os, root.position + Vector2(15, 22), "Poziom Wiedzy", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, INK)  # 25 px: równe kreski VT323
+	n.draw_string(Game.font_os, root.position + Vector2(0, 46), "%d PW" % Game.pw, HORIZONTAL_ALIGNMENT_CENTER, root.size.x, 25, INK)
 	for p in 3:
-		n.draw_string(Game.font, Vector2(10 + p * 210, 313), Game.SCIENCE_PATHS[p], HORIZONTAL_ALIGNMENT_CENTER, 200, Game.FS, PATH_COL[p])
+		n.draw_string(Game.font_os, Vector2(10 + p * 210, 313), Game.SCIENCE_PATHS[p], HORIZONTAL_ALIGNMENT_CENTER, 200, Game.OS_FS, PATH_COL[p])
 	for i in nodes.size():
 		var c: Vector2 = nodes[i][0]
 		var r: Array = nodes[i][1]
@@ -658,7 +659,7 @@ func _draw_tree() -> void:
 		n.draw_texture(glyph, (rect.get_center() - Vector2(7, 7)).floor(), Color(1, 1, 1, 1.0 if st in ["owned", "ok"] else 0.45))
 		if st == "ok":  # dostępne: pulsujące białe obramowanie
 			n.draw_rect(rect.grow(4), Color(1, 1, 1, 0.5 + 0.5 * sin(t * 6.0)), false, 2)
-		n.draw_string(Game.font, Vector2(c.x - 20, c.y + 33), "%d/1" % int(st == "owned"), HORIZONTAL_ALIGNMENT_CENTER, 40, Game.FS, Color("ffcf4a") if st == "owned" else Color("8a90b0"))
+		n.draw_string(Game.font_os, Vector2(c.x - 20, c.y + 33), "%d/1" % int(st == "owned"), HORIZONTAL_ALIGNMENT_CENTER, 40, Game.OS_FS, Color("ffcf4a") if st == "owned" else Color("8a90b0"))
 		if st in ["req", "tier"]:  # kłódka
 			n.draw_rect(Rect2(c + Vector2(6, 6), Vector2(9, 7)), Color("c8c8d8"))
 			n.draw_arc(c + Vector2(10.5, 6), 3, PI, TAU, 6, Color("c8c8d8"), 1.5)
@@ -678,11 +679,11 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 	n.draw_rect(Rect2(p, Vector2(w, 168)).grow(2), Color("e8ecf8"))
 	n.draw_rect(Rect2(p, Vector2(w, 168)), Color("243a6a"))
 	n.draw_rect(Rect2(p, Vector2(w, 44)), Color("2f4f8f"))
-	n.draw_multiline_string(Game.font, p + Vector2(6, 16), r[1], HORIZONTAL_ALIGNMENT_CENTER, w - 12, Game.FS, 2, Color.WHITE)
-	n.draw_string(Game.font, p + Vector2(0, 60), "LVL %d/1 · Tier %d" % [int(st == "owned"), r[3]], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("a8b8d8"))
-	n.draw_multiline_string(Game.font, p + Vector2(8, 80), body_text, HORIZONTAL_ALIGNMENT_CENTER, w - 16, Game.FS, 3, Color.WHITE)
-	n.draw_string(Game.font, p + Vector2(0, 142), "%d PW" % r[2], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("ffcf4a") if st != "cost" else Color("ff6a5a"))
-	n.draw_string(Game.font, p + Vector2(0, 162), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
+	n.draw_multiline_string(Game.font_os, p + Vector2(6, 16), r[1], HORIZONTAL_ALIGNMENT_CENTER, w - 12, Game.OS_FS, 2, Color.WHITE)
+	n.draw_string(Game.font_os, p + Vector2(0, 60), "LVL %d/1 · Tier %d" % [int(st == "owned"), r[3]], HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("a8b8d8"))
+	n.draw_multiline_string(Game.font_os, p + Vector2(8, 80), body_text, HORIZONTAL_ALIGNMENT_CENTER, w - 16, Game.OS_FS, 3, Color.WHITE)
+	n.draw_string(Game.font_os, p + Vector2(0, 142), "%d PW" % r[2], HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("ffcf4a") if st != "cost" else Color("ff6a5a"))
+	n.draw_string(Game.font_os, p + Vector2(0, 162), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
 
 
 # ---------------------------------------------------------------- POMOC.TXT (konsola)

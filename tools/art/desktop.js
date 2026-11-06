@@ -61,13 +61,14 @@ icon("icon_dziennik", 26, 30, (s) => { // notes z gwiazdą
   for (let y = 9; y < 25; y += 4) s.rect(9, y, 21, y + 1, [168, 186, 214]);
   s.poly([[15, 5], [17, 10], [22, 10], [18, 13], [19, 18], [15, 15], [11, 18], [12, 13], [8, 10], [13, 10]], R.gold[2]);
 });
-icon("icon_gielda", 30, 28, (s) => { // monitor z wykresem świecowym
+icon("icon_gielda", 30, 28, (s) => { // monitor z wykresem liniowym notowań
   slab(s, 0, 0, 30, 28, R.gray, 0.85, 0.6);
   s.rect(2, 2, 28, 24, [14, 26, 40]);
-  for (let x = 3; x < 28; x += 5) s.rect(x, 3, x + 1, 23, [26, 44, 64]);
-  const c = [[5, 16, 20, 0], [10, 12, 17, 1], [15, 13, 16, 0], [20, 8, 13, 1], [25, 5, 10, 1]];
-  for (const [x, a, b, up] of c) { s.rect(x - 1, a, x + 2, b, up ? [90, 230, 120] : [240, 90, 80]); s.rect(x, a - 2, x + 1, b + 2, up ? [90, 230, 120] : [240, 90, 80]); }
-  s.line(4, 20, 26, 5, [250, 220, 90]);
+  for (let y = 6; y < 23; y += 5) s.rect(3, y, 27, y + 1, [26, 44, 64]);
+  const up = [[3, 19], [8, 15], [12, 17], [17, 10], [21, 12], [26, 5]], dn = [[3, 12], [8, 14], [13, 11], [18, 18], [22, 16], [26, 20]];
+  for (let i = 0; i < 5; i++) s.line(dn[i][0], dn[i][1], dn[i + 1][0], dn[i + 1][1], [240, 100, 90]);
+  for (let i = 0; i < 5; i++) s.line(up[i][0], up[i][1], up[i + 1][0], up[i + 1][1], [90, 230, 120]);
+  s.rect(25, 4, 28, 7, [250, 220, 90]);
 });
 icon("icon_sklep", 30, 28, (s) => { // karton z taśmą i metką
   slab(s, 0, 0, 30, 8, R.beige, 1, 0.9); slab(s, 0, 8, 30, 28, R.beige, 0.6, 0.45);
@@ -96,7 +97,7 @@ icon("icon_etap", 30, 30, (s) => { // złota gwiazda ETAP 2
     const [r, g, bb] = P.unpack(ref.px[i]), y = Math.floor(i / ref.w);
     if ((ref.px[i] >>> 24) < 220 || (y > ref.h * 0.85 && r > bb + 15 && r < 140)) ref.px[i] = 0;
   }
-  const sp = P.resize(P.quantize(P.trim(ref), 8).buf, 34, null, { mode: true });
+  const sp = P.resize(P.quantize(P.trim(ref), 8).buf, 26, null, { mode: true });
   P.save(ink(P.trim(sp)), out + "cat_optyka.png");
 }
 icon("cat_komputer", 22, 20, (s) => { // sam kwadratowy monitor

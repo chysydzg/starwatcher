@@ -96,10 +96,12 @@ func _build_frame() -> void:
 	for y in 360:
 		for x in 640:
 			var d := Vector2(x, y).distance_to(C)
-			if d > R + 7:
+			if d > R + 13:
 				img.set_pixel(x, y, Color("0d0a16"))
+			elif d > R + 12:
+				img.set_pixel(x, y, ring_d.darkened(0.4))
 			elif d > R:
-				img.set_pixel(x, y, ring if d < R + 3 else ring_d)
+				img.set_pixel(x, y, ring.lightened(0.15) if d < R + 2 else (ring if d < R + 4 else ring_d))
 	if not Game.has("achromat"):  # popękana szybka w narożniku
 		var p := C + Vector2(104, -100)
 		for seg in [[Vector2(0, 0), Vector2(-28, 16)], [Vector2(-28, 16), Vector2(-40, 34)], [Vector2(0, 0), Vector2(-10, 28)]]:
@@ -259,7 +261,8 @@ func _process(dt: float) -> void:
 		next_meteor -= dt
 		if next_meteor <= 0 and meteor.is_empty():
 			next_meteor = _meteor_gap()
-			meteor = {"pos": to_sky(C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(30, 110)), "vel": Vector2.from_angle(_rng.randf_range(2.3, 2.8)) * 45.0, "t": 0.0}
+			var a0 := _rng.randf() * TAU  # start za krawędzią okularu, lot w stronę środka
+			meteor = {"pos": to_sky(C + Vector2.from_angle(a0) * (R + 70)), "vel": -Vector2.from_angle(a0 + _rng.randf_range(-0.35, 0.35)) * 70.0 / zoom, "t": 0.0}
 		if not meteor.is_empty():
 			meteor.t += dt
 			meteor.pos += meteor.vel * dt
@@ -268,11 +271,10 @@ func _process(dt: float) -> void:
 	for b in bursts:
 		b.t += dt
 	bursts = bursts.filter(func(b): return b.t < 0.5)
-	if state == S.RESULT:
+	if not result.is_empty():
 		result.t -= dt
 		if result.t <= 0:
-			state = S.SCAN
-			_check_all_done()
+			result = {}
 	queue_redraw()
 
 
@@ -417,8 +419,9 @@ func _check_all_done() -> void:
 
 
 func _show(a: String, b: String) -> void:
-	result = {"a": a, "b": b, "t": 2.2}
-	state = S.RESULT
+	result = {"a": a, "b": b, "t": 2.2}  # napis znika sam; teleskopem można ruszać od razu
+	state = S.SCAN
+	_check_all_done()
 
 
 func _center(s: String, dur := 2.5) -> void:
@@ -487,15 +490,27 @@ func _glint(p: Vector2, col: Color, sz: float, a := 1.0) -> void:
 	_px(p.x - 1, p.y - 1, 3, 3, Color(1, 1, 1, a))
 
 
+func _edge_glow(dir: Vector2, col: Color, a: float) -> void:
+	for k in 4:
+		draw_circle((C + dir * (R - 4 - k * 8)).floor(), 20.0 - k * 4.0, Color(col, a * (1.0 - k * 0.22)))
+
+
 func _check(p: Vector2) -> void:  # ✓ przy zbadanym obiekcie
-	var c := Color("6affa0")
-	for q in [[0, 3], [1, 4], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1], [7, 0]]:
-		_px(p.x + q[0], p.y + q[1], 2, 2, Color(0, 0, 0, 0.7))
-		_px(p.x + q[0], p.y + q[1] - 1, 1, 2, c)
+	const CHECK := ["......##", ".....##.", "##..##..", ".####...", "..##...."]
+	for y in CHECK.size():
+		for x in CHECK[y].length():
+			if CHECK[y][x] == "#":
+				_px(p.x + x - 1, p.y + y, 3, 2, Color("0d0a16"))  # obrys
+	for y in CHECK.size():
+		for x in CHECK[y].length():
+			if CHECK[y][x] == "#":
+				_px(p.x + x, p.y + y, 1, 1, Color("6affa0"))
 
 
 func _draw() -> void:
-	_sh = Vector2(_rng.randi_range(-2, 2), _rng.randi_range(-2, 2)) if shake > 0 else Vector2.ZERO  # lekki wstrząs po kliknięciu gwiazdy
+	_sh = Vector2(_rng.randi_range(-2, 2), _rng.randi_range(-2, 2)) if shake > 0 else Vector2.ZERO
+	if _sh == Vector2.ZERO and not meteor.is_empty() and meteor.t < 1.2:  # meteor: okular drży, czas reagować
+		_sh = Vector2(_rng.randi_range(-1, 1), _rng.randi_range(-1, 1))  # lekki wstrząs po kliknięciu gwiazdy
 	draw_set_transform(_sh)
 	var half := Vector2(R, R)
 	draw_texture_rect_region(_sky_tex, Rect2(C - half, half * 2), Rect2(cam - half / zoom, half * 2 / zoom))
@@ -515,13 +530,30 @@ func _draw() -> void:
 		_glint(s, Color("fff3c4"), 3.0, a)
 	for b in bursts:
 		draw_arc(b.p, 4 + b.t * 40, 0, TAU, 24, Color(1, 0.85, 0.4, 1.0 - b.t * 2), 1.0)
+	if Game.rain:  # deszcz na soczewce: ciemniejszy obraz i spływające krople
+		draw_circle(C, R, Color(0.08, 0.1, 0.22, 0.3))
+		for i in 40:
+			var dp := C + Vector2.from_angle(i * 2.399) * R * sqrt(fmod(i * 0.618, 1.0)) * 0.95
+			dp.y += fposmod(t * (4.0 + i % 5) + i * 13.0, 50.0) - 25.0
+			dp = dp.floor()
+			if dp.distance_to(C) < R - 4:
+				draw_circle(dp, 2.0 + i % 3, Color(0.7, 0.8, 1.0, 0.2))
+				_px(dp.x - 1, dp.y - 1, 1, 1, Color(1, 1, 1, 0.55))
+				_px(dp.x, dp.y - 6, 1, 4, Color(0.7, 0.8, 1.0, 0.15))
+	for tg in targets:  # delikatna poświata przy krawędzi soczewki w stronę nieodkrytych obiektów
+		var ts := to_screen(tg.pos)
+		if not tg.done and ts.distance_to(C) > R - 12:
+			var col := Color(1, 0.6, 0.2) if tg.id == "comet" else Color(1, 1, 1)
+			_edge_glow((ts - C).normalized(), col, 0.09 + 0.04 * sin(t * 2.5 + tg.phase))
+	if not meteor.is_empty() and to_screen(meteor.pos).distance_to(C) > R - 12:  # meteor: mocne, pomarańczowe, pulsuje
+		_edge_glow((to_screen(meteor.pos) - C).normalized(), Color(1, 0.55, 0.15), 0.3 + 0.12 * sin(t * 14.0))
 	draw_texture(_frame_tex, Vector2.ZERO)
 	var ring := Color("5d6478") if Game.has("newton") else Color("b08a3c")
-	for i in 48:  # radełko obraca się razem z kółkiem myszy
-		var q := (C + Vector2.from_angle(i * TAU / 48.0 + ring_a) * (R + 3.5)).floor()
-		_px(q.x - 1, q.y - 1, 2, 2, ring.darkened(0.55))
-		var q2 := (C + Vector2.from_angle(i * TAU / 48.0 + ring_a + 0.03) * (R + 3.5)).floor()
-		_px(q2.x, q2.y, 1, 1, ring.lightened(0.35))
+	for i in 60:  # radełko pierścienia ostrości obraca się razem z kółkiem myszy
+		var dir := Vector2.from_angle(i * TAU / 60.0 + ring_a)
+		for k in range(5, 12):
+			var q := (C + dir * (R + k)).floor()
+			_px(q.x, q.y, 2, 1, ring.lightened(0.3) if k < 7 else ring.darkened(0.5))
 	_draw_crosshair()
 	draw_set_transform(Vector2.ZERO)
 	_draw_panels()
@@ -678,14 +710,17 @@ func _draw_panels() -> void:
 		S.CONNECT:
 			if not Game.tips.has("tut_connect"):
 				msg = "Zaznacz ciąg gwiazd – klikaj je po kolei"
-	if center_t > 0:
-		msg = center_msg
+	if center_t > 0:  # komunikat na środku okularu, bez ramki (tekst z obrysem)
+		var x := roundf(320 - Game.font.get_string_size(center_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x / 2.0)
+		for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			draw_string(Game.font, Vector2(x, 186) + d, center_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.03, 0.02, 0.06, minf(center_t, 1.0)))
+		draw_string(Game.font, Vector2(x, 186), center_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(1, 0.95, 0.82, minf(center_t, 1.0)))
 	if msg != "":
 		var w := Game.font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 		_px(320 - w / 2 - 8, 318, w + 16, 24, Color(0.05, 0.04, 0.1, 0.88))  # tutorial na dole okularu
 		draw_rect(Rect2(320 - w / 2 - 8, 318, w + 16, 24), Color("ffcf6b"), false)
 		_text(Vector2(320, 336), msg, Color("f4ecdc"), true)
-	if state == S.RESULT:
+	if not result.is_empty():
 		var w := maxf(Game.font.get_string_size(result.a, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x, Game.font.get_string_size(result.b, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x) + 24
 		_px(320 - w / 2, 262, w, 46, Color(0.06, 0.05, 0.1, 0.95))
 		draw_rect(Rect2(320 - w / 2, 262, w, 46), Color("ffcf6b"), false)
