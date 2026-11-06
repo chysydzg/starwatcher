@@ -13,9 +13,9 @@ func _ready() -> void:
 	Game.new_game()
 	var w = load("res://game/world.tscn").instantiate()
 	get_tree().root.add_child(w)
-	w.jania.position.x = 300
+	w.body.position.x = 300
 	await shot("balkon")
-	w.jania.position = Vector2(250, 330)  # za teleskopem: sortowanie głębi
+	w.body.position = Vector2(250, 330)  # za teleskopem: sortowanie głębi
 	await shot("balkon_glebia")
 	w._interact("teleskop")
 	await get_tree().create_timer(0.5).timeout
@@ -28,6 +28,9 @@ func _ready() -> void:
 	tel.aim = tel.to_screen(tg.pos)
 	await shot("okular_hover")
 	tel._lock_or_confirm()
+	if tel.target.is_empty():  # cel mógł nie zdążyć „drżeć” pod celownikiem – blokujemy ręcznie
+		tel.target = tg
+		tel.state = tel.S.FOCUS
 	tel.f = tg.sweet + 0.14
 	await shot("okular_fokus")
 	tel.f = tg.sweet
@@ -41,7 +44,7 @@ func _ready() -> void:
 	tel.close()
 	await get_tree().create_timer(0.5).timeout
 	w._enter("room", true)
-	w.jania.position = Vector2(372, 128)  # za krzesłem
+	w.body.position = Vector2(372, 128)  # za krzesłem
 	await shot("pokoj_noc")
 	Game.journal.append({"uid": 99, "id": "kasjopeja", "name": "Kasjopeja", "cat": "const", "quality": 92, "base": 25.0, "day": 1, "sold": false})
 	w._sleep()
@@ -50,13 +53,14 @@ func _ready() -> void:
 	w.busy = false
 	w._enter("room", true)
 	w._apply_phase(true)
-	w.jania.position = Vector2(380, 160)
+	w.body.position = Vector2(380, 160)
 	await shot("pokoj_dzien")
 	w._interact("komputer")
-	w.viewport.tab = 1
-	w.viewport._rebuild()
-	await shot("astroos_gielda")
-	w.viewport.tab = 3
-	w.viewport._rebuild()
-	await shot("astroos_drzewko")
+	w.viewport._close_app()
+	await shot("os_pulpit")
+	for id in ["dziennik", "gielda", "sklep", "badania", "pomoc"]:
+		w.viewport._launch(id)
+		if id == "badania":
+			w.viewport.hover = 4
+		await shot("os_" + id)
 	get_tree().quit()

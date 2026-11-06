@@ -124,6 +124,7 @@ var discovered := {}       # id obiektu -> true (Encyklopedia, „zbadane” na 
 var moon_done := {}        # faza -> true
 var tonight := {}          # obiekty zapisane tej nocy
 var demand := {}           # kategoria -> mnożnik popytu dnia
+var demand_log := []       # popyt z ostatnich dni (wykres Giełdy)
 var today := {}            # podsumowanie dnia
 var rain := false
 var rain_next := false
@@ -528,6 +529,9 @@ func _roll_demand() -> void:
 	for i in randi_range(1, 2):
 		demand[cats[i]] = snappedf(randf_range(1.2, 1.6), 0.05)
 	demand[cats[3]] = snappedf(randf_range(0.7, 0.9), 0.05)
+	demand_log.append(demand.duplicate())
+	if demand_log.size() > 14:
+		demand_log.pop_front()
 
 
 func new_game() -> void:
@@ -546,12 +550,14 @@ func new_game() -> void:
 	comet = {"left": 0, "gap": 0, "seed": 0}
 	location = "balcony"
 	stage_done = false
-	_roll_demand()
+	demand_log.clear()
+	for i in 8:  # rynek ma historię sprzed pierwszego dnia gry
+		_roll_demand()
 
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "pending", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
+	"moon_done", "tonight", "demand", "demand_log", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
 
 
 func has_save() -> bool:

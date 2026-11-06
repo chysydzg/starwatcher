@@ -24,6 +24,7 @@ var jania: Sprite2D
 var body: CharacterBody2D
 var modulate_node: CanvasModulate
 var lights: Array[PointLight2D] = []
+var pc_light: PointLight2D
 var glow: Node2D
 var props := {}
 var feet := {"room": [], "balcony": []}
@@ -171,7 +172,7 @@ func _build_room() -> void:
 	props.parcel.centered = false
 	room_sort.add_child(props.parcel)
 	_colliders("room", room)
-	for l in [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82), "ffc070", 0.9, 0.9], [Vector2(363, 84), "6affa0", 0.7, 0.5],
+	for l in [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82), "ffc070", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
 			[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(172, 218), "ffd890", 0.9, 1.3], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]:
 		var g := GradientTexture2D.new()
 		g.fill = GradientTexture2D.FILL_RADIAL
@@ -188,6 +189,7 @@ func _build_room() -> void:
 		p.position = l[0]
 		room.add_child(p)
 		lights.append(p)
+	pc_light = lights.pop_at(2)  # monitor świeci też w dzień i migocze razem z obrazem – sterowany w _process
 
 
 ## LCD stoi w miejscu CRT: tło za nim odtwarzam z kolumny obok monitora (ściana + blat biurka)
@@ -317,6 +319,7 @@ func _process(dt: float) -> void:
 	_animate(dt)
 	daynight.visible = not Game.night and viewport == null and not busy
 	glow.queue_redraw()
+	pc_light.energy = (1.1 if Game.night else 0.45) * (0.86 + 0.08 * sin(t * 2.1) + 0.04 * sin(t * 13.0) + (0.12 if fmod(t, 7.0) < 2.5 else 0.0))
 	hud.queue_redraw()
 
 
@@ -600,15 +603,30 @@ func _draw_glow() -> void:
 			_px(n, r.position.x, r.position.y + r.size.y - 5, r.size.x, 5, Color("a8d8f4"))
 			var cx := fposmod(t * 2.0 + i * 11.0, r.size.x + 10) - 6
 			_px(n, r.position.x + clampf(cx, 0, r.size.x - 6), r.position.y + 5, mini(6, int(r.size.x)), 2, Color("f4f8ff"))
+	if not Game.has("lcd"):
+		_pc_screen(n)
 	if Game.night:
 		n.draw_circle(Vector2(208, 37), 4, Color("f8e9b4"))
-		if not Game.has("lcd"):  # ekran CRT AstroOS
-			for k in 3:
-				_px(n, 355, 75 + (k * 5 + int(t * 2.0)) % 14, 6 + (k * 5 + int(t)) % 9, 1, Color("6affa0", 0.85))
-			if fmod(t, 1.0) < 0.5:
-				_px(n, 368, 86, 2, 2, Color("6affa0"))
 		for lamp in [Rect2(107, 83, 14, 8), Rect2(407, 75, 10, 7)]:
 			_px(n, lamp.position.x, lamp.position.y, lamp.size.x, lamp.size.y, Color("ffe6a0"))
+
+
+## miniatura pulpitu AstroOS na monitorze CRT: niebo, wzgórze, płynące chmurki, okienko i kursor
+func _pc_screen(n: Node2D) -> void:
+	var r := Rect2(353, 73, 20, 17)
+	_px(n, r.position.x, r.position.y, r.size.x, 10, Color("6aa8f4"))
+	_px(n, r.position.x, r.position.y + 10, r.size.x, 7, Color("6cc83a"))
+	_px(n, r.position.x, r.position.y + 9, 12, 2, Color("8ad84a"))
+	for k in 2:
+		_px(n, r.position.x + fposmod(t * 1.5 + k * 11.0, r.size.x - 3), r.position.y + 2 + k * 3, 3, 1, Color("f4f8ff"))
+	if fmod(t, 7.0) < 2.5:  # otwarte okno programu
+		_px(n, r.position.x + 5, r.position.y + 3, 11, 9, Color("f4f4f8"))
+		_px(n, r.position.x + 5, r.position.y + 3, 11, 2, Color("2a5ad8"))
+		for k in 3:
+			_px(n, r.position.x + 7, r.position.y + 6 + k * 2, 4 + (k * 3 + int(t * 2.0)) % 5, 1, Color("8a8aa0"))
+	_px(n, r.position.x, r.position.y, r.size.x, 1, Color("dcdce4"))
+	_px(n, r.position.x + 2 + int(t * 3.0) % 14, r.position.y + 8 + int(t * 1.3) % 6, 1, 2, Color.WHITE)  # kursor
+	_px(n, r.position.x, r.position.y + fposmod(t * 6.0, r.size.y), r.size.x, 1, Color(1, 1, 1, 0.18))  # przebiegająca linia CRT
 
 
 func _txt(p: Vector2, s: String, c: Color) -> void:

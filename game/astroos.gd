@@ -1,187 +1,289 @@
 extends Control
-## Komputer: AstroOS v1.0 (CRT, zieleń na czerni) / AstroOS XP (po zakupie LCD).
-## Zakładki: Dziennik Odkryć, Giełda i Centrum, Retro-Tech Store, Drzewko Badań, POMOC.TXT (GDD 8).
+## Komputer: AstroOS – pulpit z tapetą i ikonami; każdy program otwiera się w oknie na cały ekran
+## (górny pasek systemu zostaje). Programy: Dziennik, Giełda, Retro-Tech, Drzewko Badań, POMOC.TXT (GDD 8).
 
 signal closed
 signal stage_complete
 
-const HELP := """POMOC.TXT – AstroOS v1.0
-
-NOC (balkon)
+const HELP := """NOC (balkon)
 • Teleskop: najedź celownikiem na świecący obiekt (zacznie drżeć) i kliknij PPM.
 • Kółkiem myszy kręć w przód i w tył – szukasz balansu. Obraz najpierw się wyostrza, potem znowu rozmywa. Gdy jest ostry, soczewka sama „kliknie”.
 • Konstelacje: klikaj świecące gwiazdy po kolei, aż połączą się w figurę.
-• Odkryte obiekty mają ✓. Zapis trafia na dysk – gdy się zapełni, kup dyskietki.
+• Odkryte obiekty mają znaczek. Zapis trafia na dysk – gdy się zapełni, kup dyskietki.
 • Noc kończy się, gdy pasek czasu dobiegnie końca. Do łóżka trzeba dojść samemu.
 
 DZIEŃ (komputer)
-• Giełda: sprzedaj odkrycia Centrum Naukowemu. Ceny zależą od popytu dnia.
+• Giełda: sprzedaj odkrycia Centrum Naukowemu. Ceny zależą od popytu dnia – patrz wykres.
 • Retro-Tech ($): sprzęt i komfort. Zakupy przychodzą kurierem.
 • Drzewko Badań (PW): nowe obiekty na niebie i ułatwienia.
-• Noc zaczniesz przyciskiem NOC w prawym górnym rogu.
+• Esc zamyka okno, drugie Esc wyłącza komputer.
 
-CEL ETAPU: Manifest Naukowy (5000 PW) → Certyfikat Terenu ($5000) → min. 1 planeta → złoty przycisk INICJUJ."""
+CEL ETAPU: Manifest Naukowy (5000 PW) → Certyfikat Terenu ($5000) → min. 1 planeta → złota gwiazda INICJUJ ETAP 2 na pulpicie."""
+
+const APPS := [["dziennik", "Dziennik"], ["gielda", "Giełda"], ["sklep", "Retro-Tech"], ["badania", "Badania"], ["pomoc", "POMOC.TXT"]]
+const TITLES := {"dziennik": "Dziennik Odkryć", "gielda": "Giełda i Centrum Naukowe", "sklep": "Retro-Tech & Astro Store",
+	"badania": "Drzewko Badań", "pomoc": "POMOC.TXT – Notatnik"}
+const BAR := 22            # górny pasek systemu
+const TB := 20             # pasek tytułu okna
+const INK := Color("1a1626")
+const PATH_COL := [Color("2fb8e8"), Color("f4b830"), Color("a45ae8")]
+const CAT_COL := {"moon": "f4e8b0", "const": "5ab0ff", "zodiac": "ff8a5a", "nebula": "e86ad8", "planet": "ffcf4a", "deep": "9a9aff", "comet": "6af0c8"}
+const SHOP_ICONS := ["cat_optyka", "cat_komputer", "cat_pokoj"]
+const SHOP_SHORT := ["Optyka", "Komputer", "Pokój"]
+const GLYPHS := ["glyph_optyka", "glyph_analiza", "glyph_kosmos"]
 
 var hide_hud := true
-var tab := 0
-var xp := false
-var body: Control
-var detail: Label
-var header: Label
+var app := ""              # otwarty program ("" = pulpit)
+var bar: Control
+var win: Control           # okno programu (pasek tytułu + treść)
+var body: Control          # treść okna
+var info: Label            # opis na dole okna
 var selected := {}
 var uploading := false
-var c_text := Color("7dffb0")
-var c_dim := Color("3f8a5a")
-var c_hi := Color("ffe080")
+var shop_cat := 0
+var mark := ""             # kategoria wyróżniona na wykresie giełdy
+var hover := -1            # węzeł drzewka pod kursorem
+var nodes := []            # [pozycja, wiersz SCIENCE] drzewka
+var t := 0.0
 
 
 func _ready() -> void:
 	size = Vector2(640, 360)
-	xp = Game.has("lcd")
-	if xp:
-		c_text = Color("1a2a4a")
-		c_dim = Color("6a7a9a")
-		c_hi = Color("1a5ad0")
 	theme = _make_theme()
-	var bg := Panel.new()
-	bg.size = size
-	add_child(bg)
-	var bar := ColorRect.new()
-	bar.color = Color("2a5ad8") if xp else Color("10301c")
-	bar.size = Vector2(640, 22)
-	add_child(bar)
-	header = Label.new()
-	header.position = Vector2(6, 0)
-	header.add_theme_color_override("font_color", Color.WHITE if xp else c_text)
-	add_child(header)
-	var x := Button.new()
-	x.text = "X"
-	x.position = Vector2(614, 0)
-	x.focus_mode = Control.FOCUS_NONE
-	x.pressed.connect(close)
-	add_child(x)
-	var tabs := HBoxContainer.new()
-	tabs.position = Vector2(4, 24)
-	tabs.add_theme_constant_override("separation", 2)
-	add_child(tabs)
-	for i in 5:
-		var b := Button.new()
-		b.text = ["Dziennik", "Giełda", "Retro-Tech", "Drzewko Badań", "POMOC.TXT"][i]
-		b.pressed.connect(func(): tab = i; _rebuild())
-		tabs.add_child(b)
+	var wall := TextureRect.new()
+	wall.texture = Game.tex("os/os_wallpaper")
+	add_child(wall)
+	var icons := Control.new()
+	add_child(icons)
+	var list := APPS.duplicate()
 	if Game.stage_ready():
-		var g := Button.new()
-		g.text = "★ INICJUJ ETAP 2"
-		g.add_theme_color_override("font_color", Color("ffcf4a"))
-		g.pressed.connect(func(): stage_complete.emit(); close())
-		tabs.add_child(g)
-	body = Control.new()
-	body.position = Vector2(4, 52)
-	body.size = Vector2(632, 238)
-	add_child(body)
-	var line := ColorRect.new()
-	line.color = c_dim
-	line.position = Vector2(4, 292)
-	line.size = Vector2(632, 1)
-	add_child(line)
-	detail = Label.new()
-	detail.position = Vector2(8, 294)
-	detail.size = Vector2(624, 64)
-	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(detail)
-	Game.changed.connect(_header)
-	_header()
-	tab = 1 if not Game.night and not Game.stored().is_empty() else 0
-	_rebuild()
-	tabs.get_child(tab).grab_focus.call_deferred()
+		list.append(["etap", "ETAP 2"])
+	for i in list.size():
+		var b := Button.new()
+		b.flat = true
+		b.icon = Game.tex("os/icon_" + list[i][0])
+		b.text = list[i][1]
+		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.custom_minimum_size = Vector2(92, 64)
+		b.position = Vector2(10, BAR + 4 + i * 66) if i < 5 else Vector2(106, BAR + 4)
+		b.add_theme_color_override("font_color", Color.WHITE)
+		b.add_theme_color_override("font_hover_color", Color("fff2a0"))
+		b.add_theme_color_override("font_outline_color", INK)
+		b.add_theme_constant_override("outline_size", 3)
+		for st in ["normal", "disabled"]:
+			b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+		for st in ["hover", "pressed", "focus"]:
+			b.add_theme_stylebox_override(st, _box(Color(1, 1, 1, 0.22), Color(1, 1, 1, 0.7)))
+		b.pressed.connect(_launch.bind(list[i][0]))
+		icons.add_child(b)
+	icons.get_child(0).grab_focus.call_deferred()
+	bar = Control.new()
+	bar.size = Vector2(640, BAR)
+	bar.draw.connect(_draw_bar)
+	add_child(bar)
+	bar.gui_input.connect(func(e):  # „Wyłącz” rysowane w pasku (przycisk z czcionką 20 px nie mieści się w 22 px)
+		if e is InputEventMouseButton and e.pressed and e.position.x > 570:
+			close())
+	Game.changed.connect(bar.queue_redraw)
 	if not Game.tips.has("astro"):
 		Game.tips.astro = true
-		tab = 4
-		_rebuild()
+		_launch("pomoc")
+	elif not Game.night and not Game.stored().is_empty():
+		_launch("gielda")
+
+
+func _process(dt: float) -> void:
+	t += dt
+	if app in ["gielda", "badania"] and body:
+		body.queue_redraw()
+
+
+# ---------------------------------------------------------------- styl (jasne okna jak w starych systemach)
+func _box(bg: Color, border: Color, w := 1) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.border_color = border
+	s.set_border_width_all(w)
+	s.set_content_margin_all(3)
+	s.content_margin_top = 0
+	s.content_margin_bottom = 0
+	return s
 
 
 func _make_theme() -> Theme:
 	var th: Theme = Game.theme.duplicate()
-	var flat := func(bg: Color, border: Color) -> StyleBoxFlat:
-		var s := StyleBoxFlat.new()
-		s.bg_color = bg
-		s.border_color = border
-		s.set_border_width_all(1)
-		s.set_content_margin_all(2)
-		return s
-	var base := Color("e8ecf4") if xp else Color("06100a")
-	th.set_stylebox("panel", "Panel", flat.call(base, Color("6a8ac8") if xp else Color("1f5a32")))
-	th.set_stylebox("normal", "Button", flat.call(Color("d8e0f0") if xp else Color("0c2014"), c_dim))
-	th.set_stylebox("hover", "Button", flat.call(Color("f4f8ff") if xp else Color("163a24"), c_hi))
-	th.set_stylebox("focus", "Button", flat.call(Color(0, 0, 0, 0), c_hi))
-	th.set_stylebox("pressed", "Button", flat.call(Color("b8c8e8") if xp else Color("1f5a32"), c_hi))
-	th.set_stylebox("disabled", "Button", flat.call(Color("d0d4dc") if xp else Color("08140c"), Color("a0a8b8") if xp else Color("16301e")))
-	th.set_color("font_color", "Button", c_text)
-	th.set_color("font_hover_color", "Button", c_hi)
-	th.set_color("font_disabled_color", "Button", c_dim)
-	th.set_color("font_color", "Label", c_text)
-	th.set_color("font_color", "CheckBox", c_text)
+	th.set_stylebox("normal", "Button", _box(Color("e4e4ea"), Color("6a6a80")))
+	th.set_stylebox("hover", "Button", _box(Color("ffffff"), Color("2a5ad8")))
+	th.set_stylebox("pressed", "Button", _box(Color("c8d4f0"), Color("2a5ad8")))
+	th.set_stylebox("focus", "Button", _box(Color(0, 0, 0, 0), Color("2a5ad8")))
+	th.set_stylebox("disabled", "Button", _box(Color("cfd0d6"), Color("9a9aa8")))
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		th.set_color(k, "Button", INK)
+		th.set_color(k, "CheckBox", Color("d8f0e0"))
+	th.set_color("font_disabled_color", "Button", Color("80808c"))
+	for ic in ["checked", "unchecked"]:  # stan pokazuje tekst [x] / [ ]
+		th.set_icon(ic, "CheckBox", ImageTexture.new())
+	th.set_color("font_color", "Label", INK)
+	for st in ["normal", "hover", "pressed", "focus", "hover_pressed"]:
+		th.set_stylebox(st, "CheckBox", _box(Color(1, 1, 1, 0.08) if st == "hover" else Color(0, 0, 0, 0), Color(0, 0, 0, 0)))
 	return th
 
 
-func _header() -> void:
-	header.text = "%s   ·   $ %d   ·   PW %d   ·   %s" % ["AstroOS XP" if xp else "AstroOS v1.0", Game.money, Game.pw, Game.calendar()]
+func _button(text: String, f: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(f)
+	return b
 
 
-func _clear() -> void:
-	for c in body.get_children():
-		c.queue_free()
-
-
-func _label(parent: Node, text: String, col := Color(0, 0, 0, 0)) -> Label:
+func _label(parent: Node, text: String, pos: Vector2, col := INK, w := 0.0) -> Label:
 	var l := Label.new()
 	l.text = text
-	if col.a > 0:
-		l.add_theme_color_override("font_color", col)
+	l.position = pos
+	l.add_theme_color_override("font_color", col)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if w > 0:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(w, 0)
 	parent.add_child(l)
 	return l
 
 
-func _scroll() -> VBoxContainer:
+func _scroll(parent: Node, r: Rect2) -> VBoxContainer:
 	var sc := ScrollContainer.new()
-	sc.size = body.size
-	body.add_child(sc)
+	sc.position = r.position
+	sc.size = r.size
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	parent.add_child(sc)
 	var v := VBoxContainer.new()
-	v.custom_minimum_size = Vector2(620, 0)
-	v.add_theme_constant_override("separation", 1)
+	v.custom_minimum_size = Vector2(r.size.x - 10, 0)
+	v.add_theme_constant_override("separation", 0)
 	sc.add_child(v)
 	return v
 
 
+func _draw_bar() -> void:
+	bar.draw_rect(Rect2(0, 0, 640, BAR), Color("dcdce4"))
+	bar.draw_rect(Rect2(0, 0, 640, 1), Color.WHITE)
+	bar.draw_rect(Rect2(0, BAR - 1, 640, 1), Color("4a4a5c"))
+	bar.draw_rect(Rect2(572, 2, 64, 18), Color("f4f4f8"))
+	bar.draw_rect(Rect2(572, 2, 64, 18), Color("4a4a5c"), false)
+	bar.draw_string(Game.font, Vector2(572, 16), "Wyłącz", HORIZONTAL_ALIGNMENT_CENTER, 64, Game.FS, INK)
+	bar.draw_texture_rect(Game.tex("os/icon_etap"), Rect2(4, 3, 16, 16), false)
+	var os_name := "AstroOS XP" if Game.has("lcd") else "AstroOS"
+	for dx in 2:  # pogrubienie: tekst dwa razy z przesunięciem o 1 px
+		bar.draw_string(Game.font, Vector2(24 + dx, 16), os_name, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, INK)
+	var x := 24 + Game.font.get_string_size(os_name, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x + 16
+	for s in [["$ %d" % Game.money, Color("2a7a3a")], ["PW %d" % Game.pw, Color("6a3ac8")], [Game.calendar(), Color("3a3a50")]]:
+		bar.draw_string(Game.font, Vector2(x, 16), s[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, s[1])
+		x += Game.font.get_string_size(s[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x + 16
+
+
+# ---------------------------------------------------------------- okna
+func _launch(id: String) -> void:
+	Game.ding(1.4)
+	if id == "etap":
+		stage_complete.emit()
+		close()
+		return
+	if win:
+		win.queue_free()
+	app = id
+	win = Control.new()
+	win.position = Vector2(0, BAR)
+	win.size = Vector2(640, 360 - BAR)
+	win.draw.connect(_draw_frame)
+	add_child(win)
+	win.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed and Rect2(616, 0, 24, TB).has_point(e.position):
+			_close_app())
+	_rebuild()
+
+
 func _rebuild() -> void:
-	_clear()
-	detail.text = ""
-	match tab:
-		0: _journal()
-		1: _market()
-		2: _tree(Game.SHOP, Game.SHOP_PATHS, true)
-		3: _tree(Game.SCIENCE, Game.SCIENCE_PATHS, false)
-		4:
-			var l := _label(_scroll(), HELP)
-			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			l.custom_minimum_size = Vector2(600, 0)
+	if body:
+		body.queue_free()
+	body = Control.new()
+	body.position = Vector2(0, TB)
+	body.size = Vector2(640, 360 - BAR - TB)
+	body.clip_contents = true
+	win.add_child(body)
+	info = null
+	nodes.clear()
+	call("_" + app)
 
 
-# ---------------------------------------------------------------- 1. Dziennik Odkryć
-func _journal() -> void:
-	var v := _scroll()
+func _close_app() -> void:
+	if uploading or not win:
+		return
+	win.queue_free()
+	win = null
+	body = null
+	app = ""
+
+
+func _draw_frame() -> void:
+	win.draw_rect(Rect2(0, 0, 640, TB), Color("d6d6de"))
+	win.draw_rect(Rect2(0, 0, 640, 1), Color.WHITE)
+	win.draw_rect(Rect2(0, TB - 1, 640, 1), INK)
+	for i in 2:  # dwa kwadraciki jak w starych oknach
+		win.draw_rect(Rect2(4 + i * 16, 3, 12, 12), Color("f4f4f8"))
+		win.draw_rect(Rect2(4 + i * 16, 3, 12, 12), Color("6a6a80"), false)
+	win.draw_rect(Rect2(7, 6, 6, 6), Color("4a4a5c"))
+	var title: String = TITLES[app]
+	win.draw_string(Game.font, Vector2(46, 15), title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, INK)
+	var x0 := 46 + Game.font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x + 12
+	for k in 3:  # „uchwyt” paska tytułu
+		win.draw_rect(Rect2(x0, 6 + k * 3, 590 - x0, 1), Color("8a8a9c"))
+		win.draw_rect(Rect2(x0, 7 + k * 3, 590 - x0, 1), Color.WHITE)
+	win.draw_rect(Rect2(598, 3, 14, 14), Color("8ad06a"))
+	win.draw_rect(Rect2(598, 3, 14, 14), INK, false)
+	win.draw_rect(Rect2(601, 12, 8, 2), INK)
+	win.draw_rect(Rect2(618, 3, 16, 14), Color("e85a4a"))
+	win.draw_rect(Rect2(618, 3, 16, 14), INK, false)
+	win.draw_line(Vector2(622, 6), Vector2(630, 14), Color.WHITE, 2)
+	win.draw_line(Vector2(630, 6), Vector2(622, 14), Color.WHITE, 2)
+
+
+func _bg(col: Color) -> void:
+	var r := ColorRect.new()
+	r.color = col
+	r.size = body.size
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(r)
+
+
+func _info(r: Rect2, col := INK) -> void:
+	info = _label(body, "", r.position, col, r.size.x)
+
+
+# ---------------------------------------------------------------- Dziennik (zeszyt w linie)
+func _dziennik() -> void:
+	_bg(Color("f4ecd2"))
+	var lines := Control.new()
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lines.draw.connect(func():
+		for y in range(43, 322, 20):
+			lines.draw_rect(Rect2(0, y, 640, 1), Color("b8c8e4"))
+		lines.draw_rect(Rect2(36, 0, 1, 322), Color("e88a8a")))
+	body.add_child(lines)
 	var zod := Game.discovered.keys().filter(func(k): return Game.SKY.has(k) and Game.SKY[k].cat == "zodiac").size()
-	_label(v, "Pamięć %d/%d · Odkryte obiekty %d · Zodiak %d/12 · Sprzedane %d" % [
-		Game.stored().size(), Game.storage_cap(), Game.discovered.size(), zod, Game.journal.size() - Game.stored().size()], c_hi)
+	_label(body, "Pamięć %d/%d · Odkryte obiekty %d · Zodiak %d/12 · Sprzedane %d" % [Game.stored().size(), Game.storage_cap(),
+		Game.discovered.size(), zod, Game.journal.size() - Game.stored().size()], Vector2(44, 2), Color("2a3a8a"))
+	_label(body, "%-30s%-15s%7s%8s%6s" % ["Obiekt", "Kategoria", "Jakość", "Wartość", "Dzień"], Vector2(44, 24), Color("8a3a3a"))
+	_info(Rect2(44, 268, 590, 50), Color("2a3a8a"))
 	if Game.stored().is_empty():
-		_label(v, "\nBrak nieprzesłanych odkryć. Wieczorem wyjdź na balkon do teleskopu.")
+		info.text = "Brak nieprzesłanych odkryć. Wieczorem wyjdź na balkon do teleskopu."
+	var v := _scroll(body, Rect2(40, 44, 600, 220))
 	for e in Game.stored():
-		var p := Game.price(e)
 		var b := Button.new()
-		b.text = "%-28s %-14s %3d%%  ~$%-5d dz.%d" % [e.name.left(28), Game.CATS[e.cat], e.quality, p.total, e.day]
+		b.flat = true
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(func(): detail.text = _breakdown(e))
-		b.focus_entered.connect(func(): detail.text = _breakdown(e))
+		b.text = "%-30s%-15s%6d%%%8s%6d" % [e.name.left(29), Game.CATS[e.cat].left(14), e.quality, "$%d" % Game.price(e).total, e.day]
+		b.add_theme_stylebox_override("hover", _box(Color(1, 0.9, 0.4, 0.35), Color(0, 0, 0, 0)))
+		b.mouse_entered.connect(func(): info.text = _breakdown(e))
 		v.add_child(b)
 
 
@@ -191,134 +293,251 @@ func _breakdown(e: Dictionary) -> String:
 		e.name, p.base, p.quality, p.demand, int(p.bonus * 100), p.inst, p.total]
 
 
-# ---------------------------------------------------------------- 2. Giełda i Centrum Naukowe
-func _market() -> void:
-	var v := _scroll()
-	var trend := "Trendy dnia: "
+# ---------------------------------------------------------------- Giełda (ticker, wykres popytu, portfel)
+func _gielda() -> void:
+	if mark == "":
+		mark = Game.CATS.keys().reduce(func(a, c): return c if absi(_change(c)) > absi(_change(a)) else a)
+	body.draw.connect(_draw_market)
+	var legend := VBoxContainer.new()
+	legend.position = Vector2(4, 24)
+	legend.add_theme_constant_override("separation", 0)
+	body.add_child(legend)
 	for c in Game.CATS:
-		var m: float = Game.demand.get(c, 1.0)
-		if m != 1.0:
-			trend += "%s %s×%.2f   " % [Game.CATS[c], "▲" if m > 1 else "▼", m]
-	_label(v, trend, c_hi)
+		var b := Button.new()
+		b.flat = true
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(196, 20)
+		var d := _change(c)
+		b.text = "  %-14s%4d %s" % [Game.CATS[c].left(14), int(round(_dem(-1, c) * 100)), ("+%d" if d >= 0 else "%d") % d]
+		for k in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
+			b.add_theme_color_override(k, Color(CAT_COL[c]))
+		b.add_theme_stylebox_override("hover", _box(Color(1, 1, 1, 0.08), Color(CAT_COL[c])))
+		b.mouse_entered.connect(func(): mark = c)
+		legend.add_child(b)
+	_label(body, "PORTFEL ODKRYĆ", Vector2(6, 184), Color("ffcf4a"))
 	if Game.night:
-		_label(v, "\nCentrum Naukowe zamknięte do rana. Odkrycia czekają bezpiecznie na dysku.")
+		_label(body, "Centrum Naukowe zamknięte do rana. Odkrycia czekają bezpiecznie na dysku.", Vector2(6, 210), Color("8aa0b8"), 620)
 		return
 	var stored := Game.stored()
 	if stored.is_empty():
-		_label(v, "\nNie ma nic do wysłania.")
+		_label(body, "Nie ma nic do sprzedania. Odkrycia z nocy pojawią się tutaj.", Vector2(6, 210), Color("8aa0b8"), 620)
 		return
-	var row := HBoxContainer.new()
-	v.add_child(row)
-	var all := Button.new()
-	all.text = "Zaznacz wszystkie"
-	row.add_child(all)
-	var send := Button.new()
-	row.add_child(send)
-	var checks := []
+	_label(body, "    %-28s%7s%8s" % ["Obiekt", "Jakość", "Cena"], Vector2(6, 202), Color("6a8aa8"))
+	var v := _scroll(body, Rect2(4, 222, 440, 98))
+	var total := _label(body, "", Vector2(460, 192), Color("6aff8a"))
+	total.add_theme_font_size_override("font_size", Game.FS * 2)
+	var sell := _button("SPRZEDAJ", func(): _upload(stored.filter(func(e): return selected.get(e.uid, false))))
+	sell.position = Vector2(458, 242)
+	sell.size = Vector2(174, 34)
+	sell.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
+	sell.add_theme_stylebox_override("hover", _box(Color("4ad87a"), Color("0a3a1a"), 2))
+	sell.add_theme_color_override("font_color", Color.WHITE)
 	var update := func():
 		var sum := 0
-		var n := 0
 		for e in stored:
-			if selected.get(e.uid, false):
-				sum += Game.price(e).total
-				n += 1
-		send.text = "Wyślij Raport (%d) → Centrum Naukowe  +$%d" % [n, sum]
-		send.disabled = n == 0 or uploading
-	all.pressed.connect(func():
-		for i in stored.size():
-			selected[stored[i].uid] = true
-			checks[i].button_pressed = true
-		update.call())
+			sum += Game.price(e).total if selected.get(e.uid, false) else 0
+		total.text = "$%d" % sum
+		sell.disabled = sum == 0 or uploading
+	var checks := []
+	var all := _button("Zaznacz wszystkie", func():
+		for c in checks:
+			c.button_pressed = true)
+	all.position = Vector2(458, 284)
+	all.size = Vector2(174, 22)
+	body.add_child(all)
+	body.add_child(sell)
 	for e in stored:
 		var cb := CheckBox.new()
-		var txt := "%-28s jakość %3d%%   $%d" % [e.name.left(28), e.quality, Game.price(e).total]
+		var txt := "%-28s%6d%%%8s" % [e.name.left(27), e.quality, "$%d" % Game.price(e).total]
+		cb.text = ("[x] " if selected.get(e.uid, false) else "[ ] ") + txt
 		cb.button_pressed = selected.get(e.uid, false)
-		cb.text = ("[x] " if cb.button_pressed else "[ ] ") + txt
-		cb.toggled.connect(func(on): selected[e.uid] = on; cb.text = ("[x] " if on else "[ ] ") + txt; update.call(); detail.text = _breakdown(e))
+		cb.toggled.connect(func(on):
+			selected[e.uid] = on
+			cb.text = ("[x] " if on else "[ ] ") + txt
+			mark = e.cat
+			update.call())
 		v.add_child(cb)
 		checks.append(cb)
-	send.pressed.connect(func(): _upload(stored.filter(func(e): return selected.get(e.uid, false))))
 	update.call()
+
+
+func _dem(i: int, c: String) -> float:
+	var hist: Array = Game.demand_log if not Game.demand_log.is_empty() else [Game.demand]
+	return hist[i].get(c, 1.0) if i < 0 or i < hist.size() else 1.0
+
+
+func _change(c: String) -> int:
+	return int(round((_dem(-1, c) - (_dem(-2, c) if Game.demand_log.size() > 1 else 1.0)) * 100))
+
+
+func _draw_market() -> void:
+	var n := body
+	n.draw_rect(Rect2(Vector2.ZERO, n.size), Color("0b1622"))
+	# ticker: notowania przewijają się w pętli
+	n.draw_rect(Rect2(0, 0, 640, 20), Color("050c14"))
+	var items := []
+	var cycle := 0.0
+	for c in Game.CATS:
+		var d := _change(c)
+		var a := "%s %d " % [Game.CATS[c].to_upper(), int(round(_dem(-1, c) * 100))]
+		var b := "%+d%%   " % d
+		var wa := Game.font.get_string_size(a, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+		items.append([a, b, d >= 0, wa])
+		cycle += wa + 10 + Game.font.get_string_size(b, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+	var x := -fposmod(t * 40.0, cycle)
+	while x < 640:
+		for it in items:
+			n.draw_string(Game.font, Vector2(x, 15), it[0], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("c8d8e8"))
+			x += it[3]
+			var col := Color("4ae87a") if it[2] else Color("ff5a4a")
+			n.draw_colored_polygon(PackedVector2Array([Vector2(x, 13), Vector2(x + 8, 13), Vector2(x + 4, 7)] if it[2] else
+				[Vector2(x, 7), Vector2(x + 8, 7), Vector2(x + 4, 13)]), col)
+			n.draw_string(Game.font, Vector2(x + 10, 15), it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, col)
+			x += 10 + Game.font.get_string_size(it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+	# kwadraciki legendy
+	var i := 0
+	for c in Game.CATS:
+		n.draw_rect(Rect2(8, 30 + i * 20, 8, 8), Color(CAT_COL[c]))
+		i += 1
+	# wykres popytu (indeks = mnożnik × 100)
+	var r := Rect2(206, 26, 428, 152)
+	n.draw_rect(r, Color("101e2e"))
+	var lo := 60.0
+	var hi := 170.0
+	for v in [70, 100, 130, 160]:
+		var y: float = r.end.y - (v - lo) / (hi - lo) * r.size.y
+		n.draw_rect(Rect2(r.position.x, y, r.size.x, 1), Color("1e3248") if v != 100 else Color("3a5a78"))
+		n.draw_string(Game.font, Vector2(r.position.x + 2, y - 2), str(v), HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("3a5a78"))
+	var hist: Array = Game.demand_log
+	if hist.size() < 2:
+		n.draw_string(Game.font, r.position + Vector2(120, 80), "Za mało notowań", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("6a8aa8"))
+		return
+	var step := (r.size.x - 40) / (hist.size() - 1)
+	for c in Game.CATS:
+		if c == mark:
+			continue
+		_line(n, r, hist, c, step, lo, hi, Color(CAT_COL[c], 0.35), 1.0)
+	if mark != "":
+		_line(n, r, hist, mark, step, lo, hi, Color(CAT_COL[mark]), 2.0)
+		n.draw_string(Game.font, r.position + Vector2(36, 16), Game.CATS[mark], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(CAT_COL[mark]))
+	n.draw_string(Game.font, Vector2(r.end.x - 116, r.end.y - 4), "dziś", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("6a8aa8"))
+
+
+func _line(n: Control, r: Rect2, hist: Array, c: String, step: float, lo: float, hi: float, col: Color, w: float) -> void:
+	var pts := PackedVector2Array()
+	for k in hist.size():
+		pts.append(Vector2(r.position.x + 30 + k * step, r.end.y - (hist[k].get(c, 1.0) * 100 - lo) / (hi - lo) * r.size.y))
+	n.draw_polyline(pts, col, w)
+	n.draw_rect(Rect2(pts[-1] - Vector2(2, 2), Vector2(5, 5)), col)
 
 
 func _upload(list: Array) -> void:
 	uploading = true
 	var dur := 0.0 if Game.has("isdn") else 4.0 * (0.6 if Game.has("modem") else 1.0)
-	var bar := ProgressBar.new()
-	bar.position = Vector2(150, 140)
-	bar.size = Vector2(340, 14)
-	bar.show_percentage = false
-	body.add_child(bar)
-	var l := _label(body, "Łączenie z Centrum Naukowym... ATDT 0-700-ASTRO", c_hi)
-	l.position = Vector2(150, 122)
+	var box := ColorRect.new()
+	box.color = Color("050c14")
+	box.position = Vector2(140, 110)
+	box.size = Vector2(360, 70)
+	body.add_child(box)
+	_label(box, "ATDT 0-700-ASTRO... łączenie z Centrum", Vector2(10, 6), Color("6aff8a"))
+	var pb := ProgressBar.new()
+	pb.position = Vector2(10, 32)
+	pb.size = Vector2(340, 14)
+	pb.show_percentage = false
+	box.add_child(pb)
 	var tw := create_tween()
-	tw.tween_method(func(x): bar.value = x; detail.text = "Przesłano %d B / %d B" % [int(x * 14.4), 1440], 0.0, 100.0, dur)
+	tw.tween_property(pb, "value", 100.0, dur)
 	tw.tween_callback(func():
 		var sum := Game.sell(list)
 		uploading = false
 		selected.clear()
+		Game.ding(1.0)
 		Game.toast.emit("Raport przyjęty! +$%d" % sum, "good")
-		_rebuild()
-		detail.text = "Sukces: Centrum Naukowe przelało $%d." % sum)
+		_rebuild())
 
 
-# ---------------------------------------------------------------- 3/4. Drzewka (sklep $ i badania PW)
-func _tree(rows: Array, paths: Array, is_shop: bool) -> void:
+# ---------------------------------------------------------------- Retro-Tech (kategorie z ikonami, karty produktów)
+func _sklep() -> void:
+	_bg(Color("e6ecf6"))
+	var side := ColorRect.new()
+	side.color = Color("2a4a8a")
+	side.size = Vector2(108, body.size.y)
+	body.add_child(side)
+	for i in 3:
+		var b := Button.new()
+		b.icon = Game.tex("os/" + SHOP_ICONS[i])
+		b.text = SHOP_SHORT[i]
+		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.position = Vector2(6, 6 + i * 82)
+		b.size = Vector2(96, 76)
+		b.focus_mode = Control.FOCUS_NONE
+		var on := i == shop_cat
+		b.add_theme_stylebox_override("normal", _box(Color("e6ecf6") if on else Color("3a5aa0"), Color("ffcf4a") if on else Color("1a2a5a"), 2 if on else 1))
+		b.add_theme_stylebox_override("hover", _box(Color("f4f8ff") if on else Color("4a6ab8"), Color("ffcf4a"), 2))
+		for st in ["normal", "hover"]:
+			b.get_theme_stylebox(st).content_margin_top = 8
+		b.add_theme_color_override("font_color", INK if on else Color.WHITE)
+		b.add_theme_color_override("font_hover_color", INK if on else Color.WHITE)
+		b.pressed.connect(func(): shop_cat = i; _rebuild())
+		body.add_child(b)
+	_label(body, "$ %d" % Game.money, Vector2(10, 296), Color("ffcf4a"))
+	_label(body, Game.SHOP_PATHS[shop_cat], Vector2(116, 2), Color("1a3a8a"))
+	_info(Rect2(116, 274, 518, 46), Color("2a3a5a"))
 	var sc := ScrollContainer.new()
-	sc.size = body.size
+	sc.position = Vector2(114, 24)
+	sc.size = Vector2(524, 246)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	body.add_child(sc)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 6)
-	sc.add_child(h)
-	for pi in 3:
-		var col := VBoxContainer.new()
-		col.custom_minimum_size = Vector2(206, 0)
-		col.add_theme_constant_override("separation", 1)
-		h.add_child(col)
-		_label(col, paths[pi], c_hi)
-		var last_tier := 0
-		for r in rows:
-			if r[4] != pi:
-				continue
-			var st: String = Game.can_buy_shop(r) if is_shop else Game.can_buy_science(r)
-			if st == "hidden":
-				continue
-			if r[3] != last_tier:
-				last_tier = r[3]
-				_label(col, "TIER %d" % r[3], c_dim)
-			var b := Button.new()
-			b.custom_minimum_size = Vector2(206, 0)
-			b.clip_text = true
-			b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			var mark: String = {"owned": "✓ ", "ok": "• ", "cost": "  ", "req": "  ", "tier": "  "}[st]
-			b.text = mark + r[1]
-			if st == "owned":
-				b.add_theme_color_override("font_color", c_dim)
-			if r[0] in ["manifest", "certyfikat"]:
-				b.add_theme_color_override("font_color", Color("ffcf4a") if not xp else Color("b07800"))
-			var info := func(): detail.text = _desc(r, st, is_shop)
-			b.focus_entered.connect(info)
-			b.mouse_entered.connect(info)
-			b.pressed.connect(func():
-				var now: String = Game.can_buy_shop(r) if is_shop else Game.can_buy_science(r)
-				if now == "ok":
-					if is_shop:
-						Game.buy_shop(r)
-					else:
-						Game.buy_science(r)
-					_rebuild()
-				else:
-					detail.text = _desc(r, now, is_shop))
-			col.add_child(b)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 5)
+	grid.add_theme_constant_override("v_separation", 5)
+	sc.add_child(grid)
+	for r in Game.SHOP:
+		if r[4] != shop_cat:
+			continue
+		var st: String = Game.can_buy_shop(r)
+		if st == "hidden":
+			continue
+		grid.add_child(_card(r, st))
+
+
+func _card(r: Array, st: String) -> Button:
+	var c := Button.new()
+	c.custom_minimum_size = Vector2(168, 74)
+	c.focus_mode = Control.FOCUS_NONE
+	var bg: Color = {"owned": Color("d8f4d8"), "ok": Color("ffffff"), "cost": Color("f4f0e8"), "req": Color("d4d6de")}[st]
+	c.add_theme_stylebox_override("normal", _box(bg, Color("6a6a80")))
+	c.add_theme_stylebox_override("hover", _box(bg.lightened(0.3), Color("2a5ad8"), 2))
+	c.add_theme_stylebox_override("pressed", _box(Color("c8d4f0"), Color("2a5ad8"), 2))
+	var title := _label(c, r[1], Vector2(6, 2), INK if st != "req" else Color("6a6a7a"), 132)
+	title.max_lines_visible = 2
+	_label(c, "T%d" % r[3], Vector2(144, 2), Color("8a8aa0"))
+	var price := _label(c, "$%d" % r[2], Vector2(6, 52), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
+	var tag: String = {"owned": "W drodze" if (r[0] in Game.pending or r[0] in Game.parcels) else "Posiadane", "ok": "KUP", "cost": "Za mało $", "req": "Zablokowane"}[st]
+	var l := _label(c, tag, Vector2(0, 52), Color("1a5ad0") if st == "ok" else Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
+	l.size.x = 160
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if st == "owned":
+		price.text = ""
+	c.mouse_entered.connect(func(): info.text = _desc(r, Game.can_buy_shop(r), true))
+	c.pressed.connect(func():
+		if Game.can_buy_shop(r) == "ok":
+			Game.buy_shop(r)
+			Game.ding(1.2)
+			_rebuild()
+		else:
+			info.text = _desc(r, Game.can_buy_shop(r), true))
+	return c
 
 
 func _desc(r: Array, st: String, is_shop: bool) -> String:
 	var cost := ("$%d" if is_shop else "%d PW") % r[2]
 	var why: String = {"owned": "Posiadane." if not (r[0] in Game.pending or r[0] in Game.parcels) else "W drodze – kurier dostarczy przy zmianie pory dnia.",
 		"ok": "Kliknij, aby kupić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
-		"tier": "Tier %d odblokuje się po %s." % [r[3], "3 węzłach z Tier 1" if r[3] == 2 else "4 węzłach z Tier 2"]}[st]
-	return "%s   [%s]\n%s   %s" % [r[1], cost, r[6], why]
+		"tier": "Tier %d odblokuje się po %s." % [r[3], "3 węzłach z Tier 1" if r[3] == 2 else "4 węzłach z Tier 2"]}.get(st, "")
+	return "%s  [%s]  %s\n%s" % [r[1], cost, why, r[6]]
 
 
 func _name_of(id: String) -> String:
@@ -328,13 +547,135 @@ func _name_of(id: String) -> String:
 	return id
 
 
+# ---------------------------------------------------------------- Drzewko Badań (węzły połączone liniami, dymek z opisem)
+func _badania() -> void:
+	body.draw.connect(_draw_tree)
+	body.mouse_filter = Control.MOUSE_FILTER_STOP
+	body.gui_input.connect(_tree_input)
+	var groups := {}
+	for r in Game.SCIENCE:
+		var k: Vector2i = Vector2i(r[4], r[3])
+		groups[k] = groups.get(k, []) + [r]
+	for k in groups:
+		var g: Array = groups[k]
+		for i in g.size():
+			nodes.append([Vector2(110 + k.x * 210 + (i - (g.size() - 1) / 2.0) * 58, 30 + k.y * 78), g[i]])
+
+
+func _node_at(p: Vector2) -> int:
+	for i in nodes.size():
+		if Rect2(nodes[i][0] - Vector2(17, 17), Vector2(34, 34)).has_point(p):
+			return i
+	return -1
+
+
+func _tree_input(e: InputEvent) -> void:
+	if e is InputEventMouseMotion:
+		hover = _node_at(e.position)
+	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and hover >= 0:
+		var r: Array = nodes[hover][1]
+		if Game.can_buy_science(r) == "ok":
+			Game.buy_science(r)
+			Game.ding(1.5)
+			bar.queue_redraw()
+
+
+func _parent(r: Array) -> Vector2:
+	if r[5] != "":
+		for n in nodes:
+			if n[1][0] == r[5]:
+				return n[0]
+	for n in nodes:  # pierwszy węzeł tej ścieżki z poprzedniego tieru, inaczej korzeń
+		if n[1][4] == r[4] and n[1][3] == r[3] - 1:
+			return n[0]
+	return Vector2(320, 30)
+
+
+func _draw_tree() -> void:
+	var n := body
+	n.draw_rect(Rect2(Vector2.ZERO, n.size), Color("1c2140"))
+	for x in range(0, 640, 24):
+		n.draw_rect(Rect2(x, 0, 1, 322), Color("232a4e"))
+	for y in range(0, 322, 24):
+		n.draw_rect(Rect2(0, y, 640, 1), Color("232a4e"))
+	for nd in nodes:  # linie: łokcie jak w drzewkach umiejętności
+		var a := _parent(nd[1])
+		var b: Vector2 = nd[0]
+		var lit: bool = Game.science.has(nd[1][0])
+		var col := Color("e8ecf8") if lit else Color("4a5276")
+		var w := 2.0 if lit else 1.0
+		if is_equal_approx(a.y, b.y):
+			n.draw_line(a, b, col, w)
+		else:
+			var my := a.y + 30
+			n.draw_polyline(PackedVector2Array([a, Vector2(a.x, my), Vector2(b.x, my), b]), col, w)
+	# korzeń: bank PW
+	n.draw_rect(Rect2(296, 8, 48, 44), Color("ffcf4a"))
+	n.draw_rect(Rect2(296, 8, 48, 44), INK, false, 2)
+	n.draw_string(Game.font, Vector2(296, 28), "PW", HORIZONTAL_ALIGNMENT_CENTER, 48, Game.FS, INK)
+	n.draw_string(Game.font, Vector2(296, 46), str(Game.pw), HORIZONTAL_ALIGNMENT_CENTER, 48, Game.FS, INK)
+	for p in 3:
+		n.draw_string(Game.font, Vector2(10 + p * 210, 313), Game.SCIENCE_PATHS[p], HORIZONTAL_ALIGNMENT_CENTER, 200, Game.FS, PATH_COL[p])
+	for i in nodes.size():
+		var c: Vector2 = nodes[i][0]
+		var r: Array = nodes[i][1]
+		var st: String = Game.can_buy_science(r)
+		var base: Color = PATH_COL[r[4]]
+		var fill: Color = {"owned": base, "ok": base, "cost": base.darkened(0.45), "req": Color("50566e"), "tier": Color("50566e")}.get(st, Color("50566e"))
+		var rect := Rect2(c - Vector2(15, 15), Vector2(30, 30))
+		if i == hover:  # drżenie pod kursorem jak obiekty na niebie
+			rect.position += Vector2(sin(t * 50.0), cos(t * 43.0)).round()
+		n.draw_rect(rect.grow(2), INK)
+		n.draw_rect(rect, fill)
+		n.draw_rect(Rect2(rect.position, Vector2(30, 3)), fill.lightened(0.35))
+		n.draw_rect(Rect2(rect.position + Vector2(0, 27), Vector2(30, 3)), fill.darkened(0.3))
+		var glyph := Game.tex("os/" + GLYPHS[r[4]])
+		n.draw_texture(glyph, rect.position + Vector2(8, 8), Color(1, 1, 1, 1.0 if st in ["owned", "ok"] else 0.45))
+		if st == "ok":  # dostępne: pulsujące białe obramowanie
+			n.draw_rect(rect.grow(4), Color(1, 1, 1, 0.5 + 0.5 * sin(t * 6.0)), false, 2)
+		n.draw_string(Game.font, Vector2(c.x - 20, c.y + 33), "%d/1" % int(st == "owned"), HORIZONTAL_ALIGNMENT_CENTER, 40, Game.FS, Color("ffcf4a") if st == "owned" else Color("8a90b0"))
+		if st in ["req", "tier"]:  # kłódka
+			n.draw_rect(Rect2(c + Vector2(6, 6), Vector2(9, 7)), Color("c8c8d8"))
+			n.draw_arc(c + Vector2(10.5, 6), 3, PI, TAU, 6, Color("c8c8d8"), 1.5)
+	if hover >= 0:
+		_tooltip(n, nodes[hover][0], nodes[hover][1])
+
+
+func _tooltip(n: Control, at: Vector2, r: Array) -> void:
+	var st: String = Game.can_buy_science(r)
+	var w := 230.0
+	var p := at + Vector2(26, -20)
+	if p.x + w > 636:
+		p.x = at.x - 26 - w
+	p.y = clampf(p.y, 4, 322 - 150)
+	var body_text: String = r[6]
+	var why: String = _desc(r, st, false).get_slice("\n", 0).get_slice("]  ", 1)
+	n.draw_rect(Rect2(p, Vector2(w, 146)).grow(2), Color("e8ecf8"))
+	n.draw_rect(Rect2(p, Vector2(w, 146)), Color("243a6a"))
+	n.draw_rect(Rect2(p, Vector2(w, 44)), Color("2f4f8f"))
+	n.draw_multiline_string(Game.font, p + Vector2(6, 16), r[1], HORIZONTAL_ALIGNMENT_CENTER, w - 12, Game.FS, 2, Color.WHITE)
+	n.draw_string(Game.font, p + Vector2(0, 60), "LVL %d/1 · Tier %d" % [int(st == "owned"), r[3]], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("a8b8d8"))
+	n.draw_multiline_string(Game.font, p + Vector2(8, 80), body_text, HORIZONTAL_ALIGNMENT_CENTER, w - 16, Game.FS, 2, Color.WHITE)
+	n.draw_string(Game.font, p + Vector2(0, 118), "%d PW" % r[2], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("ffcf4a") if st != "cost" else Color("ff6a5a"))
+	n.draw_string(Game.font, p + Vector2(0, 138), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
+
+
+# ---------------------------------------------------------------- POMOC.TXT (konsola)
+func _pomoc() -> void:
+	_bg(Color("1f4a34"))
+	var v := _scroll(body, Rect2(10, 6, 624, 312))
+	var l := _label(v, "AstroOS – Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(604, 0)
+
+
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_action_pressed("back"):
-		close()
+		if app != "":
+			_close_app()
+		else:
+			close()
 		get_viewport().set_input_as_handled()
-	elif e is InputEventKey and e.pressed and e.keycode >= KEY_1 and e.keycode <= KEY_5:
-		tab = e.keycode - KEY_1
-		_rebuild()
 
 
 func close() -> void:

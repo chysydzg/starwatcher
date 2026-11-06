@@ -41,10 +41,10 @@ func _ready() -> void:
 	w._interact("komputer")
 	for i in 5: await get_tree().process_frame
 	var os = w.viewport
-	for tb in 5:
-		os.tab = tb
-		os._rebuild()
+	for id in ["dziennik", "gielda", "sklep", "badania", "pomoc"]:
+		os._launch(id)
 		await get_tree().process_frame
+	os._close_app()
 	var earned := Game.sell(Game.stored())
 	print("sold for $", earned, " money=", Game.money)
 	Game.pw += 200
