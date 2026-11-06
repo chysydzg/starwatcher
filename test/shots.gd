@@ -47,7 +47,9 @@ func _ready() -> void:
 	w.body.position = Vector2(372, 128)  # za krzesłem
 	await shot("pokoj_noc")
 	Game.journal.append({"uid": 99, "id": "kasjopeja", "name": "Kasjopeja", "cat": "const", "quality": 92, "base": 25.0, "day": 1, "sold": false})
+	Game.analysis.uids.append(99)  # raport poranny do podsumowania
 	w._sleep()
+	await get_tree().create_timer(2.5).timeout  # kwoty nabijają się
 	await shot("podsumowanie")
 	w.top.get_child(w.top.get_child_count() - 1).queue_free()
 	w.busy = false
@@ -66,4 +68,11 @@ func _ready() -> void:
 		if id == "badania":
 			w.viewport.hover = 4
 		await shot("os_" + id)
+	w.viewport.close()
+	await get_tree().create_timer(0.3).timeout
+	w._toggle_phase()
+	await get_tree().create_timer(1.8).timeout
+	await shot("zmierzch")
+	await get_tree().create_timer(2.0).timeout
+	await shot("noc_kontynuuj")
 	get_tree().quit()

@@ -83,10 +83,15 @@ func _ready() -> void:
 	hud.draw.connect(_draw_hud)
 	hud_layer.add_child(hud)
 	daynight = Button.new()
-	daynight.icon = Game.tex("os/ui_moon")  # rozpoczęcie nocy: sierp Księżyca w lewym dolnym rogu
-	daynight.flat = true
-	daynight.position = Vector2(4, 326)
-	daynight.tooltip_text = "Rozpocznij noc"
+	daynight.flat = true  # rozpoczęcie nocy: metalowy przycisk z Księżycem w lewym dolnym rogu
+	daynight.position = Vector2(4, 320)
+	daynight.custom_minimum_size = Vector2(36, 36)
+	for st in ["normal", "hover", "pressed", "focus", "hover_pressed"]:
+		daynight.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	daynight.draw.connect(func():
+		var down := daynight.is_hovered() or daynight.button_pressed  # najechanie = wciśnięty przycisk
+		_metal(daynight, Rect2(Vector2.ZERO, daynight.size), down)
+		daynight.draw_texture(Game.tex("os/ui_moon"), Vector2(8, 8) + (Vector2.ONE if down else Vector2.ZERO)))
 	daynight.focus_mode = Control.FOCUS_NONE
 	daynight.pressed.connect(_toggle_phase)
 	hud_layer.add_child(daynight)
@@ -259,6 +264,59 @@ func _apply_phase(instant := false) -> void:
 func _toggle_phase() -> void:
 	if Game.night or busy or viewport:
 		return
+	busy = true
+	var o := Control.new()
+	o.size = Vector2(640, 360)
+	top.add_child(o)
+	var k := {"t": 0.0}
+	o.draw.connect(func(): _draw_dusk(o, k.t))
+	var tw := create_tween()
+	tw.tween_method(func(v): k.t = v; o.queue_redraw(), 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_callback(func():
+		var b := Button.new()
+		b.text = "KONTYNUUJ"
+		b.position = Vector2(260, 318)
+		b.custom_minimum_size = Vector2(120, 30)
+		o.add_child(b)
+		b.grab_focus()
+		b.pressed.connect(func():
+			o.queue_free()
+			busy = false
+			_start_night()))
+
+
+func _draw_dusk(o: Control, t: float) -> void:
+	var sky := Color("8cc8f0").lerp(Color("f0a070"), clampf(t * 2.0, 0, 1)).lerp(Color("141a40"), clampf(t * 2.0 - 1.0, 0, 1))
+	o.draw_rect(Rect2(0, 0, 640, 360), sky)
+	o.draw_rect(Rect2(0, 236, 640, 40), Color(1, 0.7, 0.45, 0.45 * sin(t * PI)))  # łuna nad horyzontem
+	for i in 60:  # gwiazdy wychodzą po zmroku
+		var a := clampf(t * 3.0 - 2.0 - (i % 5) * 0.1, 0, 1)
+		o.draw_rect(Rect2((i * 97) % 640, (i * 53) % 230, 1, 1), Color(1, 0.95, 0.85, a))
+	var c := Vector2(320, 286)
+	var sun := (c + Vector2.from_angle(lerpf(-PI / 2, 0.3, t)) * Vector2(260, 220)).floor()  # Słońce zachodzi łukiem
+	o.draw_circle(sun, 26, Color(1, 0.85, 0.4, 0.25))
+	o.draw_circle(sun, 18, Color("ffd86a"))
+	var m := clampf((t - 0.35) / 0.65, 0, 1)
+	if m > 0:  # Księżyc wschodzi łukiem z drugiej strony
+		var moon := (c + Vector2.from_angle(lerpf(PI, PI * 1.5, m)) * Vector2(260, 220)).floor()
+		o.draw_circle(moon, 15, Color("f4ecc8"))
+		o.draw_circle(moon + Vector2(6, -4), 13, sky)
+	var ground := Color("4a7a3a").lerp(Color("0c0a14"), t)
+	var pts := PackedVector2Array([Vector2(0, 360)])
+	for x in range(0, 641, 16):
+		pts.append(Vector2(x, 280 + 8 * sin(x * 0.012) + 5 * sin(x * 0.031)).floor())
+	pts.append(Vector2(640, 360))
+	o.draw_colored_polygon(pts, ground)
+	if t > 0.75:
+		var s := "Zapada noc"
+		_txt_on(o, Vector2(320 - _w(s) / 2, 170).floor(), s, Color(0.96, 0.93, 0.86, (t - 0.75) * 4.0))
+
+
+func _txt_on(n: CanvasItem, p: Vector2, s: String, c: Color) -> void:
+	n.draw_string(Game.font, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, c)
+
+
+func _start_night() -> void:
 	Game.start_night()
 	tired_told = false
 	_toast("Zapada noc. Niebo rozbłyska gwiazdami.", "info")
@@ -460,34 +518,55 @@ func _open(v: Control) -> void:
 func _sleep() -> void:
 	busy = true
 	var s := Game.sleep()
-	var p := _panel(Vector2(400, 290))
-	var lines := [["PODSUMOWANIE DNIA %d" % s.day, ""], [s.calendar, ""],
-		["Odkrycia sprzedane (Centrum) x%d" % s.get("sales_n", 0), "+$%d" % s.get("sales", 0)],
-		["Meteory x%d" % s.get("meteors_n", 0), "+$%d" % s.get("meteors", 0)],
-		["RAZEM", "+$%d" % (s.get("sales", 0) + s.get("meteors", 0))],
-		["Punkty Wiedzy", "+%d PW" % s.get("pw", 0)], ["", ""],
-		["Prognoza na noc: " + s.forecast, ""], ["Autozapis wykonany.", ""]]
-	for i in lines.size():
-		var row := HBoxContainer.new()
-		row.position = Vector2(14, 10 + i * 24)
-		row.size = Vector2(372, 20)
+	var rows := []  # [opis, kwota, przyrostek] – tylko to, co faktycznie zebraliśmy
+	if s.get("sales_n", 0) > 0:
+		rows.append(["Odkrycia x%d" % s.sales_n, s.sales, "$"])
+	if s.get("meteors_n", 0) > 0:
+		rows.append(["Meteory x%d" % s.meteors_n, s.meteors, "$"])
+	if s.get("pw", 0) > 0:
+		rows.append(["Punkty Wiedzy", s.pw, "PW"])
+	var h := 40 + maxi(rows.size(), 1) * 24 + 24
+	var p := _panel(Vector2(380, h))
+	p.position = Vector2(130, 308 - h)
+	var title := Label.new()
+	title.text = "PODSUMOWANIE · " + s.calendar
+	title.position = Vector2(14, 8)
+	title.add_theme_color_override("font_color", Color("ffcf6b"))
+	p.add_child(title)
+	if rows.is_empty():
+		var l := Label.new()
+		l.text = "Spokojny dzień – bez nowych wpływów."
+		l.position = Vector2(14, 36)
+		p.add_child(l)
+	for i in rows.size():
 		var a := Label.new()
-		a.text = lines[i][0]
-		a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if i == 0 or i == 4:
-			a.add_theme_color_override("font_color", Color("ffcf6b"))
-		var b := Label.new()
-		b.text = lines[i][1]
-		b.add_theme_color_override("font_color", Color("6affa0"))
-		row.add_child(a)
-		row.add_child(b)
-		row.modulate.a = 0.0
-		p.add_child(row)
-		create_tween().tween_property(row, "modulate:a", 1.0, 0.2).set_delay(0.15 * i)  # kwoty „nabijają się” po kolei
+		a.text = rows[i][0]
+		a.position = Vector2(14, 36 + i * 24)
+		var v := Label.new()
+		v.position = Vector2(220, 36 + i * 24)
+		v.size = Vector2(146, 20)
+		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		v.add_theme_color_override("font_color", Color("ffcf6b") if rows[i][2] == "$" else Color("6affa0"))
+		v.text = ""
+		a.modulate.a = 0.0
+		p.add_child(a)
+		p.add_child(v)
+		var fmt: String = "+$%d" if rows[i][2] == "$" else "+%d PW"
+		var tw := create_tween()  # wiersz pojawia się, a kwota „nabija się” od zera
+		tw.tween_interval(0.3 + 0.8 * i)
+		tw.tween_property(a, "modulate:a", 1.0, 0.15)
+		tw.tween_method(func(x): v.text = fmt % int(x), 0.0, float(rows[i][1]), 0.6)
+		tw.tween_callback(Game.ding.bind(1.0 + 0.15 * i))
+	var fc := Label.new()
+	fc.text = "Prognoza na noc: " + s.forecast
+	fc.position = Vector2(14, h - 28)
+	fc.add_theme_color_override("font_color", Color("a8b0d0"))
+	p.add_child(fc)
 	var ok := Button.new()
-	ok.text = "DZIEŃ DOBRY! " + Game.key("interact")
-	ok.position = Vector2(226, 250)
-	p.add_child(ok)
+	ok.text = "KOLEJNY DZIEŃ"
+	ok.custom_minimum_size = Vector2(150, 30)
+	ok.position = Vector2(245, 316)
+	p.get_parent().add_child(ok)
 	ok.grab_focus.call_deferred()
 	ok.pressed.connect(func():
 		p.get_parent().queue_free()
@@ -496,9 +575,6 @@ func _sleep() -> void:
 		_enter("room", true)
 		busy = false
 		tired_told = false
-		if not Game.tips.has("day"):
-			Game.tips.day = true
-			_tip("Przy komputerze sprzedasz odkrycia i kupisz ulepszenia. Noc: " + Game.key("daynight") + ".")
 		_toast("Nowy dzień! " + Game.calendar(), "info"))
 
 
@@ -630,6 +706,27 @@ func _pc_screen(n: Node2D) -> void:
 	_px(n, r.position.x, r.position.y + fposmod(t * 6.0, r.size.y), r.size.x, 1, Color(1, 1, 1, 0.18))  # przebiegająca linia CRT
 
 
+## ramka z polerowanej stali z nitami (styl przyrządu naukowego); inset = ciemny „wyświetlacz” w środku
+func _metal(n: CanvasItem, r: Rect2, pressed := false, inset := false) -> void:
+	var hi := Color("d8e0ee")
+	var lo := Color("2a3044")
+	n.draw_rect(r.grow(1), Color("120e1a"))
+	n.draw_rect(r, Color("5e6884") if pressed else Color("6c7692"))
+	n.draw_rect(Rect2(r.position, Vector2(r.size.x, floorf(r.size.y / 2))), Color("66708c") if pressed else Color("7e88a4"))  # połysk
+	n.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), lo if pressed else hi)
+	n.draw_rect(Rect2(r.position, Vector2(1, r.size.y)), lo if pressed else hi)
+	n.draw_rect(Rect2(r.position.x, r.end.y - 1, r.size.x, 1), hi if pressed else lo)
+	n.draw_rect(Rect2(r.end.x - 1, r.position.y, 1, r.size.y), hi if pressed else lo)
+	for c in [r.position + Vector2(2, 2), Vector2(r.end.x - 4, r.position.y + 2), Vector2(r.position.x + 2, r.end.y - 4), r.end - Vector2(4, 4)]:
+		n.draw_rect(Rect2(c, Vector2(2, 2)), Color("e8eef8"))  # nity
+		n.draw_rect(Rect2(c + Vector2.ONE, Vector2.ONE), Color("3a4258"))
+	if inset:
+		var d := Rect2(r.position + Vector2(6, 5), r.size - Vector2(12, 10))
+		n.draw_rect(d, Color("10141f"))
+		n.draw_rect(Rect2(d.position, Vector2(d.size.x, 1)), Color("05070c"))
+		n.draw_rect(Rect2(d.position.x, d.end.y - 1, d.size.x, 1), Color("8a94ae"))
+
+
 func _txt(p: Vector2, s: String, c: Color) -> void:
 	hud.draw_string(Game.font, p + Vector2(1, 1), s, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0, 0, 0, 0.6 * c.a))
 	hud.draw_string(Game.font, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, c)
@@ -644,19 +741,19 @@ func _draw_hud() -> void:
 	if viewport and viewport.get("hide_hud"):
 		return
 	var bg := Color(0.1, 0.08, 0.15, 0.9)
-	n.draw_rect(Rect2(6, 6, 104, 42), bg)
-	_txt(Vector2(12, 23), "$ %d" % Game.money, Color("ffcf6b"))
-	_txt(Vector2(12, 42), "PW %d" % Game.pw, Color("6affa0"))
+	_metal(n, Rect2(4, 4, 112, 50), false, true)
+	_txt(Vector2(14, 25), "$ %d" % Game.money, Color("ffcf6b"))
+	_txt(Vector2(14, 44), "PW %d" % Game.pw, Color("6affa0"))
 	var cal := Game.calendar()
-	n.draw_rect(Rect2(628 - _w(cal), 6, _w(cal) + 6, 22), bg)
-	_txt(Vector2(631 - _w(cal), 23), cal, Color("c8c4e8"))
+	_metal(n, Rect2(620 - _w(cal), 4, _w(cal) + 16, 30), false, true)
+	_txt(Vector2(628 - _w(cal), 25), cal, Color("c8c4e8"))
 	if Game.night:  # pasek pozostałego czasu nocy
 		var frac := Game.night_left / Game.night_length()
-		n.draw_rect(Rect2(500, 30, 134, 20), bg)
-		_txt(Vector2(504, 46), "NOC %d:%02d" % [int(Game.night_left) / 60, int(Game.night_left) % 60], Color("c8c4e8"))
-		n.draw_rect(Rect2(578, 36, 52, 8), Color("2a2a40"))
-		n.draw_rect(Rect2(578, 36, 52 * frac, 8), Color("8aa8ff") if frac > 0.2 else Color("ff9a6a"))
-	var y := 74.0
+		_metal(n, Rect2(492, 36, 144, 30), false, true)
+		_txt(Vector2(502, 57), "NOC %d:%02d" % [int(Game.night_left) / 60, int(Game.night_left) % 60], Color("c8c4e8"))
+		n.draw_rect(Rect2(576, 46, 50, 8), Color("2a2a40"))
+		n.draw_rect(Rect2(576, 46, 50 * frac, 8), Color("8aa8ff") if frac > 0.2 else Color("ff9a6a"))
+	var y := 90.0 if Game.night else 58.0
 	for tt in toasts:
 		var col: Color = {"good": Color("6affa0"), "info": Color("f4ecdc"), "say": Color("ffcf6b"), "bad": Color("ff8a8a")}[tt.kind]
 		var w := _w(tt.text) + 10
@@ -674,10 +771,6 @@ func _draw_hud() -> void:
 		p.x = clampf(p.x, 6, 634 - w)
 		n.draw_rect(Rect2(p.x - 4, p.y - 16, w + 8, 21), Color(0.1, 0.08, 0.15, 0.9))
 		_txt(p, label, Color("ffcf6b"))
-		var first := {"komputer": "Komputer: sprzedaż odkryć, sklep i drzewko badań.", "teleskop": "Teleskop: szukaj świecących obiektów na niebie."}
-		if first.has(k) and not Game.tips.has("near_" + k):
-			Game.tips["near_" + k] = true
-			_tip(first[k])
 	if tip != "":
 		var w := _w(tip)
 		n.draw_rect(Rect2(320 - w / 2 - 6, 332, w + 12, 22), Color(0.1, 0.08, 0.15, 0.9))

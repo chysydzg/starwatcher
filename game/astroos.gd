@@ -446,8 +446,6 @@ func _draw_market() -> void:
 			n.draw_string(Game.font, Vector2(x + 10, 15), it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, col)
 			x += 10 + Game.font.get_string_size(it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 	n.draw_rect(Rect2(0, 151, 640, 1), Color("1e3248"))
-	if not Game.analysis.uids.is_empty():  # raport czeka na poranną wypłatę
-		n.draw_string(Game.font, Vector2(458, 144), "Raport (%d): wypłata rano" % Game.analysis.uids.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("ffcf4a"))
 	# wykres popytu (indeks = mnożnik × 100): tylko zaznaczone kategorie
 	var r := Rect2(230, 158, 404, 156)
 	n.draw_rect(r, Color("101e2e"))
@@ -527,11 +525,11 @@ func _card(r: Array, st: String) -> Button:
 	var c := Button.new()
 	c.custom_minimum_size = Vector2(168, 74)
 	c.focus_mode = Control.FOCUS_NONE
-	var bg: Color = {"owned": Color("d8f4d8"), "ok": Color("ffffff"), "cost": Color("f4f0e8"), "req": Color("d4d6de")}[st]
+	var bg: Color = {"owned": Color("d8f4d8"), "ok": Color("ffffff"), "cost": Color("d4d6de"), "req": Color("d4d6de")}[st]  # nie stać nas = szare jak zablokowane
 	c.add_theme_stylebox_override("normal", _box(bg, Color("6a6a80")))
 	c.add_theme_stylebox_override("hover", _box(bg.lightened(0.3), Color("2a5ad8"), 2))
 	c.add_theme_stylebox_override("pressed", _box(Color("c8d4f0"), Color("2a5ad8"), 2))
-	var title := _label(c, r[1], Vector2(6, 2), INK if st != "req" else Color("6a6a7a"), 132)
+	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 132)
 	title.max_lines_visible = 2
 	_label(c, "T%d" % r[3], Vector2(144, 2), Color("8a8aa0"))
 	var price := _label(c, "$%d" % r[2], Vector2(6, 52), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
@@ -539,6 +537,12 @@ func _card(r: Array, st: String) -> Button:
 	var l := _label(c, tag, Vector2(0, 52), Color("1a5ad0") if st == "ok" else Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
 	l.size.x = 160
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	if st == "ok":  # zielony kwadratowy przycisk KUP
+		l.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
+		l.add_theme_color_override("font_color", Color.WHITE)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.position = Vector2(110, 48)
+		l.size = Vector2(50, 22)
 	if st == "owned":
 		price.text = ""
 	c.mouse_entered.connect(func(): info.text = _desc(r, Game.can_buy_shop(r), true))
@@ -668,17 +672,17 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 	var p := at + Vector2(26, -20)
 	if p.x + w > 636:
 		p.x = at.x - 26 - w
-	p.y = clampf(p.y, 4, 322 - 150)
+	p.y = clampf(p.y, 4, 318 - 170)
 	var body_text: String = r[6]
 	var why: String = _desc(r, st, false).get_slice("\n", 0).get_slice("]  ", 1)
-	n.draw_rect(Rect2(p, Vector2(w, 146)).grow(2), Color("e8ecf8"))
-	n.draw_rect(Rect2(p, Vector2(w, 146)), Color("243a6a"))
+	n.draw_rect(Rect2(p, Vector2(w, 168)).grow(2), Color("e8ecf8"))
+	n.draw_rect(Rect2(p, Vector2(w, 168)), Color("243a6a"))
 	n.draw_rect(Rect2(p, Vector2(w, 44)), Color("2f4f8f"))
 	n.draw_multiline_string(Game.font, p + Vector2(6, 16), r[1], HORIZONTAL_ALIGNMENT_CENTER, w - 12, Game.FS, 2, Color.WHITE)
 	n.draw_string(Game.font, p + Vector2(0, 60), "LVL %d/1 · Tier %d" % [int(st == "owned"), r[3]], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("a8b8d8"))
-	n.draw_multiline_string(Game.font, p + Vector2(8, 80), body_text, HORIZONTAL_ALIGNMENT_CENTER, w - 16, Game.FS, 2, Color.WHITE)
-	n.draw_string(Game.font, p + Vector2(0, 118), "%d PW" % r[2], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("ffcf4a") if st != "cost" else Color("ff6a5a"))
-	n.draw_string(Game.font, p + Vector2(0, 138), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
+	n.draw_multiline_string(Game.font, p + Vector2(8, 80), body_text, HORIZONTAL_ALIGNMENT_CENTER, w - 16, Game.FS, 3, Color.WHITE)
+	n.draw_string(Game.font, p + Vector2(0, 142), "%d PW" % r[2], HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("ffcf4a") if st != "cost" else Color("ff6a5a"))
+	n.draw_string(Game.font, p + Vector2(0, 162), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
 
 
 # ---------------------------------------------------------------- POMOC.TXT (konsola)

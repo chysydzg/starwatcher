@@ -90,10 +90,15 @@ icon("icon_etap", 30, 30, (s) => { // złota gwiazda ETAP 2
   s.poly(pts, R.gold[1]); s.poly(pts.map(([x, y]) => [15 + (x - 15) * 0.55 - 1, 16 + (y - 16) * 0.55 - 2]), R.gold[2]);
 });
 // kategorie sklepu (24x24)
-icon("cat_optyka", 24, 22, (s) => { // teleskop na trójnogu
-  s.line(4, 21, 12, 12, R.wood[1], 2); s.line(20, 21, 12, 12, R.wood[1], 2); s.line(12, 21, 12, 12, R.wood[0], 1);
-  s.line(3, 13, 20, 3, R.gray[1], 5); s.line(3, 12, 19, 3, R.gray[3], 1); s.rect(19, 0, 23, 6, R.navy[2]);
-});
+{ // kategoria Optyka: ten sam teleskop co na balkonie (referencja użytkownika), w dziennych kolorach
+  const ref = P.load(__dirname + "/out/scope_ref.png");
+  for (let i = 0; i < ref.px.length; i++) {
+    const [r, g, bb] = P.unpack(ref.px[i]), y = Math.floor(i / ref.w);
+    if ((ref.px[i] >>> 24) < 220 || (y > ref.h * 0.85 && r > bb + 15 && r < 140)) ref.px[i] = 0;
+  }
+  const sp = P.resize(P.quantize(P.trim(ref), 8).buf, 34, null, { mode: true });
+  P.save(ink(P.trim(sp)), out + "cat_optyka.png");
+}
 icon("cat_komputer", 22, 20, (s) => { // sam kwadratowy monitor
   slab(s, 0, 0, 22, 20, R.beige, 0.95, 0.6); s.rect(3, 3, 19, 15, [20, 40, 70]);
   s.rect(5, 5, 12, 6, [120, 200, 255]); s.rect(5, 8, 16, 9, [120, 200, 255]); s.rect(5, 11, 10, 12, [120, 200, 255]);
