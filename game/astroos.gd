@@ -45,6 +45,7 @@ var tabs_x := 0.0          # gdzie zaczynają się karty (zależy od długości 
 var hover := -1            # węzeł drzewka pod kursorem
 var nodes := []            # [pozycja, wiersz SCIENCE] drzewka
 var t := 0.0
+var cursor: TextureRect   # pikselowa strzałka zamiast systemowego kursora
 
 
 func _ready() -> void:
@@ -85,10 +86,18 @@ func _ready() -> void:
 		if e is InputEventMouseButton and e.pressed and e.position.x > 570:
 			close())
 	Game.changed.connect(bar.queue_redraw)
+	cursor = TextureRect.new()
+	cursor.texture = Game.tex("os/ui_cursor")
+	cursor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cursor.z_index = 100
+	add_child(cursor)
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
 
 func _process(dt: float) -> void:
 	t += dt
+	cursor.position = get_local_mouse_position().floor()
+	move_child(cursor, -1)
 	if app in ["gielda", "badania"] and body:
 		body.queue_redraw()
 
@@ -150,6 +159,8 @@ func _scroll(parent: Node, r: Rect2) -> VBoxContainer:
 	sc.position = r.position
 	sc.size = r.size
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.get_v_scroll_bar().custom_step = 20  # kółko przesuwa o cały wiersz – bez uciętych linii
+	sc.get_v_scroll_bar().step = 20
 	parent.add_child(sc)
 	var v := VBoxContainer.new()
 	v.custom_minimum_size = Vector2(r.size.x - 10, 0)
@@ -318,7 +329,6 @@ func _gielda() -> void:
 	legend.position = Vector2(4, 178)
 	legend.add_theme_constant_override("separation", 0)
 	body.add_child(legend)
-	var boxes := []
 	for c in Game.CATS:
 		var cb := CheckBox.new()
 		var d := _change(c)
@@ -332,21 +342,13 @@ func _gielda() -> void:
 			Game.tips.chart[c] = on
 			cb.text = ("[x] " if on else "[ ] ") + txt)
 		legend.add_child(cb)
-		boxes.append(cb)
-	var every := _button("Wszystkie", func():
-		var on := not boxes.all(func(b): return b.button_pressed)
-		for b in boxes:
-			b.button_pressed = on)
-	every.position = Vector2(104, 153)
-	every.size = Vector2(96, 20)
-	body.add_child(every)
 	_label(body, "PORTFEL ODKRYĆ", Vector2(6, 22), Color("ffcf4a"))
 	var stored := Game.stored()
 	if stored.is_empty():
 		_label(body, "Nie ma nic do wysłania. Odkrycia z nocy pojawią się tutaj.", Vector2(6, 48), Color("8aa0b8"), 440)
 		return
 	_label(body, "    %-28s%7s%8s" % ["Obiekt", "Jakość", "Cena"], Vector2(6, 40), Color("6a8aa8"))
-	var v := _scroll(body, Rect2(4, 60, 440, 90))
+	var v := _scroll(body, Rect2(4, 60, 440, 80))  # 4 pełne wiersze, przewijanie co wiersz
 	var total := _label(body, "", Vector2(460, 22), Color("6aff8a"))
 	total.add_theme_font_size_override("font_size", Game.FS * 2)
 	var sell := _button("WYŚLIJ DO ANALIZY", func():
@@ -377,6 +379,7 @@ func _gielda() -> void:
 		var txt := "%-28s%6d%%%8s" % [e.name.left(27), e.quality, "$%d" % Game.price(e).total]
 		cb.text = ("[x] " if selected.get(e.uid, false) else "[ ] ") + txt
 		cb.button_pressed = selected.get(e.uid, false)
+		cb.custom_minimum_size.y = 20
 		cb.toggled.connect(func(on):
 			selected[e.uid] = on
 			cb.text = ("[x] " if on else "[ ] ") + txt
@@ -676,6 +679,10 @@ func _unhandled_input(e: InputEvent) -> void:
 		else:
 			close()
 		get_viewport().set_input_as_handled()
+
+
+func _exit_tree() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func close() -> void:

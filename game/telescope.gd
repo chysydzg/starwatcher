@@ -311,7 +311,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		else:
 			_lock_or_confirm()
 		get_viewport().set_input_as_handled()
-	elif state == S.SCAN and (e.is_action_pressed("prev_obj") or e.is_action_pressed("next_obj")):
+	elif state == S.SCAN and Game.has("szukacz") and (e.is_action_pressed("prev_obj") or e.is_action_pressed("next_obj")):
 		_jump(1 if e.is_action_pressed("next_obj") else -1)
 		get_viewport().set_input_as_handled()
 
@@ -615,6 +615,11 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 
 func _draw_crosshair() -> void:
 	var p := (aim + wobble()).floor()
+	var over := state == S.SCAN and not hovered.is_empty()
+	if state == S.CONNECT and not target.is_empty():
+		over = star_points(target).any(func(q): return q.distance_to(aim) < 10.0)
+	if over:  # nad obiektem / gwiazdą celownik wyraźnie drży
+		p += Vector2(sin(t * 47.0), cos(t * 53.0)).round() * 2.0
 	var c := Color(0.9, 0.95, 1.0, 0.85)
 	if state == S.SCAN and not hovered.is_empty():
 		c = Color("ffcf6b")

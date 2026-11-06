@@ -83,8 +83,10 @@ func _ready() -> void:
 	hud.draw.connect(_draw_hud)
 	hud_layer.add_child(hud)
 	daynight = Button.new()
-	daynight.position = Vector2(548, 30)
-	daynight.custom_minimum_size = Vector2(86, 0)
+	daynight.icon = Game.tex("os/ui_moon")  # rozpoczęcie nocy: sierp Księżyca w lewym dolnym rogu
+	daynight.flat = true
+	daynight.position = Vector2(4, 326)
+	daynight.tooltip_text = "Rozpocznij noc"
 	daynight.focus_mode = Control.FOCUS_NONE
 	daynight.pressed.connect(_toggle_phase)
 	hud_layer.add_child(daynight)
@@ -234,7 +236,6 @@ func _refresh() -> void:
 	props.parcel.visible = not Game.parcels.is_empty()
 	props.pillow.visible = Game.has("poduszka")
 	props.thermos.visible = Game.has("termos")
-	daynight.text = "NOC " + Game.key("daynight")
 	crt.visible = Game.settings.crt
 	sky_fx.raining = Game.rain
 

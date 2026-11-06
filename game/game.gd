@@ -123,6 +123,7 @@ const SCIENCE := [
 	["czyste1", "Czyste Soczewki I", 10, 1, 0, "", "Wyostrzanie +15%."],
 	["czyste2", "Czyste Soczewki II", 25, 1, 0, "czyste1", "Wyostrzanie +25% (łącznie +40%)."],
 	["kursor1", "Precyzyjny Kursor I", 40, 1, 0, "", "Przyciąganie celownika do gwiazd +20%."],
+	["szukacz", "Automatyczne Wyszukiwanie", 30, 1, 0, "", "Q/E przeskakuje celownikiem między obiektami na niebie."],
 	["nawyk1", "Nawyk Notowania I", 15, 1, 1, "", "+1 PW za każdy zaznaczony punkt."],
 	["nawyk2", "Nawyk Notowania II", 35, 1, 1, "nawyk1", "+2 PW za punkt (łącznie +3)."],
 	["kawa", "Nocna Kawa", 50, 1, 1, "", "Celownik porusza się o 20% szybciej."],
