@@ -1,0 +1,259 @@
+[gd_scene load_steps=27 format=3]
+
+[ext_resource type="Script" path="res://scripts/room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="2_interactable"]
+[ext_resource type="Script" path="res://scripts/wall_clock.gd" id="3_clock"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/room_bg.png" id="5_bg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/rug.png" id="6_rug"]
+[ext_resource type="Texture2D" path="res://assets/sprites/door.png" id="7_door"]
+[ext_resource type="Texture2D" path="res://assets/sprites/bed.png" id="8_bed"]
+[ext_resource type="Texture2D" path="res://assets/sprites/nightstand.png" id="9_nightstand"]
+[ext_resource type="Texture2D" path="res://assets/sprites/poster.png" id="10_poster"]
+[ext_resource type="Texture2D" path="res://assets/sprites/clock.png" id="11_clock"]
+[ext_resource type="Texture2D" path="res://assets/sprites/balcony_door.png" id="12_bdoor"]
+[ext_resource type="Texture2D" path="res://assets/sprites/desk.png" id="13_desk"]
+[ext_resource type="Texture2D" path="res://assets/sprites/crt_glow.png" id="14_glow"]
+[ext_resource type="Texture2D" path="res://assets/sprites/plant.png" id="15_plant"]
+
+[sub_resource type="RectangleShape2D" id="shape_wall_h"]
+size = Vector2(304, 8)
+
+[sub_resource type="RectangleShape2D" id="shape_wall_v"]
+size = Vector2(8, 140)
+
+[sub_resource type="RectangleShape2D" id="shape_bed"]
+size = Vector2(52, 60)
+
+[sub_resource type="RectangleShape2D" id="shape_nightstand"]
+size = Vector2(22, 12)
+
+[sub_resource type="RectangleShape2D" id="shape_desk"]
+size = Vector2(56, 22)
+
+[sub_resource type="RectangleShape2D" id="shape_plant"]
+size = Vector2(14, 6)
+
+[sub_resource type="RectangleShape2D" id="ia_door"]
+size = Vector2(36, 26)
+
+[sub_resource type="RectangleShape2D" id="ia_bdoor"]
+size = Vector2(44, 26)
+
+[sub_resource type="RectangleShape2D" id="ia_bed"]
+size = Vector2(60, 70)
+
+[sub_resource type="RectangleShape2D" id="ia_small"]
+size = Vector2(30, 24)
+
+[sub_resource type="RectangleShape2D" id="ia_desk"]
+size = Vector2(64, 36)
+
+[node name="Room" type="Node2D"]
+script = ExtResource("1_room")
+
+[node name="Background" type="Sprite2D" parent="."]
+texture = ExtResource("5_bg")
+centered = false
+
+[node name="Rug" type="Sprite2D" parent="."]
+position = Vector2(200, 150)
+texture = ExtResource("6_rug")
+
+[node name="WallDecor" type="Node2D" parent="."]
+
+[node name="Door" type="Sprite2D" parent="WallDecor"]
+position = Vector2(64, 50)
+texture = ExtResource("7_door")
+
+[node name="Poster" type="Sprite2D" parent="WallDecor"]
+position = Vector2(163, 42)
+texture = ExtResource("10_poster")
+
+[node name="Clock" type="Node2D" parent="WallDecor"]
+position = Vector2(204, 38)
+script = ExtResource("3_clock")
+
+[node name="Sprite2D" type="Sprite2D" parent="WallDecor/Clock"]
+texture = ExtResource("11_clock")
+
+[node name="BalconyDoor" type="Sprite2D" parent="WallDecor"]
+position = Vector2(250, 50)
+texture = ExtResource("12_bdoor")
+
+[node name="Walls" type="StaticBody2D" parent="."]
+
+[node name="Top" type="CollisionShape2D" parent="Walls"]
+position = Vector2(192, 68)
+shape = SubResource("shape_wall_h")
+
+[node name="Bottom" type="CollisionShape2D" parent="Walls"]
+position = Vector2(192, 204)
+shape = SubResource("shape_wall_h")
+
+[node name="Left" type="CollisionShape2D" parent="Walls"]
+position = Vector2(44, 136)
+shape = SubResource("shape_wall_v")
+
+[node name="Right" type="CollisionShape2D" parent="Walls"]
+position = Vector2(340, 136)
+shape = SubResource("shape_wall_v")
+
+[node name="Props" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Bed" type="StaticBody2D" parent="Props"]
+position = Vector2(112, 132)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/Bed"]
+position = Vector2(0, -36)
+texture = ExtResource("8_bed")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Bed"]
+position = Vector2(0, -30)
+shape = SubResource("shape_bed")
+
+[node name="Nightstand" type="StaticBody2D" parent="Props"]
+position = Vector2(153, 100)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/Nightstand"]
+position = Vector2(0, -12)
+texture = ExtResource("9_nightstand")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Nightstand"]
+position = Vector2(0, -6)
+shape = SubResource("shape_nightstand")
+
+[node name="Desk" type="StaticBody2D" parent="Props"]
+position = Vector2(308, 116)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/Desk"]
+position = Vector2(0, -24)
+texture = ExtResource("13_desk")
+
+[node name="Glow" type="Sprite2D" parent="Props/Desk"]
+position = Vector2(0, -38)
+texture = ExtResource("14_glow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Desk"]
+position = Vector2(0, -11)
+shape = SubResource("shape_desk")
+
+[node name="Plant" type="StaticBody2D" parent="Props"]
+position = Vector2(324, 192)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/Plant"]
+position = Vector2(0, -14)
+texture = ExtResource("15_plant")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Plant"]
+position = Vector2(0, -3)
+shape = SubResource("shape_plant")
+
+[node name="Player" parent="Props" instance=ExtResource("4_player")]
+position = Vector2(200, 150)
+
+[node name="Interactables" type="Node2D" parent="."]
+
+[node name="DoorArea" type="Area2D" parent="Interactables"]
+position = Vector2(64, 80)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Drzwi wyjściowe"
+action = "message"
+payload = "Zamknięte na klucz. Dziś i tak nigdzie nie idziesz."
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/DoorArea"]
+shape = SubResource("ia_door")
+
+[node name="BalconyDoorArea" type="Area2D" parent="Interactables"]
+position = Vector2(250, 80)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Wyjdź na balkon"
+action = "go_area"
+payload = "balcony:FromRoom"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/BalconyDoorArea"]
+shape = SubResource("ia_bdoor")
+
+[node name="BedArea" type="Area2D" parent="Interactables"]
+position = Vector2(112, 100)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Łóżko"
+action = "bed"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/BedArea"]
+shape = SubResource("ia_bed")
+
+[node name="NightstandArea" type="Area2D" parent="Interactables"]
+position = Vector2(153, 96)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Lampka"
+action = "message"
+payload = "Lampka nocna. Ciepłe światło, zimna noc."
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/NightstandArea"]
+shape = SubResource("ia_small")
+
+[node name="PosterArea" type="Area2D" parent="Interactables"]
+position = Vector2(163, 80)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Plakat"
+action = "message"
+payload = "Koń. Nikt nie pamięta, skąd się tu wziął."
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/PosterArea"]
+shape = SubResource("ia_small")
+
+[node name="ClockArea" type="Area2D" parent="Interactables"]
+position = Vector2(204, 80)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Zegar"
+action = "clock"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/ClockArea"]
+shape = SubResource("ia_small")
+
+[node name="DeskArea" type="Area2D" parent="Interactables"]
+position = Vector2(308, 102)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Komputer"
+action = "computer"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/DeskArea"]
+shape = SubResource("ia_desk")
+
+[node name="PlantArea" type="Area2D" parent="Interactables"]
+position = Vector2(324, 188)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Roślina"
+action = "message"
+payload = "Pachnie jak las po deszczu."
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactables/PlantArea"]
+shape = SubResource("ia_small")
+
+[node name="Spawns" type="Node2D" parent="."]
+
+[node name="Start" type="Marker2D" parent="Spawns"]
+position = Vector2(200, 150)
+metadata/facing = Vector2(0, 1)
+
+[node name="FromBalcony" type="Marker2D" parent="Spawns"]
+position = Vector2(250, 90)
+metadata/facing = Vector2(0, 1)

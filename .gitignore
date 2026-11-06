@@ -1,0 +1,8 @@
+# Godot 4+
+.godot/
+/android/
+
+# zrzuty kontrolne i kopie zapasowe
+debug_shots/
+debug_autoshot.flag
+Claude outputs/

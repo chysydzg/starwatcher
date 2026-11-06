@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dgfos565kur0p"
+path="res://.godot/imported/sw_font_big.fnt-8bae66d3bf652924a9595f3c23511217.fontdata"
+
+[deps]
+
+source_file="res://game/fonts/sw_font_big.fnt"
+dest_files=["res://.godot/imported/sw_font_big.fnt-8bae66d3bf652924a9595f3c23511217.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2
