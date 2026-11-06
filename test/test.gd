@@ -69,5 +69,15 @@ func _ready() -> void:
 	w._interact("drzwi")
 	await get_tree().create_timer(1.0).timeout
 	print("location: ", Game.location)
+	# kolizje: Jania idzie w łóżko z prawej strony i musi się zatrzymać na jego krawędzi
+	w._enter("room", true)
+	w.busy = false
+	w.body.position = Vector2(140, 150)
+	for i in 60:
+		w.body.velocity = Vector2(-144, 0)
+		w.body.move_and_slide()
+		await get_tree().physics_frame
+	print("przy łóżku x=", w.body.position.x, " interakcja: ", w._nearest())
+	assert(w.body.position.x > 100 and w._nearest() == "lozko", "bed collider + side reach")
 	print("TEST OK")
 	get_tree().quit()

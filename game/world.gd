@@ -4,15 +4,16 @@ extends Node2D
 ## Meble i rekwizyty to osobne sprite'y sortowane po podstawie (y), kolizje z ich „stopek” z *_layout.json.
 
 const NIGHT_TINT := Color(0.34, 0.38, 0.64)
-const SPEED := 72.0
+const SPEED := 144.0
 const ROOM_WALK := Rect2(26, 122, 588, 220)
-const BALCONY_WALK := Rect2(36, 318, 572, 36)
-const ROOM_SPOTS := {"komputer": [Vector2(404, 152), 22, "Komputer"], "lozko": [Vector2(56, 206), 26, "Łóżko"],
-	"drzwi": [Vector2(541, 128), 22, "Drzwi na balkon"], "szafa": [Vector2(598, 136), 22, "Szafa"],
-	"plakat": [Vector2(264, 128), 18, "Plakat"], "model": [Vector2(149, 128), 16, "Model Układu Słonecznego"],
-	"paczka": [Vector2(500, 146), 20, "Paczka"], "radio": [Vector2(596, 344), 22, "Radio"]}
-const BALCONY_SPOTS := {"wroc": [Vector2(44, 336), 24, "Wróć do pokoju"], "teleskop": [Vector2(214, 340), 20, "Teleskop"],
-	"krzeslo": [Vector2(433, 352), 16, "Krzesło"], "skrzynka": [Vector2(488, 350), 14, "Kubek"], "kwiatek": [Vector2(582, 352), 16, "Kwiatek"]}
+const BALCONY_WALK := Rect2(36, 318, 572, 42)
+const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
+const ROOM_SPOTS := {"komputer": [Rect2(334, 104, 94, 48), "Komputer"], "lozko": [Rect2(12, 96, 88, 100), "Łóżko"],
+	"drzwi": [Rect2(518, 104, 46, 18), "Drzwi na balkon"], "szafa": [Rect2(568, 104, 62, 24), "Szafa"],
+	"plakat": [Rect2(248, 104, 32, 18), "Plakat"], "model": [Rect2(132, 104, 34, 18), "Model Układu Słonecznego"],
+	"paczka": [Rect2(488, 126, 26, 12), "Paczka"], "radio": [Rect2(572, 312, 48, 22), "Radio"]}
+const BALCONY_SPOTS := {"wroc": [Rect2(0, 300, 66, 60), "Wróć do pokoju"], "teleskop": [Rect2(214, 326, 70, 22), "Teleskop"],
+	"krzeslo": [Rect2(416, 330, 34, 16), "Krzesło"], "skrzynka": [Rect2(472, 330, 32, 14), "Kubek"], "kwiatek": [Rect2(564, 330, 36, 16), "Kwiatek"]}
 
 var room: Node2D
 var balcony: Node2D
@@ -20,6 +21,7 @@ var room_sort: Node2D
 var balcony_sort: Node2D
 var sky_fx: Node2D
 var jania: Sprite2D
+var body: CharacterBody2D
 var modulate_node: CanvasModulate
 var lights: Array[PointLight2D] = []
 var glow: Node2D
@@ -53,6 +55,13 @@ func _ready() -> void:
 	jania.hframes = 7
 	jania.vframes = 3
 	jania.offset = Vector2(-18, -52)
+	body = CharacterBody2D.new()  # pozycja ciała = stopy Jani
+	body.motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	var shape := CollisionShape2D.new()
+	shape.shape = RectangleShape2D.new()
+	shape.shape.size = Vector2(18, 6)
+	body.add_child(shape)
+	body.add_child(jania)
 	_build_room()
 	_build_balcony()
 	modulate_node = CanvasModulate.new()
@@ -127,6 +136,23 @@ func _scene(where: String, root: Node2D) -> Node2D:
 	return sorter
 
 
+## kolidery: stopki obiektów + ściany wokół obszaru chodzenia (warstwa 1 pokój, 2 balkon)
+func _colliders(where: String, root: Node2D) -> void:
+	var sb := StaticBody2D.new()
+	sb.collision_layer = 2 if where == "balcony" else 1
+	sb.collision_mask = 0
+	root.add_child(sb)
+	var a: Rect2 = BALCONY_WALK if where == "balcony" else ROOM_WALK
+	var walls := [Rect2(a.position.x - 40, a.position.y - 40, a.size.x + 80, 40), Rect2(a.position.x - 40, a.end.y, a.size.x + 80, 40),
+		Rect2(a.position.x - 40, a.position.y, 40, a.size.y), Rect2(a.end.x, a.position.y, 40, a.size.y)]
+	for r in feet[where] + walls:
+		var cs := CollisionShape2D.new()
+		cs.shape = RectangleShape2D.new()
+		cs.shape.size = r.size
+		cs.position = r.get_center()
+		sb.add_child(cs)
+
+
 func _build_room() -> void:
 	room = Node2D.new()
 	add_child(room)
@@ -142,7 +168,7 @@ func _build_room() -> void:
 	props.parcel.offset = Vector2(0, -24)
 	props.parcel.centered = false
 	room_sort.add_child(props.parcel)
-	feet.room.append(Rect2(488, 126, 26, 12))
+	_colliders("room", room)
 	for l in [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82), "ffc070", 0.9, 0.9], [Vector2(363, 84), "6affa0", 0.7, 0.5],
 			[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(172, 218), "ffd890", 0.9, 1.3], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]:
 		var g := GradientTexture2D.new()
@@ -193,6 +219,7 @@ func _build_balcony() -> void:
 	var chair: Sprite2D = props.balcony_chair
 	props.pillow = _sprite("pillow", Vector2(426, 313) - chair.position, chair)
 	var crate: Sprite2D = props.balcony_crate
+	_colliders("balcony", balcony)
 	props.thermos = _sprite("thermos", Vector2(497, 298) - crate.position, crate)
 
 
@@ -239,18 +266,19 @@ func _enter(where: String, instant := false) -> void:
 	Game.location = where
 	room.visible = where == "room"
 	balcony.visible = where == "balcony"
-	if jania.get_parent():
-		jania.get_parent().remove_child(jania)
-	(balcony_sort if where == "balcony" else room_sort).add_child(jania)
+	if body.get_parent():
+		body.get_parent().remove_child(body)
+	(balcony_sort if where == "balcony" else room_sort).add_child(body)
+	body.collision_mask = 2 if where == "balcony" else 1  # kolizje tylko z aktualną sceną
 	if where == "balcony":
-		jania.position = Vector2(64, 340)
+		body.position = Vector2(64, 340)
 		face = 1
 		flip = false
 	elif not instant:
-		jania.position = Vector2(541, 136)
+		body.position = Vector2(541, 136)
 		face = 0
-	elif jania.position == Vector2.ZERO:
-		jania.position = Vector2(300, 220)
+	elif body.position == Vector2.ZERO:
+		body.position = Vector2(300, 220)
 	_apply_phase(true)
 
 
@@ -297,26 +325,13 @@ func _move(dt: float) -> void:
 	if not walking:
 		return
 	idle_t = 0.0
-	var step := v.normalized() * SPEED * dt
-	_try(Vector2(step.x, 0))
-	_try(Vector2(0, step.y))
+	body.velocity = v.normalized() * SPEED
+	body.move_and_slide()  # ślizga się wzdłuż mebli i ścian
 	if absf(v.x) >= absf(v.y):
 		face = 1
 		flip = v.x < 0
 	else:
 		face = 0 if v.y > 0 else 2
-
-
-func _try(d: Vector2) -> void:
-	var np := jania.position + d
-	var box := Rect2(np - Vector2(6, 3), Vector2(12, 4))  # stopy Jani
-	var area := BALCONY_WALK if Game.location == "balcony" else ROOM_WALK
-	if not area.encloses(box):
-		return
-	for b in feet[Game.location]:
-		if b.intersects(box):
-			return
-	jania.position = np
 
 
 func _animate(dt: float) -> void:
@@ -325,7 +340,7 @@ func _animate(dt: float) -> void:
 	var frame := 0
 	var walking: bool = jania.get_meta("walking", false)
 	if walking:
-		frame = 1 + int(t * 9.0) % 4 if face == 1 else 1 + int(t * 7.0) % 2
+		frame = 1 + int(t * 14.0) % 4 if face == 1 else 1 + int(t * 10.0) % 2
 	elif happy_t > 0:
 		face = 0
 		frame = 6
@@ -349,12 +364,17 @@ func _spots() -> Dictionary:
 
 func _nearest() -> String:
 	var sp := _spots()
+	var best := ""
+	var best_d := 1e9
 	for k in sp:
 		if (k == "paczka" and Game.parcels.is_empty()) or (k == "radio" and not Game.has("radio")):
 			continue
-		if jania.position.distance_to(sp[k][0]) < sp[k][1]:
-			return k
-	return ""
+		var r: Rect2 = sp[k][0]
+		var d := body.position.distance_to(body.position.clamp(r.position, r.end))
+		if d < REACH and d < best_d:
+			best_d = d
+			best = k
+	return best
 
 
 func _unhandled_input(e: InputEvent) -> void:
@@ -465,7 +485,7 @@ func _sleep() -> void:
 	ok.grab_focus.call_deferred()
 	ok.pressed.connect(func():
 		p.get_parent().queue_free()
-		jania.position = Vector2(56, 210)
+		body.position = Vector2(56, 210)
 		face = 0
 		_enter("room", true)
 		busy = false
@@ -627,9 +647,9 @@ func _draw_hud() -> void:
 		return
 	var k := _nearest()
 	if k != "" and not busy:
-		var label: String = Game.key("interact") + " " + _spots()[k][2]
+		var label: String = Game.key("interact") + " " + _spots()[k][1]
 		var w := _w(label)
-		var p := (jania.position + Vector2(-w / 2, -60)).floor()
+		var p := (body.position + Vector2(-w / 2, -60)).floor()
 		p.x = clampf(p.x, 6, 634 - w)
 		n.draw_rect(Rect2(p.x - 4, p.y - 16, w + 8, 21), Color(0.1, 0.08, 0.15, 0.9))
 		_txt(p, label, Color("ffcf6b"))
