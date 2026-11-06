@@ -94,14 +94,21 @@ icon("cat_optyka", 24, 22, (s) => { // teleskop na trójnogu
   s.line(4, 21, 12, 12, R.wood[1], 2); s.line(20, 21, 12, 12, R.wood[1], 2); s.line(12, 21, 12, 12, R.wood[0], 1);
   s.line(3, 13, 20, 3, R.gray[1], 5); s.line(3, 12, 19, 3, R.gray[3], 1); s.rect(19, 0, 23, 6, R.navy[2]);
 });
-icon("cat_komputer", 24, 22, (s) => { // monitor CRT
-  slab(s, 0, 0, 24, 18, R.beige, 0.9, 0.6); s.rect(3, 2, 21, 13, [20, 40, 70]); s.rect(5, 4, 12, 5, [120, 200, 255]); s.rect(5, 7, 16, 8, [120, 200, 255]);
-  s.rect(8, 18, 16, 22, R.beige[0]); s.rect(18, 15, 20, 16, [90, 230, 120]);
+icon("cat_komputer", 22, 20, (s) => { // sam kwadratowy monitor
+  slab(s, 0, 0, 22, 20, R.beige, 0.95, 0.6); s.rect(3, 3, 19, 15, [20, 40, 70]);
+  s.rect(5, 5, 12, 6, [120, 200, 255]); s.rect(5, 8, 16, 9, [120, 200, 255]); s.rect(5, 11, 10, 12, [120, 200, 255]);
+  s.rect(16, 17, 19, 18, [90, 230, 120]);
 });
-icon("cat_pokoj", 24, 20, (s) => { // poduszka z marchewką
-  P.solid(s, [P.ell(12, 11, 11, 7)], [R.purple[1], R.purple[2], R.purple[3]].map(P.unpack));
-  s.line(6, 16, 17, 6, [240, 140, 50], 3); s.rect(17, 3, 19, 7, [90, 190, 80]); s.rect(19, 5, 22, 7, [90, 190, 80]);
+icon("cat_pokoj", 22, 24, (s) => { // lampka na stoliku
+  s.poly([[6, 0], [16, 0], [20, 9], [2, 9]], R.gold[2]); s.rect(2, 8, 20, 9, R.gold[0]); s.rect(6, 0, 16, 1, R.cream[2]);
+  s.rect(10, 9, 12, 14, R.gray[1]); s.rect(7, 14, 15, 15, R.gray[0]);
+  slab(s, 0, 15, 22, 18, R.wood, 0.9, 0.7); s.rect(2, 18, 4, 24, R.wood[0]); s.rect(18, 18, 20, 24, R.wood[0]);
 });
+// małe ikony kart na pasku okna (16 px): ikony pulpitu zmniejszone z zachowaniem najczęstszego koloru
+for (const id of ["dziennik", "gielda", "sklep", "badania", "pomoc"]) {
+  const big = P.load(out + "icon_" + id + ".png");
+  P.save(P.resize(big, 16, Math.round(16 * big.h / big.w), { mode: true }), out + "tab_" + id + ".png");
+}
 // glify węzłów drzewka (białe, 14x14, bez obrysu – tło węzła rysuje Godot)
 const glyph = (name, draw) => { const s = new P.Buf(14, 14); draw(s); const o = new P.Buf(15, 15); for (let i = 0; i < s.px.length; i++) if (s.px[i] >>> 24) o.pset((i % 14) + 1, ((i / 14) | 0) + 1, [20, 20, 40]); o.sprite(s, 0, 0); P.save(o, out + name + ".png"); };
 glyph("glyph_optyka", (s) => { s.ring(7, 7, 5.5, 1.6, WHITE); s.blob(7, 7, 2, WHITE); s.line(10, 10, 13, 13, WHITE, 2); }); // lupa/soczewka
