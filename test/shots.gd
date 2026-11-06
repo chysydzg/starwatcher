@@ -5,6 +5,7 @@ func shot(label: String) -> void:
 	get_viewport().get_texture().get_image().save_png("res://debug_shots/sw_%s.png" % label)
 
 func _ready() -> void:
+	Game.use_test_save()
 	var m = load("res://game/menu.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(m)
 	await shot("menu")

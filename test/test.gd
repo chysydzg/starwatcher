@@ -1,6 +1,7 @@
 extends Node
 # Test dymny Etapu 1: noc → teleskop → zapis → sen → dzień → komputer → sprzedaż → zakupy → zapis/odczyt.
 func _ready() -> void:
+	Game.use_test_save()
 	await get_tree().process_frame
 	Game.new_game()
 	get_tree().root.add_child(load("res://game/world.tscn").instantiate())

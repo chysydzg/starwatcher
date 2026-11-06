@@ -5,8 +5,8 @@ extends Node2D
 
 const NIGHT_TINT := Color(0.34, 0.38, 0.64)
 const SPEED := 144.0
-const ROOM_WALK := Rect2(26, 122, 588, 220)
-const BALCONY_WALK := Rect2(36, 318, 572, 42)
+const ROOM_WALK := Rect2(14, 122, 612, 224)
+const BALCONY_WALK := Rect2(20, 318, 610, 42)
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
 const ROOM_SPOTS := {"komputer": [Rect2(334, 104, 94, 48), "Komputer"], "lozko": [Rect2(12, 96, 88, 100), "Łóżko"],
 	"drzwi": [Rect2(518, 104, 46, 18), "Drzwi na balkon"], "szafa": [Rect2(568, 104, 62, 24), "Szafa"],
@@ -54,12 +54,13 @@ func _ready() -> void:
 	jania.texture = Game.tex("jania")
 	jania.hframes = 7
 	jania.vframes = 3
+	jania.centered = false  # offset liczony od lewego-górnego rogu klatki: stopy = pozycja ciała
 	jania.offset = Vector2(-18, -52)
 	body = CharacterBody2D.new()  # pozycja ciała = stopy Jani
 	body.motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	var shape := CollisionShape2D.new()
 	shape.shape = RectangleShape2D.new()
-	shape.shape.size = Vector2(18, 6)
+	shape.shape.size = Vector2(26, 8)  # szerokość sylwetki Jani
 	body.add_child(shape)
 	body.add_child(jania)
 	_build_room()
@@ -131,8 +132,9 @@ func _scene(where: String, root: Node2D) -> Node2D:
 		s.offset = Vector2(0, p.y - p.base)
 		sorter.add_child(s)
 		props[p.name] = s
-		var f: Array = p.foot
-		feet[where].append(Rect2(f[0], f[1], f[2] - f[0], f[3] - f[1]))
+		# kolider = cały obrys obiektu (bez 1 px obrysu): przez mebel nie da się przejść ani wejść w niego
+		var sz := s.texture.get_size()
+		feet[where].append(Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3))
 	return sorter
 
 

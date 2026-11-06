@@ -5,8 +5,8 @@ extends Node
 signal changed            # pieniądze / PW / stan – odśwież HUD
 signal toast(text: String, kind: String)
 
-const SAVE := "user://savegame.json"
-const SAVE_BAK := "user://savegame.bak.json"
+var SAVE := "user://savegame.json"
+var SAVE_BAK := "user://savegame.bak.json"
 const ART := "res://game/art/"
 const FS := 20               # rozmiar fontu VT323 (natywna siatka 8 px na znak)
 
@@ -609,3 +609,9 @@ func apply_settings() -> void:
 	var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))
+
+
+# testy piszą do osobnego pliku, zapis gracza zostaje nietknięty
+func use_test_save() -> void:
+	SAVE = "user://test_save.json"
+	SAVE_BAK = "user://test_save.bak.json"
