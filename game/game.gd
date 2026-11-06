@@ -27,13 +27,13 @@ const MOON_PHASES := ["Nów", "Przybywający sierp", "Pierwsza kwadra", "Przybyw
 
 # ---------------------------------------------------------------- niebo Etapu 1 (GDD 5 i 11)
 # kształty konstelacji: punkty (px nieba) + krawędzie; gracz klika punkty w kolejności [1]→[2]→…
-const SKY := {
+var SKY := {  # uzupełniane w _ready() pulą gwiazdozbiorów z CONSTELLATIONS
 	"wielki_woz": {"name": "Wielki Wóz", "cat": "const", "req": "", "pts": [[0, 6], [12, 3], [23, 7], [33, 12], [35, 25], [51, 28], [54, 14]], "edges": [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]], "bonus": 8, "price": 22},
 	"pas_oriona": {"name": "Pas Oriona", "cat": "const", "req": "", "pts": [[0, 12], [13, 7], [26, 1]], "edges": [[0, 1], [1, 2]], "bonus": 8, "price": 18},
 	"kasjopeja": {"name": "Kasjopeja", "cat": "const", "req": "", "pts": [[0, 2], [10, 15], [21, 6], [32, 17], [43, 3]], "edges": [[0, 1], [1, 2], [2, 3], [3, 4]], "bonus": 8, "price": 25},
 	"trojkat": {"name": "Trójkąt Letni", "cat": "const", "req": "podstawowe", "pts": [[0, 22], [24, 0], [36, 28]], "edges": [[0, 1], [1, 2], [2, 0]], "bonus": 8, "price": 16},
 	"maly_woz": {"name": "Mały Wóz", "cat": "const", "req": "podstawowe", "pts": [[0, 0], [9, 6], [16, 11], [25, 13], [27, 24], [40, 26], [40, 14]], "edges": [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]], "bonus": 8, "price": 26},
-	"strzala": {"name": "Strzała", "cat": "const", "req": "podstawowe", "pts": [[0, 12], [11, 9], [22, 5], [29, 0]], "edges": [[0, 1], [1, 2], [2, 3]], "bonus": 8, "price": 15},
+	"strzala": {"name": "Strzała", "cat": "const", "req": "", "pts": [[0, 12], [11, 9], [22, 5], [29, 0]], "edges": [[0, 1], [1, 2], [2, 3]], "bonus": 8, "price": 15},
 	"labedz": {"name": "Łabędź", "cat": "const", "req": "podstawowe", "pts": [[18, 0], [18, 14], [18, 30], [0, 11], [36, 17]], "edges": [[0, 1], [1, 2], [3, 1], [1, 4]], "bonus": 15, "price": 32},
 	"perseusz": {"name": "Perseusz", "cat": "const", "req": "podstawowe", "pts": [[0, 0], [8, 9], [14, 18], [24, 22], [20, 33], [32, 30]], "edges": [[0, 1], [1, 2], [2, 3], [3, 4], [3, 5]], "bonus": 15, "price": 36},
 	"rak": {"name": "Rak", "cat": "zodiac", "req": "podstawowe", "season": 0, "pts": [[12, 0], [12, 12], [0, 24], [24, 27]], "edges": [[0, 1], [1, 2], [1, 3]], "bonus": 20, "price": 45},
@@ -51,6 +51,72 @@ const SKY := {
 	"albireo": {"name": "Albireo (gwiazda podwójna)", "cat": "deep", "req": "gleb_pole", "pw": 80, "price": 300, "col": "8ab8ff"},
 	"m31": {"name": "Galaktyka Andromedy", "cat": "deep", "req": "gleb_pole", "pw": 120, "price": 375, "col": "d8c8ff"},
 }
+
+# pula gwiazdozbiorów nieba północnego (kształty uproszczone): [id, nazwa, wymaganie albo pora roku zodiaku,
+# „x,y x,y …”, łańcuchy krawędzi „0-1-2 2-3”]. Co noc losuje się kilka – najpierw te jeszcze nieodkryte.
+const CONSTELLATIONS := [
+	["korona", "Korona Północna", "", "0,10 6,3 14,0 22,1 29,5 33,12", "0-1-2-3-4-5"],
+	["lutnia", "Lutnia", "", "8,0 4,10 14,9 2,22 12,22", "0-1-2-0 1-3-4-2"],
+	["delfin", "Delfin", "", "0,6 6,0 12,5 6,11 4,22", "0-1-2-3-0 3-4"],
+	["trojkat_gw", "Trójkąt", "", "0,14 22,0 26,8", "0-1-2-0"],
+	["orion", "Orion", "podstawowe", "13,0 0,8 26,10 8,26 13,27 18,28 4,46 28,44", "0-1-3-4-5-2-0 3-6 5-7"],
+	["cefeusz", "Cefeusz", "podstawowe", "0,30 0,14 10,0 20,14 20,30", "0-1-2-3-4-0 1-3"],
+	["smok", "Smok", "podstawowe", "40,0 48,4 46,12 38,8 30,16 22,22 14,18 8,26 0,34", "0-1-2-3-0 3-4-5-6-7-8"],
+	["andromeda", "Andromeda", "podstawowe", "0,20 12,14 24,8 36,0 16,26", "0-1-2-3 1-4"],
+	["pegaz", "Pegaz", "podstawowe", "0,0 24,0 24,22 0,22 36,30 44,26", "0-1-2-3-0 2-4-5"],
+	["woznica", "Woźnica", "podstawowe", "12,0 24,8 22,22 4,24 0,10", "0-1-2-3-4-0"],
+	["wolarz", "Wolarz", "podstawowe", "12,0 4,10 20,12 8,24 18,26 14,38", "0-1-3-5-4-2-0"],
+	["herkules", "Herkules", "podstawowe", "6,10 20,8 22,20 8,22 34,2 34,30 0,0 0,34", "0-1-2-3-0 1-4 2-5 0-6 3-7"],
+	["orzel", "Orzeł", "podstawowe", "0,0 8,8 14,12 20,16 28,24 20,30 6,20", "0-1-2-3-4 2-5 2-6"],
+	["wezownik", "Wężownik", "podstawowe", "10,0 0,14 2,32 20,34 22,14", "0-1-2-3-4-0"],
+	["wielki_pies", "Wielki Pies", "podstawowe", "10,0 12,8 4,16 16,22 24,30 8,32", "0-1-2 1-3-4 3-5"],
+	["maly_pies", "Mały Pies", "podstawowe", "0,10 14,4 18,0", "0-1-2"],
+	["zajac", "Zając", "podstawowe", "0,0 12,6 24,4 10,18 24,20", "0-1-2-4-3-1"],
+	["jednorozec", "Jednorożec", "podstawowe", "0,20 10,14 20,10 30,0 22,22", "0-1-2-3 2-4"],
+	["rys", "Ryś", "podstawowe", "0,30 8,22 14,16 22,12 30,6 40,0", "0-1-2-3-4-5"],
+	["zyrafa", "Żyrafa", "podstawowe", "0,30 6,18 10,8 20,0 16,20", "0-1-2-3 1-4"],
+	["lisek", "Lisek", "podstawowe", "0,8 12,4 24,0", "0-1-2"],
+	["jaszczurka", "Jaszczurka", "podstawowe", "0,0 8,6 4,12 12,18 6,26 14,32", "0-1-2-3-4-5"],
+	["zrebie", "Źrebię", "podstawowe", "0,0 10,2 12,10 2,8", "0-1-2-3-0"],
+	["warkocz", "Warkocz Bereniki", "podstawowe", "0,0 14,2 14,18", "0-1-2"],
+	["psy_gonczy", "Psy Gończe", "podstawowe", "0,0 14,8 22,14", "0-1-2"],
+	["maly_lew", "Mały Lew", "podstawowe", "0,10 12,4 20,8", "0-1-2"],
+	["kruk", "Kruk", "podstawowe", "0,4 18,0 20,16 4,18", "0-1-2-3-0"],
+	["puchar", "Puchar", "podstawowe", "0,0 16,0 14,12 2,12 8,20", "0-3-4-2-1"],
+	["hydra", "Hydra", "podstawowe", "0,4 6,0 10,6 4,8 16,14 26,18 34,26 44,28 52,36", "0-1-2-3-0 2-4-5-6-7-8"],
+	["wieloryb", "Wieloryb", "podstawowe", "36,0 44,4 42,12 34,10 26,16 14,14 4,20 0,30 12,32 18,24", "0-1-2-3-0 3-4-5-6-7-8-9-5"],
+	["erydan", "Erydan", "podstawowe", "0,0 10,6 6,14 16,20 12,30 24,34", "0-1-2-3-4-5"],
+	["tarcza", "Tarcza", "podstawowe", "0,0 10,2 12,12 2,14", "0-1-2-3-0"],
+	["waz", "Wąż", "podstawowe", "0,30 6,20 10,12 18,8 22,0 28,4", "0-1-2-3-4-5"],
+	["sekstant", "Sekstant", "podstawowe", "0,0 12,10 2,16", "0-1-2"],
+	["ryby_pd", "Ryba Południowa", "podstawowe", "0,6 10,0 22,2 30,8 20,12", "0-1-2-3-4-0"],
+	["golebica", "Gołębica", "podstawowe", "0,4 10,0 20,6 26,14", "0-1-2-3"],
+	# zodiak: liczba = pora roku (0 wiosna, 1 lato, 2 jesień, 3 zima); co noc tylko jeden znak
+	["koziorozec", "Koziorożec", 2, "0,0 10,18 24,24 40,18 44,4 22,8", "0-1-2-3-4-5-0"],
+	["wodnik", "Wodnik", 2, "0,0 10,6 22,4 26,14 18,24 30,30", "0-1-2-3-4 3-5"],
+	["ryby", "Ryby", 2, "0,0 10,12 20,24 34,20 48,16 54,10 50,4 44,10", "0-1-2-3-4-5-6-7-4"],
+	["baran", "Baran", 3, "0,10 14,4 24,0 28,4", "0-1-2-3"],
+	["byk", "Byk", 3, "0,0 10,10 16,16 22,12 34,4 18,26", "0-1-2-3-4 2-5"],
+	["bliznieta", "Bliźnięta", 3, "0,0 4,14 8,30 14,0 18,14 22,30", "0-1-2 3-4-5 0-3"],
+]
+
+func _build_sky() -> void:
+	for c in CONSTELLATIONS:
+		var pts := []
+		for p in c[3].split(" "):
+			pts.append([int(p.get_slice(",", 0)), int(p.get_slice(",", 1))])
+		var edges := []
+		for chain in c[4].split(" "):
+			var ids: Array = Array(chain.split("-")).map(func(v): return int(v))
+			for i in ids.size() - 1:
+				edges.append([ids[i], ids[i + 1]])
+		var zod: bool = c[2] is int
+		var o := {"name": c[1], "cat": "zodiac" if zod else "const", "req": "podstawowe" if zod else c[2], "pts": pts, "edges": edges,
+			"bonus": 20 if zod else 8, "price": (40 if zod else 12) + pts.size() * (2 if zod else 3)}
+		if zod:
+			o.season = c[2]
+		SKY[c[0]] = o
+
 
 # ---------------------------------------------------------------- drzewko naukowe PW (GDD 11)
 const SCIENCE := [
@@ -84,7 +150,7 @@ const SCIENCE_PATHS := ["Skanowanie i Optyka", "Analiza i Metodologia", "Kartogr
 const SHOP := [
 	["statyw", "Używany Statyw Drewniany", 20, 1, 0, "", "Drgania celownika -40%."],
 	["czyszczacy", "Zestaw Czyszczący Optykę", 45, 1, 0, "", "Usuwa kurz z soczewki."],
-	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Wysyłanie raportów -40% czasu."],
+	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Analiza odkryć -40% czasu."],
 	["dd", "Paczka Dyskietek 3.5\" DD", 30, 1, 1, "", "+5 slotów (10)."],
 	["hd", "Paczka Dyskietek 3.5\" HD", 75, 1, 1, "dd", "+10 slotów (20)."],
 	["poduszka", "Wygodna Poduszka na Balkon", 80, 1, 2, "", "Noc +1 minuta."],
@@ -102,7 +168,7 @@ const SHOP := [
 	["usb", "Zewnętrzna Stacja Dyskietek USB", 50, 3, 1, "lcd", "Dyskietki działają z nowym komputerem."],
 	["hdd", "Zewnętrzny Dysk HDD 5400 RPM", 300, 3, 1, "lcd", "+50 slotów."],
 	["ide", "Dysk HDD w Macierzy IDE", 650, 3, 1, "hdd", "+100 slotów, +5% za serie."],
-	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Sprzedaż natychmiast."],
+	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Analiza odkryć natychmiast."],
 	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zagraniczne instytuty: x2 za rzadkie układy i planety."],
 	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "+10% szybkości akcji w minigrach."],
 	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem. Warunek Etapu 2."],
@@ -125,6 +191,8 @@ var moon_done := {}        # faza -> true
 var tonight := {}          # obiekty zapisane tej nocy
 var demand := {}           # kategoria -> mnożnik popytu dnia
 var demand_log := []       # popyt z ostatnich dni (wykres Giełdy)
+var sky_tonight := []      # wylosowane obiekty tej nocy
+var analysis := {"uids": [], "left": 0.0}  # odkrycia wysłane do Centrum: analiza trwa tylko w dzień, potem wypłata
 var today := {}            # podsumowanie dnia
 var rain := false
 var rain_next := false
@@ -143,6 +211,7 @@ var _id_seq := 0
 
 
 func _ready() -> void:
+	_build_sky()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()
 	_setup_theme()
@@ -313,7 +382,7 @@ func storage_cap() -> int:
 
 
 func stored() -> Array:
-	return journal.filter(func(j): return not j.sold)
+	return journal.filter(func(j): return not j.sold and not analysis.uids.has(j.uid))
 
 
 func pw_mult() -> float:
@@ -328,21 +397,31 @@ func add_pw(amount: float) -> int:
 	return v
 
 
-## obiekty widoczne tej nocy (zależne od drzewka, pory roku, fazy Księżyca, komety)
+## obiekty widoczne tej nocy: Księżyc, wylosowany zestaw (_roll_sky) i kometa
 func visible_objects() -> Array:
 	var out := []
 	if not moon_done.has(moon_phase()) and moon_phase() != 0:
 		out.append("moon")
-	for id in SKY:
-		var o: Dictionary = SKY[id]
-		if o.req != "" and not has(o.req):
-			continue
-		if o.has("season") and o.season != season() % 2:  # shortcut: Etap 1 = wiosna i lato
-			continue
-		out.append(id)
+	out.append_array(sky_tonight.filter(func(id): return SKY.has(id) and (SKY[id].req == "" or has(SKY[id].req))))
 	if comet.left > 0:
 		out.append("comet")
 	return out
+
+
+## losuje niebo nocy: kilka zwykłych gwiazdozbiorów, jeden znak zodiaku pory roku i po jednym obiekcie
+## z odblokowanych kategorii; nieodkryte mają pierwszeństwo, więc każda noc przynosi coś nowego
+func _roll_sky() -> void:
+	var pick := func(ids: Array, n: int) -> Array:
+		var fresh := ids.filter(func(id): return not discovered.has(id))
+		var old := ids.filter(func(id): return discovered.has(id))
+		fresh.shuffle()
+		old.shuffle()
+		return (fresh + old).slice(0, n)
+	var open := SKY.keys().filter(func(id): return SKY[id].req == "" or has(SKY[id].req))
+	sky_tonight = pick.call(open.filter(func(id): return SKY[id].cat == "const"), 5 if has("podstawowe") else 4)
+	sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == "zodiac" and SKY[id].season == season()), 1)
+	for cat in ["nebula", "planet", "deep"]:
+		sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == cat), 1)
 
 
 func obj_info(id: String) -> Dictionary:
@@ -409,6 +488,32 @@ func sell(entries: Array) -> int:
 		today.pw = today.get("pw", 0) + sum
 	changed.emit()
 	return sum
+
+
+func analysis_time() -> float:
+	return 0.0 if has("isdn") else 150.0 * (0.6 if has("modem") else 1.0)
+
+
+## wysyłka działa też w nocy; analiza (i wypłata) biegnie tylko w dzień
+func send_to_analysis(entries: Array) -> void:
+	if analysis.uids.is_empty():
+		analysis.left = analysis_time()
+	for e in entries:
+		analysis.uids.append(e.uid)
+	changed.emit()
+	toast.emit("Wysłano %d odkryć do analizy. Wypłata po analizie (w dzień)." % entries.size(), "info")
+
+
+func tick_analysis(dt: float) -> void:
+	if night or analysis.uids.is_empty():
+		return
+	analysis.left -= dt
+	if analysis.left > 0.0:
+		return
+	var sum := sell(journal.filter(func(j): return analysis.uids.has(j.uid)))
+	analysis = {"uids": [], "left": 0.0}
+	ding(1.0)
+	toast.emit("Analiza odkryć zakończona: +$%d" % sum, "good")
 
 
 func meteor_caught() -> Array:
@@ -490,6 +595,7 @@ func start_night() -> void:
 	night = true
 	night_left = night_length()
 	tonight.clear()
+	_roll_sky()
 	rain = rain_next
 	_deliver()
 	if has("materac"):
@@ -551,13 +657,15 @@ func new_game() -> void:
 	location = "balcony"
 	stage_done = false
 	demand_log.clear()
+	analysis = {"uids": [], "left": 0.0}
+	_roll_sky()
 	for i in 8:  # rynek ma historię sprzed pierwszego dnia gry
 		_roll_demand()
 
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "pending", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "demand_log", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
+	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
 
 
 func has_save() -> bool:
@@ -589,6 +697,8 @@ func load_game() -> bool:
 			pw = int(pw)
 			_id_seq = int(_id_seq)
 			moon_done = _int_keys(moon_done)
+			if sky_tonight.is_empty():  # zapis sprzed losowania nieba
+				_roll_sky()
 			changed.emit()
 			return true
 	return false

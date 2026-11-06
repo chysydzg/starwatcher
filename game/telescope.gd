@@ -625,35 +625,16 @@ func _draw_crosshair() -> void:
 
 func _draw_panels() -> void:
 	var dim := Color("8a90c0")
-	# lewy panel: stan i sterowanie
-	var title: String = {S.SCAN: "SKANOWANIE", S.FOCUS: "WYOSTRZANIE", S.CONNECT: "ŁĄCZENIE", S.FULL: "PAMIĘĆ PEŁNA", S.RESULT: "ZAPISANO"}[state]
-	_text(Vector2(10, 24), title, Color("ffcf6b"))
-	var lines := []
-	match state:
-		S.SCAN:
-			lines = [["PPM", "namierz"], ["Q/E", "następny cel"], ["WSAD", "obróć"], ["ESC", "wyjście"]]
-		S.FOCUS:
-			lines = [["KÓŁKO", "ostrość"], ["PPM", "zapisz"], ["ESC", "wróć"]]
-		S.CONNECT:
-			lines = [["LPM", "gwiazda"], ["ESC", "wróć"]]
-	if Game.pad:
-		lines = lines.map(func(l): return [{"PPM": "A", "LPM": "A", "KÓŁKO": "(R)", "Q/E": "LB/RB", "WSAD": "(L)", "ESC": "B"}.get(l[0], l[0]), l[1]])
-	for i in lines.size():
-		_text(Vector2(10, 52 + i * 20), "[%s]" % lines[i][0], Color("f4ecdc"))
-		_text(Vector2(62 if lines[i][0].length() < 4 else 74, 52 + i * 20), lines[i][1], dim)
 	_text(Vector2(10, 318), "DYSK %d/%d" % [Game.stored().size(), Game.storage_cap()], dim)
 	_text(Vector2(10, 340), "NOC %d:%02d" % [int(Game.night_left) / 60, int(Game.night_left) % 60], Color("ff9a6a") if Game.night_left < 40 else dim)
-	# prawy panel: lista obiektów na dziś
-	_text(Vector2(500, 24), "DZIŚ NA NIEBIE", Color("ffcf6b"))
+	# prawy panel: odkryte tej nocy
+	_text(Vector2(500, 24), "ODKRYTE", Color("ffcf6b"))
 	var y := 48.0
 	for tg in targets:
-		if y > 250:
-			break
-		var nm: String = tg.info.name.split(" – ")[0].left(15)
-		_text(Vector2(500, y), nm, Color("6affa0") if tg.done else Color("f4ecdc"))
-		if tg.done:
+		if tg.done and y <= 250:
+			_text(Vector2(500, y), tg.info.name.split(" – ")[0].left(15), Color("6affa0"))
 			_check(Vector2(622, y - 11))
-		y += 18
+			y += 18
 	if state == S.SCAN:
 		_text(Vector2(500, 272), "SYGNAŁ", dim)
 		var near := 0.0

@@ -80,5 +80,16 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	print("przy łóżku x=", w.body.position.x, " interakcja: ", w._nearest())
 	assert(w.body.position.x > 100 and w._nearest() == "lozko", "bed collider + side reach")
+	# analiza odkryć: w nocy stoi, w dzień po czasie wypłaca
+	Game.journal.append({"uid": 9999, "id": "orion", "name": "Orion", "cat": "const", "quality": 90, "base": 30.0, "day": Game.day, "sold": false})
+	var m0 := Game.money
+	Game.night = true
+	Game.send_to_analysis([Game.journal[-1]])
+	assert(not Game.stored().any(func(e): return e.uid == 9999), "wysłane znika z dysku")
+	Game.tick_analysis(999.0)
+	assert(Game.money == m0, "w nocy analiza stoi")
+	Game.night = false
+	Game.tick_analysis(999.0)
+	assert(Game.money > m0 and Game.analysis.uids.is_empty(), "w dzień wypłata po analizie")
 	print("TEST OK")
 	get_tree().quit()

@@ -39,7 +39,6 @@ var win: Control           # okno programu (pasek tytułu + treść)
 var body: Control          # treść okna
 var info: Label            # opis na dole okna
 var selected := {}
-var uploading := false
 var shop_cat := 0
 var tab_hover := -1        # karta programu pod kursorem na pasku okna
 var tabs_x := 0.0          # gdzie zaczynają się karty (zależy od długości tytułu)
@@ -226,7 +225,7 @@ func _tab_at(p: Vector2) -> int:
 
 
 func _close_app() -> void:
-	if uploading or not win:
+	if not win:
 		return
 	win.queue_free()
 	win = null
@@ -342,18 +341,18 @@ func _gielda() -> void:
 	every.size = Vector2(96, 20)
 	body.add_child(every)
 	_label(body, "PORTFEL ODKRYĆ", Vector2(6, 22), Color("ffcf4a"))
-	if Game.night:
-		_label(body, "Centrum Naukowe zamknięte do rana. Odkrycia czekają bezpiecznie na dysku.", Vector2(6, 48), Color("8aa0b8"), 620)
-		return
 	var stored := Game.stored()
 	if stored.is_empty():
-		_label(body, "Nie ma nic do sprzedania. Odkrycia z nocy pojawią się tutaj.", Vector2(6, 48), Color("8aa0b8"), 620)
+		_label(body, "Nie ma nic do wysłania. Odkrycia z nocy pojawią się tutaj.", Vector2(6, 48), Color("8aa0b8"), 440)
 		return
 	_label(body, "    %-28s%7s%8s" % ["Obiekt", "Jakość", "Cena"], Vector2(6, 40), Color("6a8aa8"))
 	var v := _scroll(body, Rect2(4, 60, 440, 90))
 	var total := _label(body, "", Vector2(460, 22), Color("6aff8a"))
 	total.add_theme_font_size_override("font_size", Game.FS * 2)
-	var sell := _button("SPRZEDAJ", func(): _upload(stored.filter(func(e): return selected.get(e.uid, false))))
+	var sell := _button("WYŚLIJ DO ANALIZY", func():
+		Game.send_to_analysis(stored.filter(func(e): return selected.get(e.uid, false)))
+		selected.clear()
+		_rebuild())
 	sell.position = Vector2(458, 70)
 	sell.size = Vector2(174, 34)
 	sell.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
@@ -364,7 +363,7 @@ func _gielda() -> void:
 		for e in stored:
 			sum += Game.price(e).total if selected.get(e.uid, false) else 0
 		total.text = "$%d" % sum
-		sell.disabled = sum == 0 or uploading
+		sell.disabled = sum == 0
 	var checks := []
 	var all := _button("Zaznacz wszystkie", func():
 		for c in checks:
@@ -421,6 +420,13 @@ func _draw_market() -> void:
 			n.draw_string(Game.font, Vector2(x + 10, 15), it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, col)
 			x += 10 + Game.font.get_string_size(it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 	n.draw_rect(Rect2(0, 151, 640, 1), Color("1e3248"))
+	if not Game.analysis.uids.is_empty():  # analiza w tle: biegnie tylko w dzień
+		var left: float = Game.analysis.left
+		var txt := "Analiza (%d): %d:%02d" % [Game.analysis.uids.size(), int(left) / 60, int(left) % 60] if not Game.night else "Analiza (%d): od rana" % Game.analysis.uids.size()
+		n.draw_string(Game.font, Vector2(458, 144), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("ffcf4a"))
+		var k := 1.0 - clampf(left / maxf(Game.analysis_time(), 1.0), 0.0, 1.0)
+		n.draw_rect(Rect2(458, 147, 174, 3), Color("1e3248"))
+		n.draw_rect(Rect2(458, 147, 174 * k, 3), Color("ffcf4a"))
 	# wykres popytu (indeks = mnożnik × 100): tylko zaznaczone kategorie
 	var r := Rect2(230, 158, 404, 156)
 	n.draw_rect(r, Color("101e2e"))
@@ -447,31 +453,6 @@ func _line(n: Control, r: Rect2, hist: Array, c: String, step: float, lo: float,
 		pts.append(Vector2(r.position.x + 30 + k * step, r.end.y - (hist[k].get(c, 1.0) * 100 - lo) / (hi - lo) * r.size.y))
 	n.draw_polyline(pts, col, w)
 	n.draw_rect(Rect2(pts[-1] - Vector2(2, 2), Vector2(5, 5)), col)
-
-
-func _upload(list: Array) -> void:
-	uploading = true
-	var dur := 0.0 if Game.has("isdn") else 4.0 * (0.6 if Game.has("modem") else 1.0)
-	var box := ColorRect.new()
-	box.color = Color("050c14")
-	box.position = Vector2(140, 110)
-	box.size = Vector2(360, 70)
-	body.add_child(box)
-	_label(box, "ATDT 0-700-ASTRO... łączenie z Centrum", Vector2(10, 6), Color("6aff8a"))
-	var pb := ProgressBar.new()
-	pb.position = Vector2(10, 32)
-	pb.size = Vector2(340, 14)
-	pb.show_percentage = false
-	box.add_child(pb)
-	var tw := create_tween()
-	tw.tween_property(pb, "value", 100.0, dur)
-	tw.tween_callback(func():
-		var sum := Game.sell(list)
-		uploading = false
-		selected.clear()
-		Game.ding(1.0)
-		Game.toast.emit("Raport przyjęty! +$%d" % sum, "good")
-		_rebuild())
 
 
 # ---------------------------------------------------------------- Retro-Tech (kategorie z ikonami, karty produktów)
@@ -628,11 +609,11 @@ func _draw_tree() -> void:
 			var my := a.y + 30
 			n.draw_polyline(PackedVector2Array([a, Vector2(a.x, my), Vector2(b.x, my), b]), col, w)
 	# korzeń: Poziom Wiedzy (punkty do wydania)
-	var root := Rect2(250, 8, 140, 44)
+	var root := Rect2(240, 4, 160, 54)
 	n.draw_rect(root, Color("ffcf4a"))
 	n.draw_rect(root, INK, false, 2)
-	n.draw_string(Game.font, root.position + Vector2(0, 20), "Poziom Wiedzy", HORIZONTAL_ALIGNMENT_CENTER, root.size.x, Game.FS, INK)
-	n.draw_string(Game.font, root.position + Vector2(0, 38), "%d PW" % Game.pw, HORIZONTAL_ALIGNMENT_CENTER, root.size.x, Game.FS, INK)
+	n.draw_string(Game.font, root.position + Vector2(15, 22), "Poziom Wiedzy", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, INK)  # 25 px: równe kreski VT323
+	n.draw_string(Game.font, root.position + Vector2(0, 46), "%d PW" % Game.pw, HORIZONTAL_ALIGNMENT_CENTER, root.size.x, 25, INK)
 	for p in 3:
 		n.draw_string(Game.font, Vector2(10 + p * 210, 313), Game.SCIENCE_PATHS[p], HORIZONTAL_ALIGNMENT_CENTER, 200, Game.FS, PATH_COL[p])
 	for i in nodes.size():
@@ -698,7 +679,5 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func close() -> void:
-	if uploading:
-		return
 	closed.emit()
 	queue_free()
