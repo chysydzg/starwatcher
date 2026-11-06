@@ -299,7 +299,6 @@ func _go(where: String) -> void:
 # ---------------------------------------------------------------- pętla
 func _process(dt: float) -> void:
 	t += dt
-	Game.tick_analysis(dt)
 	if Game.night:
 		Game.night_left = maxf(0.0, Game.night_left - dt)
 		if Game.has("encyklopedia"):

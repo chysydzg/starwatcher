@@ -13,7 +13,7 @@ const HELP := """NOC (balkon)
 • Noc kończy się, gdy pasek czasu dobiegnie końca. Do łóżka trzeba dojść samemu.
 
 DZIEŃ (komputer)
-• Giełda: sprzedaj odkrycia Centrum Naukowemu. Ceny zależą od popytu dnia – patrz wykres.
+• Giełda: wyślij raport z odkryciami (także w nocy) – Centrum Naukowe zapłaci rano. Ceny zależą od popytu dnia – patrz wykres.
 • Retro-Tech ($): sprzęt i komfort. Zakupy przychodzą kurierem.
 • Drzewko Badań (PW): nowe obiekty na niebie i ułatwienia.
 • Esc zamyka okno, drugie Esc wyłącza komputer.
@@ -45,7 +45,6 @@ var tabs_x := 0.0          # gdzie zaczynają się karty (zależy od długości 
 var hover := -1            # węzeł drzewka pod kursorem
 var nodes := []            # [pozycja, wiersz SCIENCE] drzewka
 var t := 0.0
-var cursor: TextureRect   # pikselowa strzałka zamiast systemowego kursora
 
 
 func _ready() -> void:
@@ -86,18 +85,15 @@ func _ready() -> void:
 		if e is InputEventMouseButton and e.pressed and e.position.x > 570:
 			close())
 	Game.changed.connect(bar.queue_redraw)
-	cursor = TextureRect.new()
-	cursor.texture = Game.tex("os/ui_cursor")
-	cursor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cursor.z_index = 100
-	add_child(cursor)
-	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	var k := maxi(1, mini(get_window().size.x / 640, get_window().size.y / 360))  # gra skaluje się całkowicie
+	var arrow := Game.img("os/ui_cursor")
+	arrow.resize(arrow.get_width() * k, arrow.get_height() * k, Image.INTERPOLATE_NEAREST)
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(arrow))
+
 
 
 func _process(dt: float) -> void:
 	t += dt
-	cursor.position = get_local_mouse_position().floor()
-	move_child(cursor, -1)
 	if app in ["gielda", "badania"] and body:
 		body.queue_redraw()
 
@@ -264,11 +260,8 @@ func _draw_frame() -> void:
 		win.draw_texture(ic, r.position + ((r.size - ic.get_size()) / 2).floor(), Color(1, 1, 1, 1.0 if on or i == tab_hover else 0.7))
 	var x0 := tabs_x + APPS.size() * 24 + 8
 	for k in 3:  # „uchwyt” paska tytułu
-		win.draw_rect(Rect2(x0, 6 + k * 3, 590 - x0, 1), Color("8a8a9c"))
-		win.draw_rect(Rect2(x0, 7 + k * 3, 590 - x0, 1), Color.WHITE)
-	win.draw_rect(Rect2(598, 3, 14, 14), Color("8ad06a"))
-	win.draw_rect(Rect2(598, 3, 14, 14), INK, false)
-	win.draw_rect(Rect2(601, 12, 8, 2), INK)
+		win.draw_rect(Rect2(x0, 6 + k * 3, 610 - x0, 1), Color("8a8a9c"))
+		win.draw_rect(Rect2(x0, 7 + k * 3, 610 - x0, 1), Color.WHITE)
 	win.draw_rect(Rect2(618, 3, 16, 14), Color("e85a4a"))
 	win.draw_rect(Rect2(618, 3, 16, 14), INK, false)
 	win.draw_line(Vector2(622, 6), Vector2(630, 14), Color.WHITE, 2)
@@ -351,8 +344,8 @@ func _gielda() -> void:
 	var v := _scroll(body, Rect2(4, 60, 440, 80))  # 4 pełne wiersze, przewijanie co wiersz
 	var total := _label(body, "", Vector2(460, 22), Color("6aff8a"))
 	total.add_theme_font_size_override("font_size", Game.FS * 2)
-	var sell := _button("WYŚLIJ DO ANALIZY", func():
-		Game.send_to_analysis(stored.filter(func(e): return selected.get(e.uid, false)))
+	var sell := _button("WYŚLIJ RAPORT", func():
+		Game.send_report(stored.filter(func(e): return selected.get(e.uid, false)))
 		selected.clear()
 		_rebuild())
 	sell.position = Vector2(458, 70)
@@ -387,6 +380,36 @@ func _gielda() -> void:
 		v.add_child(cb)
 		checks.append(cb)
 	update.call()
+	if not Game.offer_entry().is_empty():
+		_offer_popup()
+
+
+func _offer_popup() -> void:
+	var e := Game.offer_entry()
+	var box := Panel.new()
+	box.add_theme_stylebox_override("panel", _box(Color("10243a"), Color("ffcf4a"), 2))
+	box.position = Vector2(120, 70)
+	box.size = Vector2(400, 150)
+	body.add_child(box)
+	_label(box, "OFERTA SPECJALNA", Vector2(12, 8), Color("ffcf4a"))
+	_label(box, "%s chce kupić „%s” (jakość %d%%) za $%d.\nNa giełdzie dostałbyś dziś $%d." % [Game.offer.who, e.name, e.quality, Game.offer.price, Game.price(e).total],
+		Vector2(12, 32), Color("d8e8f8"), 376)
+	var yes := _button("SPRZEDAJ  $%d" % Game.offer.price, func():
+		Game.toast.emit("Sprzedano „%s”: +$%d" % [e.name, Game.accept_offer()], "good")
+		Game.ding(1.3)
+		_rebuild())
+	yes.position = Vector2(12, 110)
+	yes.size = Vector2(200, 28)
+	yes.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
+	yes.add_theme_stylebox_override("hover", _box(Color("4ad87a"), Color("0a3a1a"), 2))
+	yes.add_theme_color_override("font_color", Color.WHITE)
+	box.add_child(yes)
+	var no := _button("Odrzuć", func():
+		Game.offer = {}
+		_rebuild())
+	no.position = Vector2(276, 110)
+	no.size = Vector2(112, 28)
+	box.add_child(no)
 
 
 func _dem(i: int, c: String) -> float:
@@ -423,13 +446,8 @@ func _draw_market() -> void:
 			n.draw_string(Game.font, Vector2(x + 10, 15), it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, col)
 			x += 10 + Game.font.get_string_size(it[1], HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 	n.draw_rect(Rect2(0, 151, 640, 1), Color("1e3248"))
-	if not Game.analysis.uids.is_empty():  # analiza w tle: biegnie tylko w dzień
-		var left: float = Game.analysis.left
-		var txt := "Analiza (%d): %d:%02d" % [Game.analysis.uids.size(), int(left) / 60, int(left) % 60] if not Game.night else "Analiza (%d): od rana" % Game.analysis.uids.size()
-		n.draw_string(Game.font, Vector2(458, 144), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("ffcf4a"))
-		var k := 1.0 - clampf(left / maxf(Game.analysis_time(), 1.0), 0.0, 1.0)
-		n.draw_rect(Rect2(458, 147, 174, 3), Color("1e3248"))
-		n.draw_rect(Rect2(458, 147, 174 * k, 3), Color("ffcf4a"))
+	if not Game.analysis.uids.is_empty():  # raport czeka na poranną wypłatę
+		n.draw_string(Game.font, Vector2(458, 144), "Raport (%d): wypłata rano" % Game.analysis.uids.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("ffcf4a"))
 	# wykres popytu (indeks = mnożnik × 100): tylko zaznaczone kategorie
 	var r := Rect2(230, 158, 404, 156)
 	n.draw_rect(r, Color("101e2e"))
@@ -682,7 +700,7 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func _exit_tree() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Input.set_custom_mouse_cursor(null)
 
 
 func close() -> void:

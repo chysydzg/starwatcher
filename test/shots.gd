@@ -36,10 +36,10 @@ func _ready() -> void:
 	tel.f = tg.sweet
 	tel._after_focus()
 	var pts = tel.star_points(tg)
-	for k in 3:
+	for k in mini(2, pts.size() - 1):  # niebo jest losowe: gwiazdozbiory mają różną liczbę gwiazd
 		tel.aim = pts[k]
 		tel._click_star()
-	tel.aim = pts[3]
+	tel.aim = pts[-1]
 	await shot("okular_laczenie")
 	tel.close()
 	await get_tree().create_timer(0.5).timeout
@@ -60,6 +60,9 @@ func _ready() -> void:
 	await shot("os_pulpit")
 	for id in ["dziennik", "gielda", "sklep", "badania", "pomoc"]:
 		w.viewport._launch(id)
+		if id == "gielda" and not Game.stored().is_empty():  # podgląd okazyjnej oferty
+			Game.offer = {"uid": Game.stored()[0].uid, "who": "Instytut Astronomii w Gwiaździnie", "price": 45}
+			w.viewport._rebuild()
 		if id == "badania":
 			w.viewport.hover = 4
 		await shot("os_" + id)

@@ -30,6 +30,7 @@ var sharp_t := 0.0
 var lit := {}                    # zaznaczone gwiazdy aktualnej konstelacji
 var bursts := []                 # rozbłyski po kliknięciu gwiazdy
 var shake := 0.0
+var ring_a := 0.0  # kąt radełka pierścienia (rysowany)
 var meteor := {}
 var next_meteor := 0.0
 var clouds := []
@@ -203,6 +204,7 @@ func speed_mult() -> float:
 func _process(dt: float) -> void:
 	t += dt
 	shake = maxf(0.0, shake - dt)
+	ring_a = lerpf(ring_a, f * TAU * 1.5, minf(1.0, dt * 14.0))  # pierścień ostrości nadąża płynnie za kółkiem
 	center_t -= dt
 	var mv := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var mouse := get_global_mouse_position()
@@ -514,6 +516,12 @@ func _draw() -> void:
 	for b in bursts:
 		draw_arc(b.p, 4 + b.t * 40, 0, TAU, 24, Color(1, 0.85, 0.4, 1.0 - b.t * 2), 1.0)
 	draw_texture(_frame_tex, Vector2.ZERO)
+	var ring := Color("5d6478") if Game.has("newton") else Color("b08a3c")
+	for i in 48:  # radełko obraca się razem z kółkiem myszy
+		var q := (C + Vector2.from_angle(i * TAU / 48.0 + ring_a) * (R + 3.5)).floor()
+		_px(q.x - 1, q.y - 1, 2, 2, ring.darkened(0.55))
+		var q2 := (C + Vector2.from_angle(i * TAU / 48.0 + ring_a + 0.03) * (R + 3.5)).floor()
+		_px(q2.x, q2.y, 1, 1, ring.lightened(0.35))
 	_draw_crosshair()
 	draw_set_transform(Vector2.ZERO)
 	_draw_panels()
@@ -650,10 +658,12 @@ func _draw_panels() -> void:
 			_px(560 + i * 11, 300 - i * 3, 8, 6 + i * 3, Color("6affa0") if near > i / 6.0 else Color("2a2a40"))
 	if state == S.FOCUS:
 		var q := quality()
-		_text(Vector2(500, 272), "OSTROŚĆ %d%%" % q, Color("ffcf6b") if q >= SHARP else Color("f4ecdc"))
-		_px(500, 280, 132, 10, Color("2a2a40"))
-		_px(500, 280, 1.32 * q, 10, Color("6affa0") if q >= SHARP else Color("8aa8ff"))
-		_px(500 + 132 * f - 1, 276, 3, 18, Color("f4ecdc"))  # pozycja pierścienia
+		# pasek pod celem, w środku okularu – wzrok zostaje na gwiazdach
+		var label := "OSTROŚĆ %d%%" % q
+		_text(Vector2(floorf(320 - Game.font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x / 2), 262), label, Color("ffcf6b") if q >= SHARP else Color("f4ecdc"))
+		_px(254, 268, 132, 8, Color("2a2a40"))
+		_px(254, 268, 1.32 * q, 8, Color("6affa0") if q >= SHARP else Color("8aa8ff"))
+		_px(254 + 132 * f - 1, 265, 3, 14, Color("f4ecdc"))  # pozycja pierścienia
 	# tutorial i komunikaty na środku
 	var msg := ""
 	match state:

@@ -125,8 +125,9 @@ icon("ui_moon", 18, 18, (s) => {
   for (const [x, y] of [[4, 9], [6, 13], [3, 6]]) s.pset(x, y, M[0]); // kratery
 });
 { // strzałka myszy: biała z czarnym obrysem (rysowana w Godot w siatce 640x360, więc skaluje się z grą)
-  const rows = ["X", "XX", "X.X", "X..X", "X...X", "X....X", "X.....X", "X......X", "X.......X", "X....XXXX", "X..X..X", "X.X X..X", "XX  X..X", "X    XX"];
-  const c = new P.Buf(10, rows.length);
-  rows.forEach((r, y) => [...r].forEach((ch, x) => ch === "X" ? c.pset(x, y, [18, 12, 22]) : ch === "." && c.pset(x, y, [250, 250, 246])));
+  const rows = ["X", "XX", "XoX", "XooX", "XoooX", "XooooX", "XoooooX", "XooooooX", "XoooooooX", "XooooooooX", "XoooooXXXXX",
+    "XooXooX", "XoX XooX", "XX  XooX", "X    XooX", "     XooX", "      XX"];
+  const c = new P.Buf(11, rows.length);
+  rows.forEach((r, y) => [...r].forEach((ch, x) => ch === "X" ? c.pset(x, y, [18, 12, 22]) : ch === "o" && c.pset(x, y, [250, 250, 246])));
   P.save(c, out + "ui_cursor.png");
 }

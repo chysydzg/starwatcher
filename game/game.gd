@@ -134,6 +134,7 @@ const SCIENCE := [
 	["auto1", "Autofokus DIY I", 350, 2, 0, "", "Wyostrza sam po 1 s zatrzymania celownika."],
 	["pamiec1", "Pamięć Fotograficzna I", 120, 2, 1, "", "+10% PW ze wszystkich źródeł."],
 	["pamiec2", "Pamięć Fotograficzna II", 250, 2, 1, "pamiec1", "Kolejne +15% PW."],
+	["instytuty", "Oferty Instytutów", 200, 2, 1, "", "Każdego ranka 30% szans, że instytut zechce kupić jedno odkrycie za 150% ceny."],
 	["encyklopedia", "Encyklopedia Astronomiczna", 300, 2, 1, "", "+0,5 PW/s nocy za każdy odkryty obiekt (maks. 20)."],
 	["obloki", "Głębokie Obłoki Gazu", 150, 2, 2, "podstawowe", "Mgławice i pył kosmiczny (2x PW)."],
 	["kometa", "Kometa Okresowa", 280, 2, 2, "", "Kometa widoczna przez 3 noce: +150 PW."],
@@ -142,6 +143,7 @@ const SCIENCE := [
 	["auto2", "Autofokus DIY II", 850, 3, 0, "samoistne", "Autofokus natychmiast."],
 	["wzor", "Wzór Empiryczny", 700, 3, 1, "", "+1 PW za każdy zarobiony $."],
 	["notatki", "Udostępnianie Notatek", 1000, 3, 1, "", "+50% wszystkich PW."],
+	["kolekcjonerzy", "Oferty Kolekcjonerów", 600, 3, 1, "instytuty", "Każdego ranka 20% szans na kolekcjonera, który płaci 250% ceny za jedno odkrycie."],
 	["gleb_pole", "Głębokie Pole Obserwacji", 900, 3, 2, "", "Gwiazdy podwójne i odległe galaktyki."],
 	["manifest", "Manifest Naukowy „Nasze Miejsce w Kosmosie”", 5000, 3, 2, "planety", "Odblokowuje Certyfikat Terenu w sklepie."],
 ]
@@ -151,7 +153,7 @@ const SCIENCE_PATHS := ["Skanowanie i Optyka", "Analiza i Metodologia", "Kartogr
 const SHOP := [
 	["statyw", "Używany Statyw Drewniany", 20, 1, 0, "", "Drgania celownika -40%."],
 	["czyszczacy", "Zestaw Czyszczący Optykę", 45, 1, 0, "", "Usuwa kurz z soczewki."],
-	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Analiza odkryć -40% czasu."],
+	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Wartość odkryć +10%."],
 	["dd", "Paczka Dyskietek 3.5\" DD", 30, 1, 1, "", "+5 slotów (10)."],
 	["hd", "Paczka Dyskietek 3.5\" HD", 75, 1, 1, "dd", "+10 slotów (20)."],
 	["poduszka", "Wygodna Poduszka na Balkon", 80, 1, 2, "", "Noc +1 minuta."],
@@ -169,7 +171,7 @@ const SHOP := [
 	["usb", "Zewnętrzna Stacja Dyskietek USB", 50, 3, 1, "lcd", "Dyskietki działają z nowym komputerem."],
 	["hdd", "Zewnętrzny Dysk HDD 5400 RPM", 300, 3, 1, "lcd", "+50 slotów."],
 	["ide", "Dysk HDD w Macierzy IDE", 650, 3, 1, "hdd", "+100 slotów, +5% za serie."],
-	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Analiza odkryć natychmiast."],
+	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Raport wypłacany od razu, bez czekania do rana."],
 	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zagraniczne instytuty: x2 za rzadkie układy i planety."],
 	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "+10% szybkości akcji w minigrach."],
 	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem. Warunek Etapu 2."],
@@ -193,7 +195,8 @@ var tonight := {}          # obiekty zapisane tej nocy
 var demand := {}           # kategoria -> mnożnik popytu dnia
 var demand_log := []       # popyt z ostatnich dni (wykres Giełdy)
 var sky_tonight := []      # wylosowane obiekty tej nocy
-var analysis := {"uids": [], "left": 0.0}  # odkrycia wysłane do Centrum: analiza trwa tylko w dzień, potem wypłata
+var analysis := {"uids": [], "left": 0.0}  # raport poranny: odkrycia wysłane do Centrum, wypłata rano (po śnie)
+var offer := {}            # okazyjna oferta instytutu / kolekcjonera na jedno odkrycie (ważna do końca dnia)
 var today := {}            # podsumowanie dnia
 var rain := false
 var rain_next := false
@@ -444,7 +447,7 @@ func is_rare(entry: Dictionary) -> bool:
 func price(entry: Dictionary) -> Dictionary:
 	var base: float = entry.base * (1.5 if has("newton") else 1.0)
 	var bonus := 0.0
-	for p in [["achromat", 0.20], ["lcd", 0.25], ["vga", 0.20], ["astrotax", 0.15]]:
+	for p in [["achromat", 0.20], ["lcd", 0.25], ["vga", 0.20], ["astrotax", 0.15], ["modem", 0.10]]:
 		if has(p[0]):
 			bonus += p[1]
 	var inst := 2.0 if has("licencja") and is_rare(entry) else 1.0
@@ -491,30 +494,54 @@ func sell(entries: Array) -> int:
 	return sum
 
 
-func analysis_time() -> float:
-	return 0.0 if has("isdn") else 150.0 * (0.6 if has("modem") else 1.0)
-
-
-## wysyłka działa też w nocy; analiza (i wypłata) biegnie tylko w dzień
-func send_to_analysis(entries: Array) -> void:
-	if analysis.uids.is_empty():
-		analysis.left = analysis_time()
+## raport do Centrum: można wysłać o każdej porze, pieniądze przychodzą rano (z ISDN od razu)
+func send_report(entries: Array) -> void:
 	for e in entries:
 		analysis.uids.append(e.uid)
+	if has("isdn"):
+		toast.emit("Raport przyjęty: +$%d" % _pay_report(), "good")
+	else:
+		toast.emit("Raport wysłany (%d). Centrum zapłaci rano." % entries.size(), "info")
 	changed.emit()
-	toast.emit("Wysłano %d odkryć do analizy. Wypłata po analizie (w dzień)." % entries.size(), "info")
 
 
-func tick_analysis(dt: float) -> void:
-	if night or analysis.uids.is_empty():
+func _pay_report() -> int:
+	var sum := sell(journal.filter(func(j): return analysis.uids.has(j.uid))) if not analysis.uids.is_empty() else 0
+	analysis.uids.clear()
+	return sum
+
+
+const OFFER_FROM := {"instytuty": ["Instytut Astronomii w Gwiaździnie", "Obserwatorium Nad Jeziorem", "Akademia Nieba Północnego"],
+	"kolekcjonerzy": ["Kolekcjoner pan Zenon", "Antykwariat „Gwiazdozbiór”", "Pani Halina, miłośniczka komet"]}
+
+## okazyjna oferta na jedno nieprzesłane odkrycie (szansa z badań „Oferty …”)
+func _roll_offer() -> void:
+	offer = {}
+	var s := stored()
+	if s.is_empty():
 		return
-	analysis.left -= dt
-	if analysis.left > 0.0:
-		return
-	var sum := sell(journal.filter(func(j): return analysis.uids.has(j.uid)))
-	analysis = {"uids": [], "left": 0.0}
-	ding(1.0)
-	toast.emit("Analiza odkryć zakończona: +$%d" % sum, "good")
+	for o in [["kolekcjonerzy", 0.20, 2.5], ["instytuty", 0.30, 1.5]]:
+		if has(o[0]) and randf() < o[1]:
+			var e: Dictionary = s.pick_random()
+			offer = {"uid": e.uid, "who": OFFER_FROM[o[0]].pick_random(), "price": int(round(price(e).total * o[2]))}
+			return
+
+
+func offer_entry() -> Dictionary:
+	var hit := stored().filter(func(j): return not offer.is_empty() and j.uid == offer.uid)
+	return hit[0] if not hit.is_empty() else {}
+
+
+func accept_offer() -> int:
+	var e := offer_entry()
+	var sum: int = offer.price
+	e.sold = true
+	money += sum
+	today.sales = today.get("sales", 0) + sum
+	today.sales_n = today.get("sales_n", 0) + 1
+	offer = {}
+	changed.emit()
+	return sum
 
 
 func meteor_caught() -> Array:
@@ -606,6 +633,7 @@ func start_night() -> void:
 
 ## „Idź spać”: zwraca dane do Podsumowania Dnia, przechodzi w poranek i robi autozapis
 func sleep() -> Dictionary:
+	_pay_report()  # raport poranny: wypłata trafia do podsumowania dnia
 	var summary := today.duplicate()
 	summary.day = day
 	summary.calendar = calendar()
@@ -624,6 +652,7 @@ func sleep() -> Dictionary:
 	rain_next = randf() < RAIN_CHANCE
 	summary.forecast = "deszcz – słaba widoczność" if rain_next else "pogodnie"
 	_roll_demand()
+	_roll_offer()
 	_deliver()
 	save_game()
 	return summary
@@ -659,6 +688,7 @@ func new_game() -> void:
 	stage_done = false
 	demand_log.clear()
 	analysis = {"uids": [], "left": 0.0}
+	offer = {}
 	_roll_sky()
 	for i in 8:  # rynek ma historię sprzed pierwszego dnia gry
 		_roll_demand()
@@ -666,7 +696,7 @@ func new_game() -> void:
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "pending", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
+	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
 
 
 func has_save() -> bool:

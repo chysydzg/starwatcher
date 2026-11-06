@@ -80,16 +80,16 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	print("przy łóżku x=", w.body.position.x, " interakcja: ", w._nearest())
 	assert(w.body.position.x > 100 and w._nearest() == "lozko", "bed collider + side reach")
-	# analiza odkryć: w nocy stoi, w dzień po czasie wypłaca
+	# raport poranny: wysłany w nocy, wypłacony po śnie; oferta instytutu sprzedaje od razu
 	Game.journal.append({"uid": 9999, "id": "orion", "name": "Orion", "cat": "const", "quality": 90, "base": 30.0, "day": Game.day, "sold": false})
 	var m0 := Game.money
-	Game.night = true
-	Game.send_to_analysis([Game.journal[-1]])
-	assert(not Game.stored().any(func(e): return e.uid == 9999), "wysłane znika z dysku")
-	Game.tick_analysis(999.0)
-	assert(Game.money == m0, "w nocy analiza stoi")
-	Game.night = false
-	Game.tick_analysis(999.0)
-	assert(Game.money > m0 and Game.analysis.uids.is_empty(), "w dzień wypłata po analizie")
+	Game.send_report([Game.journal[-1]])
+	assert(Game.money == m0 and not Game.stored().any(func(e): return e.uid == 9999), "raport czeka do rana")
+	Game.sleep()
+	assert(Game.money > m0 and Game.analysis.uids.is_empty(), "wypłata rano")
+	Game.journal.append({"uid": 9998, "id": "lew", "name": "Lew", "cat": "zodiac", "quality": 80, "base": 50.0, "day": Game.day, "sold": false})
+	Game.offer = {"uid": 9998, "who": "Test", "price": 123}
+	var m1 := Game.money
+	assert(Game.accept_offer() == 123 and Game.money == m1 + 123 and Game.offer_entry().is_empty(), "oferta")
 	print("TEST OK")
 	get_tree().quit()
