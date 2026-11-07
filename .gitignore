@@ -6,3 +6,9 @@
 debug_shots/
 debug_autoshot.flag
 Claude outputs/
+
+# rendery muzyki (duże WAV-y); do gry trafiają tylko game/music/*.ogg
+music/*/cache/
+music/*/render_*/
+music/*/analyze_*.txt
+music/render_*.log

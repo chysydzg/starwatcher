@@ -9,6 +9,7 @@ func _ready() -> void:
 	var w = get_tree().root.get_node("World")
 	assert(w.name == "World", "world loaded")
 	w._enter("balcony", true)
+	assert(w.music["balcony"].playing and w.music["balcony"].stream.loop, "night loop on balcony")
 	w._interact("teleskop")
 	for i in 20: await get_tree().process_frame
 	var tel = w.viewport
@@ -34,6 +35,7 @@ func _ready() -> void:
 	await get_tree().create_timer(0.8).timeout
 	assert(w.viewport == null, "telescope closed")
 	w._enter("room", true)
+	assert(w.music["room"].playing, "day loop in room")
 	w._sleep()
 	await get_tree().create_timer(0.3).timeout
 	assert(not Game.night and Game.day == 2, "morning of day 2")

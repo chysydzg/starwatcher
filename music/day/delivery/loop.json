@@ -1,0 +1,39 @@
+{
+  "start_bar": 0,
+  "end_bar": 32,
+  "sample_rate": 48000,
+  "start_sample": 0,
+  "end_sample": 4006957,
+  "length_samples": 4006957,
+  "start_seconds": 0.0,
+  "end_seconds": 83.478272,
+  "bpm": 91.999988,
+  "bar_beats": 4,
+  "beat_count": 128.0,
+  "sections": [
+    {
+      "id": "a",
+      "start_sample": 0,
+      "start_seconds": 0.0
+    },
+    {
+      "id": "b",
+      "start_sample": 1001739,
+      "start_seconds": 20.869563
+    },
+    {
+      "id": "a2",
+      "start_sample": 2003479,
+      "start_seconds": 41.739146
+    },
+    {
+      "id": "c",
+      "start_sample": 3005218,
+      "start_seconds": 62.608708
+    }
+  ],
+  "files": {
+    "wav": "loop.wav",
+    "ogg": "loop.ogg"
+  }
+}

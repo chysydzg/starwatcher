@@ -7,6 +7,7 @@ const NIGHT_TINT := Color(0.34, 0.38, 0.64)
 const SPEED := 144.0
 const ROOM_WALK := Rect2(14, 122, 612, 224)
 const BALCONY_WALK := Rect2(20, 318, 610, 42)
+const MUSIC_DB := -8.0  # pętle są masterowane na -16 LUFS
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
 const ROOM_SPOTS := {"komputer": [Rect2(334, 104, 94, 48), "Komputer"], "lozko": [Rect2(12, 96, 88, 100), "Łóżko"],
 	"drzwi": [Rect2(518, 104, 46, 18), "Drzwi na balkon"], "szafa": [Rect2(568, 104, 62, 24), "Szafa"],
@@ -16,6 +17,7 @@ const BALCONY_SPOTS := {"wroc": [Rect2(0, 300, 66, 60), "Wróć do pokoju"], "te
 	"krzeslo": [Rect2(416, 330, 34, 16), "Krzesło"], "skrzynka": [Rect2(472, 330, 32, 14), "Kubek"], "kwiatek": [Rect2(564, 330, 36, 16), "Kwiatek"]}
 
 var room: Node2D
+var music := {}  # lokacja -> AudioStreamPlayer: pokój gra dzień, balkon noc
 var balcony: Node2D
 var room_sort: Node2D
 var balcony_sort: Node2D
@@ -69,6 +71,7 @@ func _ready() -> void:
 	body.add_child(jania)
 	_build_room()
 	_build_balcony()
+	music = {"room": _music("day.ogg"), "balcony": _music("night.ogg")}
 	modulate_node = CanvasModulate.new()
 	add_child(modulate_node)
 	glow = Node2D.new()
@@ -385,6 +388,30 @@ func _enter(where: String, instant := false) -> void:
 	elif body.position == Vector2.ZERO:
 		body.position = Vector2(300, 220)
 	_apply_phase(true)
+	_music_to(where)
+
+
+func _music(file: String) -> AudioStreamPlayer:
+	var path := "res://game/music/" + file
+	var s: AudioStreamOggVorbis = load(path) if ResourceLoader.exists(path) else AudioStreamOggVorbis.load_from_file(path)
+	s.loop = true  # loop.ogg kończy się dokładnie na końcu pętli, ogon pogłosu jest wklejony w jej początek
+	var p := AudioStreamPlayer.new()
+	p.stream = s
+	p.volume_db = -60.0
+	add_child(p)
+	return p
+
+
+func _music_to(where: String) -> void:
+	for k in music:
+		var p: AudioStreamPlayer = music[k]
+		var on: bool = k == where
+		if on and not p.playing:
+			p.play()
+		var tw := create_tween()
+		tw.tween_property(p, "volume_db", MUSIC_DB if on else -60.0, 1.0)
+		if not on:
+			tw.tween_callback(func(): if Game.location != k: p.stop())
 
 
 func _go(where: String) -> void:
