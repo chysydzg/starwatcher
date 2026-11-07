@@ -467,7 +467,7 @@ func _offer_popup() -> void:
 	box.size = Vector2(400, 150)
 	body.add_child(box)
 	_label(box, "OFERTA SPECJALNA", Vector2(12, 8), Color("ffcf4a"))
-	_label(box, "%s chce kupić „%s” (jakość %d%%) za $%d.\nNa giełdzie dostałbyś dziś $%d." % [Game.offer.who, e.name, e.quality, Game.offer.price, Game.price(e).total],
+	_label(box, "%s chce kupić „%s” (jakość %d%%) za $%d." % [Game.offer.who, e.name, e.quality, Game.offer.price],
 		Vector2(12, 32), Color("d8e8f8"), 376)
 	var yes := _button("SPRZEDAJ  $%d" % Game.offer.price, func():
 		Game.toast.emit("Sprzedano „%s”: +$%d" % [e.name, Game.accept_offer()], "good")
