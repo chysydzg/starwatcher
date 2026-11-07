@@ -34,7 +34,6 @@ func _ready() -> void:
 		tel.target = tg
 		tel.state = tel.S.FOCUS
 	tel.f = tg.sweet + 0.14
-	tel.f_goal = tel.f
 	await shot("okular_fokus")
 	tel.f = tg.sweet
 	tel._after_focus()

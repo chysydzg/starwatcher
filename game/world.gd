@@ -314,8 +314,9 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 	var k := {"u": 0.0}
 	o.draw.connect(func(): _draw_dusk(o, 1.0 - k.u if dawn else k.u, k.u, dawn))
 	Game.sfx("dawn" if dawn else "dusk")  # krótki akcent: wznoszący się o świcie, opadający o zmierzchu
+	o.create_tween().set_loops().tween_callback(o.queue_redraw).set_delay(1.0 / 30.0)  # woda, chmury i gwiazdy żyją cały czas
 	var tw := create_tween()
-	tw.tween_method(func(v): k.u = v; o.queue_redraw(), 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_method(func(v): k.u = v, 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_callback(func():
 		var b := Button.new()
 		b.text = "KONTYNUUJ"
@@ -332,6 +333,7 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 ## zmierzch: niebo w pasmach, chmury podświetlone od dołu, Słońce z poświatą zachodzi łukiem,
 ## Księżyc wschodzi z drugiej strony, odbicia w jeziorze, wzgórza z lasem, wychodzą gwiazdy
 func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
 	var dusk := clampf(prog * 2.0, 0, 1)
 	var night := clampf(prog * 2.0 - 1.0, 0, 1)
 	var sky_top := Color("4a8ad8").lerp(Color("3a3a78"), dusk).lerp(Color("0a0c24"), night)
@@ -345,8 +347,8 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 	var sun := (c + Vector2.from_angle(lerpf(-PI / 2, 0.3, prog)) * Vector2(250, 200)).floor()
 	if dawn:  # o świcie Słońce wschodzi po przeciwnej stronie niż zachodziło
 		sun.x = 640 - sun.x
-	for k in 3:  # poświata Słońca w trzech pierścieniach
-		o.draw_circle(sun, 22 + k * 10, Color(1, 0.8, 0.45, 0.16 - k * 0.04))
+	for k in 3:  # poświata Słońca w trzech pierścieniach, lekko pulsuje
+		o.draw_circle(sun, 22 + k * 10 + roundf(sin(now * 2.0 + k) * 1.5), Color(1, 0.8, 0.45, 0.16 - k * 0.04))
 	o.draw_circle(sun, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
 	o.draw_circle(sun + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
 	var m := clampf((prog - 0.35) / 0.65, 0, 1)
@@ -357,7 +359,7 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 		for q in [Vector2(-4, 3), Vector2(3, -5), Vector2(4, 4)]:
 			o.draw_rect(Rect2(moon + q, Vector2(2, 2)), Color("d8ceaa"))
 	for i in 4:  # chmury: płaskie pasma, spód podświetlony zachodem
-		var cx := fposmod(60.0 + i * 170.0 + prog * 30.0, 760.0) - 60.0
+		var cx := floorf(fposmod(60.0 + i * 170.0 + prog * 30.0 + now * (6.0 + i % 2 * 3.0), 760.0) - 60.0)
 		var cy := 70.0 + (i % 2) * 40.0 + i * 8.0
 		var body_c := Color("e8f0fa").lerp(Color("7a5a88"), dusk).lerp(Color("1a1838"), night)
 		o.draw_rect(Rect2(cx, cy, 70, 6), body_c)
@@ -365,6 +367,17 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 		o.draw_rect(Rect2(cx + 4, cy + 6, 60, 2), Color("ffb070").lerp(Color("2a2246"), night))
 	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
 	o.draw_texture(Game.tex("balcony_view"), Vector2.ZERO, Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
+	var glint := Color("f4f8ff").lerp(Color("ffc890"), dusk).lerp(Color("c8d0ff"), night)
+	for i in 60:  # fale: krótkie błyski dryfujące po jeziorze
+		var y := 224 + (i * 37) % 132
+		var x := floorf(fposmod(i * 89.0 + now * (4.0 + i % 5 * 2.0), 680.0) - 20.0)
+		var a := (0.25 + 0.4 * maxf(0.0, sin(now * 1.7 + i * 2.3))) * (0.6 + y / 360.0)
+		o.draw_rect(Rect2(x, y, 3 + i % 4 * 2, 1), Color(glint, a))
+	for body_pos in [[sun, Color("ffd890"), sun.y < 214], [Vector2(lerpf(660, 492, m), 0), Color("f4ecc8"), m > 0.3]]:
+		if body_pos[2]:  # odbicie Słońca / Księżyca: drgające kreski pod nim
+			for r in 14:
+				var w := 6.0 + 6.0 * absf(sin(now * 3.0 + r * 1.3)) - r * 0.2
+				o.draw_rect(Rect2(floorf(body_pos[0].x - w / 2), 226 + r * 6, floorf(w), 1), Color(body_pos[1], 0.8 - r * 0.045))
 	if u > 0.75:
 		var a := (u - 0.75) * 4.0
 		_outlined(o, Game.font_title, 16, 100, "Nowy dzień" if dawn else "Zapada noc", a)
@@ -427,6 +440,8 @@ func _go(where: String) -> void:
 # ---------------------------------------------------------------- pętla
 func _process(dt: float) -> void:
 	t += dt
+	var pointer: bool = busy or (viewport != null and not viewport.get("is_telescope"))  # kursor tylko w okienkach i AstroOS
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pointer else Input.MOUSE_MODE_HIDDEN
 	if Game.night:
 		Game.night_left = maxf(0.0, Game.night_left - dt)
 		if Game.has("encyklopedia"):
@@ -733,6 +748,7 @@ func _panel(sz: Vector2) -> Panel:
 
 func _pause() -> void:
 	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var p := _panel(Vector2(240, 250))
 	var root: Control = p.get_parent()
 	root.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -753,14 +769,20 @@ func _pause() -> void:
 		b.pressed.connect(cb)
 		box.add_child(b)
 		return b
-	add.call("WRÓĆ DO GRY", close).grab_focus.call_deferred()
+	var back: Button = add.call("WRÓĆ DO GRY", close)
+	back.grab_focus.call_deferred()
+	back.shortcut = Shortcut.new()  # ESC (i Start na padzie) zamyka pauzę, gdziekolwiek jest fokus
+	back.shortcut.events = ["back", "pause"].map(func(a):
+		var ev := InputEventAction.new()
+		ev.action = a
+		ev.pressed = true
+		return ev)
 	add.call("ZAPISZ GRĘ", func(): Game.save_game(); _toast("Zapisano grę.", "good"))
 	Game.settings_ui(box, _refresh)  # ten sam blok ustawień co w menu głównym: suwaki głośności, CRT, ekran
 	add.call("ZAPISZ I WYJDŹ DO MENU", func():
 		Game.save_game()
 		get_tree().paused = false
 		get_tree().change_scene_to_file("res://game/menu.tscn"))
-	root.gui_input.connect(func(ev): if ev.is_action_pressed("back"): close.call())
 
 
 func _stage_complete() -> void:

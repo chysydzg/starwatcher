@@ -230,6 +230,8 @@ func _ready() -> void:
 		AudioServer.set_bus_name(AudioServer.bus_count - 1, bus)
 	_load_settings()
 	get_tree().set_auto_accept_quit(false)
+	get_tree().root.size_changed.connect(_cursor)
+	_cursor.call_deferred()
 
 
 # ---------------------------------------------------------------- zasoby
@@ -851,6 +853,14 @@ func apply_settings() -> void:
 	var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))
+
+
+## kursor w stylu AstroOS, skalowany jak gra (całkowicie); w samej grze świat go chowa
+func _cursor() -> void:
+	var k := maxi(1, mini(floori(get_window().size.x / 640.0), floori(get_window().size.y / 360.0)))
+	var arrow := img("os/ui_cursor")
+	arrow.resize(arrow.get_width() * k, arrow.get_height() * k, Image.INTERPOLATE_NEAREST)
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(arrow))
 
 
 ## ustawienia (menu główne i pauza – ten sam blok): pełny ekran, CRT i suwaki głośności

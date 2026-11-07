@@ -91,10 +91,6 @@ func _ready() -> void:
 		if e is InputEventMouseButton and e.pressed and e.position.x > 570:
 			close())
 	Game.changed.connect(bar.queue_redraw)
-	var k := maxi(1, mini(floori(get_window().size.x / 640.0), floori(get_window().size.y / 360.0)))  # gra skaluje się całkowicie
-	var arrow := Game.img("os/ui_cursor")
-	arrow.resize(arrow.get_width() * k, arrow.get_height() * k, Image.INTERPOLATE_NEAREST)
-	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(arrow))
 
 
 
@@ -756,7 +752,7 @@ func _draw_tree() -> void:
 			n.draw_rect(Rect2(r.end.x - 11, r.position.y + 10, 7, 6), Color("8a90b0"))
 			n.draw_rect(Rect2(r.end.x - 10, r.position.y + 6, 5, 4), Color("8a90b0"), false, 1.0)
 	if stage_hover >= 0:
-		var msg := "Etap %d%s" % [stage_hover + 1, "" if stage_hover == 0 else " – jeszcze zamknięty"]
+		var msg := "Etap %d%s" % [stage_hover + 1, "" if stage_hover == 0 else " - Niedostępne"]
 		var w := Game.font_os.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 12
 		var p := Vector2(_stage_tab(2).end.x - w, 34)
 		n.draw_rect(Rect2(p, Vector2(w, 22)).grow(1), Color("e8ecf8"))
@@ -813,10 +809,6 @@ func _unhandled_input(e: InputEvent) -> void:
 		else:
 			close()
 		get_viewport().set_input_as_handled()
-
-
-func _exit_tree() -> void:
-	Input.set_custom_mouse_cursor(null)
 
 
 func close() -> void:

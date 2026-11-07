@@ -22,10 +22,9 @@ func _ready() -> void:
 		tel.state = tel.S.SCAN
 		tel._lock_or_confirm()
 		assert(tel.state == tel.S.FOCUS, "locked " + tg.id)
-		tel.f_goal = 0.0 if tel.f > 0.5 else 1.0
-		var f0: float = tel.f
-		tel._process(0.05)
-		assert(tel.f != f0 and absf(tel.f - tel.f_goal) > 0.15, "soczewka nadąża za kółkiem z opóźnieniem")
+		var off0: float = tel.focus_offset()
+		tel.t += 0.6
+		assert(tel.focus_offset() != off0 and tel.quality() < 96, "znacznik buja się, a start jest poza zielonym")
 		tel.f = tg.sweet
 		tel._after_focus()
 		if tg.info.has("pts"):
@@ -46,6 +45,16 @@ func _ready() -> void:
 		assert(not w.lamps[k].on and w.lamps[k].light.energy == 0.0, "lamp switches off")
 		w._interact(k)
 		assert(w.lamps[k].on and w.lamps[k].light.energy > 0.0, "lamp switches on")
+	w._pause()
+	var nl := Game.night_left
+	for i in 3: await get_tree().process_frame
+	assert(get_tree().paused and Game.night_left == nl, "pauza zatrzymuje noc")
+	var esc := InputEventKey.new()
+	esc.physical_keycode = KEY_ESCAPE
+	esc.pressed = true
+	Input.parse_input_event(esc)
+	for i in 3: await get_tree().process_frame
+	assert(not get_tree().paused, "ESC zamyka pauzę")
 	w._sleep()
 	await get_tree().create_timer(0.3).timeout
 	assert(not Game.night and Game.day == 2, "morning of day 2")

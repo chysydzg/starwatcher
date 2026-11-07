@@ -7,6 +7,7 @@ var _ui: CanvasLayer
 
 func _ready() -> void:
 	name = "Menu"
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var bg := Sprite2D.new()
 	bg.texture = Game.tex("balcony")
 	bg.centered = false

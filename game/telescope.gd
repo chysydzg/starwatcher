@@ -11,8 +11,12 @@ const C := Vector2(320, 180)
 const R := 172.0
 const SKY_SIZE := Vector2(1200, 700)
 const STAR_SCALE := 3.0          # rozstaw gwiazd konstelacji na ekranie
-const FOCUS_STEP := 0.05         # jeden ząbek kółka (ostry zakres na starcie jest węższy niż dwa ząbki)
-const FOCUS_LAG := 3.0          # jak szybko soczewka nadąża za kółkiem (czyste soczewki przyspieszają)
+const FOCUS_STEP := 0.02         # jeden ząbek kółka
+# stary wariant: soczewka z opóźnieniem i pływający ostry punkt (do powrotu, jeśli pasek się nie sprawdzi)
+# const FOCUS_STEP := 0.05
+# const FOCUS_LAG := 3.0
+const FOCUS_SWAY := 0.045        # bujanie znacznika na pasku ostrości (czyste soczewki je tłumią)
+const BAR_K := 200.0             # px paska na jednostkę ostrości
 const SHARP := 96                # od tej jakości soczewka „klika”
 
 var is_telescope := true
@@ -26,7 +30,7 @@ var targets := []
 var target := {}
 var hovered := {}
 var f := 0.5
-var f_goal := 0.5          # dokąd kręci gracz; soczewka dochodzi tam z opóźnieniem (łatwo przekręcić)
+# var f_goal := 0.5        # stary wariant: dokąd kręci gracz, soczewka dochodzi z opóźnieniem
 var idle_focus := 0.0
 var sharp_t := 0.0
 var lit := {}                    # zaznaczone gwiazdy aktualnej konstelacji
@@ -221,9 +225,11 @@ func hover_target() -> Dictionary:
 
 
 func quality() -> int:
-	var w: float = target.get("width", 0.02) * _lens()  # czyste soczewki poszerzają ostry zakres
-	var d := absf(f - sweet_now())
-	var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
+	# stary wariant:
+	# var w: float = target.get("width", 0.02) * _lens()
+	# var d := absf(f - sweet_now())
+	# var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
+	var q := 100.0 - maxf(0.0, absf(focus_offset()) - green()) * 250.0
 	if Game.rain and _clouded(target.pos):
 		q = minf(q, 45)
 	return int(clampf(q, 10, 100))
@@ -280,27 +286,28 @@ func _process(dt: float) -> void:
 	var speed := cam.distance_to(_prev_cam) / maxf(dt, 0.001) * zoom
 	_prev_cam = cam
 	slide.volume_db = lerpf(slide.volume_db, -46.0 + 30.0 * clampf(speed / 300.0, 0.0, 1.0), minf(1.0, dt * 8.0))
-	if state == S.FOCUS and int(f * 30.0) != _notch:
-		_notch = int(f * 30.0)
+	if state == S.FOCUS and int(f * 50.0) != _notch:
+		_notch = int(f * 50.0)
 		Game.sfx("focus_tick", _rng.randf_range(0.92, 1.08), -6.0)
 	if state == S.FOCUS:
 		var fin := Input.get_action_strength("focus_in") - Input.get_action_strength("focus_out")
 		if absf(fin) > 0.1:
-			f_goal = clampf(f_goal + fin * 0.5 * dt * _lens(), 0.0, 1.0)
+			f = clampf(f + fin * 0.25 * dt, 0.0, 1.0)
 			idle_focus = 0.0
 		idle_focus += dt
 		if target.id == "comet":  # kometa ucieka: trzeba ją trzymać w celowniku
 			cam = cam.lerp(target.pos, dt * 0.6)
 			if (aim + wobble()).distance_to(to_screen(target.pos)) > 30:
-				f_goal = clampf(f_goal + 0.1 * dt * signf(f - target.sweet + 0.001), 0.0, 1.0)
+				f = clampf(f + 0.1 * dt * signf(f - target.sweet + 0.001), 0.0, 1.0)
 		else:
 			cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
 		if Game.has("auto2") or (Game.has("auto1") and idle_focus > 1.0):
-			f_goal = move_toward(f_goal, sweet_now(), dt * 0.9)
-		f = lerpf(f, f_goal, 1.0 - exp(-FOCUS_LAG * _lens() * dt))
-		if quality() >= SHARP:
+			f = move_toward(f, target.sweet, dt * 0.3)
+		# f = lerpf(f, f_goal, 1.0 - exp(-FOCUS_LAG * _lens() * dt))  # stary wariant
+		var auto := Game.has("auto1") or Game.has("auto2")
+		if auto and quality() >= SHARP:  # bez autofokusu trzeba samemu trafić kliknięciem
 			sharp_t += dt
-			if sharp_t > 0.35 and idle_focus > 0.3:  # ostro i gracz przestał kręcić → dalej
+			if sharp_t > 0.35 and idle_focus > 0.3:
 				_after_focus()
 		else:
 			sharp_t = 0.0
@@ -326,9 +333,20 @@ func _process(dt: float) -> void:
 	queue_redraw()
 
 
-## „seeing”: powietrze faluje, ostry punkt lekko pływa – czyste soczewki to tłumią
-func sweet_now() -> float:
-	return target.get("sweet", 0.5) + 0.035 / (_lens() * _lens()) * sin(t * 0.9 + target.get("phase", 0.0))
+## stary wariant: ostry punkt pływał („seeing”)
+# func sweet_now() -> float:
+# 	return target.get("sweet", 0.5) + 0.035 / (_lens() * _lens()) * sin(t * 0.9 + target.get("phase", 0.0))
+
+
+## znacznik na pasku: ustawienie pierścienia minus ostry punkt, plus bujanie powietrza
+func focus_offset() -> float:
+	var ph: float = target.get("phase", 0.0)
+	return f - target.get("sweet", 0.5) + FOCUS_SWAY / _lens() * (0.7 * sin(t * 2.1 + ph) + 0.3 * sin(t * 3.7 + ph * 2.0))
+
+
+## połowa zielonego pola (czyste soczewki je poszerzają)
+func green() -> float:
+	return target.get("width", 0.02) * 1.5 * _lens()
 
 
 func _lens() -> float:
@@ -349,7 +367,7 @@ func _gui_input(e: InputEvent) -> void:
 					_lock_or_confirm()
 			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 				if state == S.FOCUS:
-					f_goal = clampf(f_goal + (FOCUS_STEP if e.button_index == MOUSE_BUTTON_WHEEL_UP else -FOCUS_STEP), 0.0, 1.0)
+					f = clampf(f + (FOCUS_STEP if e.button_index == MOUSE_BUTTON_WHEEL_UP else -FOCUS_STEP), 0.0, 1.0)
 					idle_focus = 0.0
 		accept_event()
 
@@ -401,16 +419,15 @@ func _lock_or_confirm() -> void:
 			if tg.is_empty():
 				return
 			target = tg
-			f = clampf(tg.sweet + _rng.randf_range(0.18, 0.38) * (1 if _rng.randf() < 0.5 else -1), 0.0, 1.0)  # nie wielokrotność ząbka
-			f_goal = f
+			f = clampf(tg.sweet + _rng.randf_range(0.18, 0.38) * (1 if _rng.randf() < 0.5 else -1), 0.0, 1.0)
 			idle_focus = 0.0
 			sharp_t = 0.0
 			state = S.FOCUS
-			_notch = int(f * 30.0)  # pierwszy klik zębatki dopiero, gdy gracz pokręci
+			_notch = int(f * 50.0)  # pierwszy klik zębatki dopiero, gdy gracz pokręci
 			tut_next(1)
 		S.FOCUS:
 			if quality() < 20:
-				_center("Za rozmyte – pokręć kółkiem w przód i w tył")
+				_center("Za rozmyte")
 				return
 			_after_focus()
 		S.RESULT:
@@ -650,7 +667,7 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 		return
 	var blur := 0.0
 	if focused and state == S.FOCUS:
-		blur = absf(f - sweet_now())
+		blur = absf(focus_offset())
 	var a := pulse * (1.25 if hov else 1.0)
 	if blur > 0.03:  # rozmyta plama: im dalej od balansu, tym większa i bledsza
 		var r := 4.0 + blur * 70.0
@@ -759,9 +776,15 @@ func _draw_panels() -> void:
 		# pasek pod celem, w środku okularu – wzrok zostaje na gwiazdach
 		var label := "OSTROŚĆ %d%%" % q
 		_text(Vector2(floorf(320 - Game.font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x / 2), 262), label, Color("ffcf6b") if q >= SHARP else Color("f4ecdc"))
-		_px(254, 268, 132, 8, Color("2a2a40"))
-		_px(254, 268, 1.32 * q, 8, Color("6affa0") if q >= SHARP else Color("8aa8ff"))
-		_px(254 + 132 * f - 1, 265, 3, 14, Color("f4ecdc"))  # pozycja pierścienia
+		# stary wariant: pasek jakości + pozycja pierścienia
+		# _px(254, 268, 132, 8, Color("2a2a40"))
+		# _px(254, 268, 1.32 * q, 8, Color("6affa0") if q >= SHARP else Color("8aa8ff"))
+		# _px(254 + 132 * f - 1, 265, 3, 14, Color("f4ecdc"))
+		var g := roundf(green() * BAR_K)
+		_px(229, 267, 182, 12, Color("0a0a16"))
+		_px(230, 268, 180, 10, Color("2a2a40"))
+		_px(320 - g, 268, g * 2, 10, Color("6affa0") if q >= SHARP else Color("2f8a5a"))
+		_px(clampf(roundf(320 + focus_offset() * BAR_K), 230, 409) - 1, 264, 3, 18, Color("f4ecdc"))  # znacznik
 	# tutorial i komunikaty na środku
 	var msg := ""
 	match state:
@@ -772,7 +795,7 @@ func _draw_panels() -> void:
 				msg = "Kliknij PPM, aby go namierzyć"
 		S.FOCUS:
 			if tut() <= 2:
-				msg = "Kręć kółkiem w przód i w tył – szukaj ostrości"
+				msg = "Kółkiem do zielonego pola, potem kliknij"
 		S.CONNECT:
 			if not Game.tips.has("tut_connect"):
 				msg = "Zaznacz ciąg gwiazd – klikaj je po kolei"
