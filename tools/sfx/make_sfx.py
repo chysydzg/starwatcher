@@ -141,6 +141,36 @@ def floppy(r):  # saving to a 3.5" disk: the drive's clack, a short motor whir, 
     return dsp.room(y, r, rt60=0.2, wet=0.08)
 
 
+def step(r, i):  # króliczek na drewnianej podłodze: miękka łapka (futro tłumi), głuchy stuk deski, bez dźwięczenia
+    def pad(gain):  # jedno dotknięcie łapy: krótki, ciemny szum zamiast rezonansu (rezonans brzmiał jak kalimba)
+        n = dsp.noise(0.08, r, 'pink') * dsp.env_exp(0.08, 0.018, 0.003)
+        knock = dsp.svf(dsp.noise(0.03, r), r.uniform(1100, 1500), q=1.0, mode='band') * dsp.env_exp(0.03, 0.005, 0.001)
+        out = np.zeros(dsp.n_of(0.08))
+        out += dsp.butter(n, 'low', 650)
+        dsp.place(out, knock * 0.12, 0.0)
+        return out * gain
+    y = np.zeros(dsp.n_of(0.25))
+    dsp.place(y, pad(1.0), 0.0)
+    dsp.place(y, pad(0.45), r.uniform(0.02, 0.035))  # palce łapy chwilę po pięcie
+    return dsp.room(y, r, rt60=0.2, wet=0.08)
+
+
+def scan_hum(seconds=2.0):  # wykrywacz w okularze: miękkie buczenie pulsujące 3 razy/s (pitch_scale w grze przyspiesza puls)
+    t = dsp.t_of(dsp.n_of(seconds))
+    tone = np.sin(2 * np.pi * 140 * t) + 0.35 * np.sin(2 * np.pi * 280 * t) + 0.08 * np.sin(2 * np.pi * 420 * t)
+    pulse = 0.35 + 0.65 * np.sin(np.pi * 3 * t) ** 2  # całkowita liczba pulsów i okresów w pętli: brak szwu
+    return tone * pulse
+
+
+def detect(r):  # „pyk-pyk”: dwa krótkie, ciepłe bipy sonaru – coś wykryte
+    t = dsp.t_of(dsp.n_of(0.07))
+    blip = np.sin(2 * np.pi * 1760 * t) * np.exp(-t / 0.018) + 0.3 * np.sin(2 * np.pi * 3520 * t) * np.exp(-t / 0.008)
+    y = np.zeros(dsp.n_of(0.3))
+    dsp.place(y, blip, 0.0)
+    dsp.place(y, blip * 0.8, 0.09)
+    return dsp.room(y, r, rt60=0.3, wet=0.15)
+
+
 def key(i):  # Cherry MX Brown / buckling spring: soft deep clicks, takes alternate
     return b('fit/key/thock' if i % 2 == 0 else 'fit/key/medium', seed=i + 1)
 
@@ -266,6 +296,12 @@ def main():
     for i in range(3):
         save(f'key{i}', key(i), -8)
     save('crt_on', crt_on(r), -6)
+    for i in range(4):
+        save(f'step{i}', step(r, i), -10)
+    save('scan_hum', scan_hum(), -8, loop=True)
+    save('detect', detect(r), -6)
+    save('dawn', dsp.stack([(chord(['C6', 'E6', 'G6', 'C7'], step=0.13), 0, 0), (b('pro_shimmer/m1'), 0.3, -12)], peak_db=-1))
+    save('dusk', dsp.stack([(chord(['G6', 'E6', 'C6', 'G5'], 'mallet/marimba', step=0.16), 0, 0), (b('reverse_swell/dark'), 0.0, -14)], peak_db=-1))
     save('floppy', floppy(r), -8)
     save('modem', modem(r), -6)
     save('tick', b('fit/tick/domino'), -12)

@@ -10,6 +10,10 @@ dzień gra w pokoju, noc na balkonie (`game/world.gd: _music_to`, przenikanie 1 
 | prowadzi | flet, odpowiada wibrafon; w C harfa | pozytywka w dużej sali, w B niski flet |
 | pod spodem | EP z „lo-fi” przesunięciem, finger bass + sinus, miękkie bębny 12-bit | pad, EP z chorusem, kontrabas + sinus, rim i ciche hi-haty |
 
+Menu główne (`music/menu`, wzorzec: menu.mp3 od autora): 90 BPM, h-moll, 24 takty (64 s, A–B–A'); okaryna prowadzi,
+gęste arpeggio celesty, w powrocie celesta dubluje temat i dochodzi cichy puls chip. Earshot: „uplifting / celebratory”
+jak wzorzec („playful / celebratory”), ale ciemniej (1,1 kHz wobec 3,3 kHz) – celowo w stylu pętli dnia i nocy.
+
 ## Jak to powstaje
 - `compose.py` (skill music-production) pisze `song.json` – każda nuta jest w skrypcie.
 - Render na komputerze autora: `music\render.cmd rN` (FluidSynth + bank MS Basic, `C:\Users\tomas\.music-skill`).

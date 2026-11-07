@@ -24,6 +24,8 @@
   outline i wygina proste krawędzie. Wolno tylko przyciemniać (linie skanowania, winieta).
 
 ## Dźwięk
+- **Każda praca z dźwiękiem i muzyką: zawsze skille music-production (komponowanie/render) i earshot (odsłuch,
+  porównanie z wzorcem autora, sprawdzenie efektów).** Earshot: `C:\Users\tomas\.earshot`, music: `C:\Users\tomas\.music-skill`.
 - Efekty i pętle tła: `game/sfx/*.ogg` generuje `tools/sfx/make_sfx.py` (bank i dsp earshot, wszystko liczone kodem) –
   zmieniać skrypt, nie pliki. W grze: `Game.sfx()` (jednorazowe), `Game.loop()` (pętle), magistrale Music / SFX /
   Ambient z głośnością w Ustawieniach.

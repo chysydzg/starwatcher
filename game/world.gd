@@ -27,6 +27,7 @@ var modulate_node: CanvasModulate
 var lights: Array[PointLight2D] = []
 var pc_light: PointLight2D
 var lamps := {}  # spot -> {"light", "on"}: lampka nocna i lampa stojąca, włączane ręcznie
+var _step_frame := -1  # klatka chodu, przy której ostatnio był krok
 var owl_t := 20.0  # odległe pohukiwanie sowy nad jeziorem, co jakiś czas nocą
 var glow: Node2D
 var props := {}
@@ -59,7 +60,7 @@ func _ready() -> void:
 	RenderingServer.set_default_clear_color(Color("1a1426"))
 	jania = Sprite2D.new()
 	jania.texture = Game.tex("jania")
-	jania.hframes = 7
+	jania.hframes = 8  # kolumna 7: klatka oddechu
 	jania.vframes = 3
 	jania.centered = false  # offset liczony od lewego-górnego rogu klatki: stopy = pozycja ciała
 	jania.offset = Vector2(-18, -52)
@@ -298,14 +299,20 @@ func _toggle_phase() -> void:
 	if Game.night or busy or viewport:
 		return
 	busy = true
+	_sky_anim(false, _start_night)
+
+
+## zmierzch (dawn = false: Słońce zachodzi, wschodzi Księżyc) albo świt (odwrotnie); potem KONTYNUUJ → then
+func _sky_anim(dawn: bool, then: Callable) -> void:
 	var o := Control.new()
 	o.size = Vector2(640, 360)
 	top.add_child(o)
 	dusk_o = o
-	var k := {"t": 0.0}
-	o.draw.connect(func(): _draw_dusk(o, k.t))
+	var k := {"u": 0.0}
+	o.draw.connect(func(): _draw_dusk(o, 1.0 - k.u if dawn else k.u, k.u, dawn))
+	Game.sfx("dawn" if dawn else "dusk")  # krótki akcent: wznoszący się o świcie, opadający o zmierzchu
 	var tw := create_tween()
-	tw.tween_method(func(v): k.t = v; o.queue_redraw(), 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_method(func(v): k.u = v; o.queue_redraw(), 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_callback(func():
 		var b := Button.new()
 		b.text = "KONTYNUUJ"
@@ -316,12 +323,12 @@ func _toggle_phase() -> void:
 		b.pressed.connect(func():
 			o.queue_free()
 			busy = false
-			_start_night()))
+			then.call()))
 
 
 ## zmierzch: niebo w pasmach, chmury podświetlone od dołu, Słońce z poświatą zachodzi łukiem,
 ## Księżyc wschodzi z drugiej strony, odbicia w jeziorze, wzgórza z lasem, wychodzą gwiazdy
-func _draw_dusk(o: Control, prog: float) -> void:
+func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 	var dusk := clampf(prog * 2.0, 0, 1)
 	var night := clampf(prog * 2.0 - 1.0, 0, 1)
 	var sky_top := Color("4a8ad8").lerp(Color("3a3a78"), dusk).lerp(Color("0a0c24"), night)
@@ -333,6 +340,8 @@ func _draw_dusk(o: Control, prog: float) -> void:
 		o.draw_rect(Rect2((i * 97) % 640, (i * 53) % 200, 1 + int(i % 11 == 0), 1 + int(i % 11 == 0)), Color(1, 0.95, 0.85, a))
 	var c := Vector2(320, 252)
 	var sun := (c + Vector2.from_angle(lerpf(-PI / 2, 0.3, prog)) * Vector2(250, 200)).floor()
+	if dawn:  # o świcie Słońce wschodzi po przeciwnej stronie niż zachodziło
+		sun.x = 640 - sun.x
 	for k in 3:  # poświata Słońca w trzech pierścieniach
 		o.draw_circle(sun, 22 + k * 10, Color(1, 0.8, 0.45, 0.16 - k * 0.04))
 	o.draw_circle(sun, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
@@ -353,9 +362,9 @@ func _draw_dusk(o: Control, prog: float) -> void:
 		o.draw_rect(Rect2(cx + 4, cy + 6, 60, 2), Color("ffb070").lerp(Color("2a2246"), night))
 	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
 	o.draw_texture(Game.tex("balcony_view"), Vector2.ZERO, Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
-	if prog > 0.75:
-		var msg := "Zapada noc"
-		var a := (prog - 0.75) * 4.0
+	if u > 0.75:
+		var msg := "Nowy dzień" if dawn else "Zapada noc"
+		var a := (u - 0.75) * 4.0
 		o.draw_string(Game.font_title, Vector2(320 - Game.font_title.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x / 2, 100).floor(), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.96, 0.93, 0.86, a))
 
 
@@ -478,7 +487,12 @@ func _animate(dt: float) -> void:
 			frame = 3
 	elif Game.location == "balcony" and face == 1 and idle_t > 0.8 and viewport == null:
 		face = 2  # na balkonie po chwili odwraca się do nieba
-	jania.frame = face * 7 + frame
+	if frame == 0 and not walking and fmod(idle_t, 2.6) > 1.5:
+		frame = 7  # spokojny oddech: góra ciała unosi się o 1 px
+	if walking and frame != _step_frame and (face != 1 or frame in [1, 3]):
+		Game.sfx("step%d" % (randi() % 4), randf_range(0.92, 1.08), -9.0)  # miękkie łapki na drewnie
+	_step_frame = frame if walking else -1
+	jania.frame = face * 8 + frame
 	jania.flip_h = flip and face == 1
 
 
@@ -679,12 +693,12 @@ func _sleep() -> void:
 			Game.sfx("chord")
 			return
 		p.get_parent().queue_free()
-		body.position = Vector2(56, 210)
-		face = 0
-		_enter("room", true)
-		busy = false
-		tired_told = false
-		_toast("Nowy dzień! " + Game.calendar(), "info"))
+		_sky_anim(true, func():  # świt: Księżyc zachodzi, wschodzi Słońce
+			body.position = Vector2(56, 210)
+			face = 0
+			_enter("room", true)
+			tired_told = false
+			_toast("Nowy dzień! " + Game.calendar(), "info")))
 
 
 func _panel(sz: Vector2) -> Panel:
@@ -701,7 +715,7 @@ func _panel(sz: Vector2) -> Panel:
 
 func _pause() -> void:
 	get_tree().paused = true
-	var p := _panel(Vector2(240, 196))
+	var p := _panel(Vector2(240, 250))
 	var root: Control = p.get_parent()
 	root.process_mode = Node.PROCESS_MODE_ALWAYS
 	var box := VBoxContainer.new()
@@ -723,13 +737,7 @@ func _pause() -> void:
 		return b
 	add.call("WRÓĆ DO GRY", close).grab_focus.call_deferred()
 	add.call("ZAPISZ GRĘ", func(): Game.save_game(); _toast("Zapisano grę.", "good"))
-	var crt_b: Button = add.call("EFEKT CRT: " + ("SUBTELNY" if Game.settings.crt else "WYŁ."), func(): pass)
-	crt_b.pressed.connect(func():
-		Game.settings.crt = not Game.settings.crt
-		Game.apply_settings()
-		crt_b.text = "EFEKT CRT: " + ("SUBTELNY" if Game.settings.crt else "WYŁ.")
-		_refresh())
-	add.call("PEŁNY EKRAN", func(): Game.settings.fullscreen = not Game.settings.fullscreen; Game.apply_settings())
+	Game.settings_ui(box, _refresh)  # ten sam blok ustawień co w menu głównym: suwaki głośności, CRT, ekran
 	add.call("ZAPISZ I WYJDŹ DO MENU", func():
 		Game.save_game()
 		get_tree().paused = false

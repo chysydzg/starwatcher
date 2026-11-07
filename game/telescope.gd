@@ -11,7 +11,7 @@ const C := Vector2(320, 180)
 const R := 172.0
 const SKY_SIZE := Vector2(1200, 700)
 const STAR_SCALE := 3.0          # rozstaw gwiazd konstelacji na ekranie
-const FOCUS_STEP := 0.06         # jeden ząbek kółka
+const FOCUS_STEP := 0.05         # jeden ząbek kółka (ostry zakres na starcie jest węższy niż dwa ząbki)
 const SHARP := 96                # od tej jakości soczewka „klika”
 
 var is_telescope := true
@@ -44,6 +44,8 @@ var _sky_tex: ImageTexture
 var _frame_tex: ImageTexture
 var _rng := RandomNumberGenerator.new()
 var _last_mouse := Vector2.ZERO
+var _mouse_aim := C  # tam chce celownik gracz; sam celownik dochodzi tam z oporem (steer)
+var hum: AudioStreamPlayer  # buczenie wykrywacza: szybsze i głośniejsze bliżej ukrytego obiektu
 var _all_told := false
 var _sh := Vector2.ZERO
 
@@ -64,6 +66,12 @@ func _ready() -> void:
 	slide.volume_db = -60.0
 	add_child(slide)
 	slide.play()
+	hum = AudioStreamPlayer.new()
+	hum.stream = Game.looped("scan_hum")
+	hum.bus = "SFX"
+	hum.volume_db = -60.0
+	add_child(hum)
+	hum.play()
 	_prev_cam = cam  # bez tego pierwsza klatka liczy skok od (0, 0) i słychać szum
 	if Game.rain:
 		for i in 6:
@@ -141,7 +149,7 @@ func _place_targets() -> void:
 		var info := Game.obj_info(id)
 		var tg := {"id": id, "pos": p, "info": info, "sweet": _rng.randf_range(0.3, 0.7), "done": Game.tonight.has(id), "phase": _rng.randf() * TAU}
 		if info.cat in ["nebula", "deep"]:
-			tg.width = 0.035  # mgławice: węższy zakres ostrości
+			tg.width = 0.014  # mgławice: węższy zakres ostrości
 		if id == "comet":
 			tg.vel = Vector2.from_angle(_rng.randf() * TAU) * 8.0
 		targets.append(tg)
@@ -157,8 +165,13 @@ func to_sky(s: Vector2) -> Vector2:
 	return cam + (s - C) / zoom
 
 
+## opór celownika: tani teleskop chodzi ciężko i z opóźnieniem; statyw, montaż, kursor i mikro-ruchy go „smarują”
+func steer() -> float:
+	return 2.2 * (1.6 if Game.has("statyw") else 1.0) * (1.6 if Game.has("montaz") else 1.0) * (1.3 if Game.has("kursor1") else 1.0) * (1.5 if Game.has("mikro") else 1.0)
+
+
 func wobble() -> Vector2:
-	var a := 2.5 * (0.6 if Game.has("statyw") else 1.0) * (0.0 if Game.has("mikro") else 1.0)
+	var a := 4.5 * (0.6 if Game.has("statyw") else 1.0) * (0.0 if Game.has("mikro") else 1.0)
 	return Vector2(sin(t * 1.3) + 0.4 * sin(t * 3.1), cos(t * 1.7)) * a
 
 
@@ -175,11 +188,20 @@ func star_points(tg: Dictionary) -> Array:
 
 
 func hit_radius(tg: Dictionary) -> float:
-	var r := 26.0
+	var r := 20.0
 	if tg.info.has("pts"):
 		for p in star_points(tg):
 			r = maxf(r, p.distance_to(to_screen(tg.pos)) + 12.0)
 	return r * (1.2 if Game.has("kursor1") else 1.0) * (1.35 if Game.has("montaz") else 1.0)
+
+
+## 0..1: jak blisko celownik jest najbliższego nieodkrytego obiektu (radar SYGNAŁ i buczenie)
+func proximity() -> float:
+	var near := 0.0
+	for tg in targets:
+		if not tg.done:
+			near = maxf(near, clampf(1.0 - (aim + wobble()).distance_to(to_screen(tg.pos)) / 160.0, 0.0, 1.0))
+	return near
 
 
 func hover_target() -> Dictionary:
@@ -197,8 +219,8 @@ func hover_target() -> Dictionary:
 
 
 func quality() -> int:
-	var w: float = target.get("width", 0.05)
-	var d := absf(f - target.get("sweet", 0.5))
+	var w: float = target.get("width", 0.02) * _lens()  # czyste soczewki poszerzają ostry zakres
+	var d := absf(f - sweet_now())
 	var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
 	if Game.rain and _clouded(target.pos):
 		q = minf(q, 45)
@@ -222,10 +244,11 @@ func _process(dt: float) -> void:
 	var mv := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var mouse := get_global_mouse_position()
 	if mouse.distance_to(_last_mouse) > 0.5:
-		aim = mouse
+		_mouse_aim = mouse
 		_last_mouse = mouse
 	if Game.pad and mv.length() > 0.2:
-		aim += mv * 220.0 * speed_mult() * dt
+		_mouse_aim = aim + mv * 220.0 * speed_mult() * minf(1.0, steer() / 8.0) * dt
+	aim = aim.lerp(_mouse_aim, 1.0 - exp(-steer() * dt))
 	var off := aim - C
 	if off.length() > R - 6:
 		aim = C + off.limit_length(R - 6)
@@ -241,7 +264,7 @@ func _process(dt: float) -> void:
 		cam = cam.clamp(Vector2(R, R) / zoom, SKY_SIZE - Vector2(R, R) / zoom)
 		var h := hover_target()
 		if not h.is_empty() and hovered != h:
-			Game.sfx("star_glass", 1.0, -6.0)
+			Game.sfx("detect", 1.0, -4.0)  # pyknięcie: coś wykryte
 			tut_next(0)
 		hovered = h
 	for c in clouds:
@@ -249,6 +272,9 @@ func _process(dt: float) -> void:
 	for tg in targets:
 		if tg.has("vel") and not tg.done:
 			tg.pos = (tg.pos + tg.vel * dt).clamp(Vector2(140, 140), SKY_SIZE - Vector2(140, 140))
+	var near := proximity() if state == S.SCAN and hovered.is_empty() else 0.0
+	hum.volume_db = lerpf(hum.volume_db, -50.0 + 38.0 * near if near > 0.02 else -60.0, minf(1.0, dt * 6.0))
+	hum.pitch_scale = 0.8 + 0.9 * near  # wyżej = szybsze pulsowanie
 	var speed := cam.distance_to(_prev_cam) / maxf(dt, 0.001) * zoom
 	_prev_cam = cam
 	slide.volume_db = lerpf(slide.volume_db, -46.0 + 30.0 * clampf(speed / 300.0, 0.0, 1.0), minf(1.0, dt * 8.0))
@@ -268,7 +294,7 @@ func _process(dt: float) -> void:
 		else:
 			cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
 		if Game.has("auto2") or (Game.has("auto1") and idle_focus > 1.0):
-			f = move_toward(f, target.sweet, dt * 0.9)
+			f = move_toward(f, sweet_now(), dt * 0.9)
 		if quality() >= SHARP:
 			sharp_t += dt
 			if sharp_t > 0.35 and idle_focus > 0.3:  # ostro i gracz przestał kręcić → dalej
@@ -297,6 +323,11 @@ func _process(dt: float) -> void:
 	queue_redraw()
 
 
+## „seeing”: powietrze faluje, ostry punkt lekko pływa – czyste soczewki to tłumią
+func sweet_now() -> float:
+	return target.get("sweet", 0.5) + 0.02 / (_lens() * _lens()) * sin(t * 1.25 + target.get("phase", 0.0))
+
+
 func _lens() -> float:
 	return (1.0 + (0.15 if Game.has("czyste1") else 0.0) + (0.25 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0)
 
@@ -315,7 +346,7 @@ func _gui_input(e: InputEvent) -> void:
 					_lock_or_confirm()
 			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 				if state == S.FOCUS:
-					f = clampf(f + (FOCUS_STEP if e.button_index == MOUSE_BUTTON_WHEEL_UP else -FOCUS_STEP) * _lens(), 0.0, 1.0)
+					f = clampf(f + (FOCUS_STEP if e.button_index == MOUSE_BUTTON_WHEEL_UP else -FOCUS_STEP), 0.0, 1.0)
 					idle_focus = 0.0
 		accept_event()
 
@@ -615,7 +646,7 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 		return
 	var blur := 0.0
 	if focused and state == S.FOCUS:
-		blur = absf(f - tg.sweet)
+		blur = absf(f - sweet_now())
 	var a := pulse * (1.25 if hov else 1.0)
 	if blur > 0.03:  # rozmyta plama: im dalej od balansu, tym większa i bledsza
 		var r := 4.0 + blur * 70.0
@@ -716,10 +747,7 @@ func _draw_panels() -> void:
 			y += 18
 	if state == S.SCAN:
 		_text(Vector2(500, 272), "SYGNAŁ", dim)
-		var near := 0.0
-		for tg in targets:
-			if not tg.done:
-				near = maxf(near, clampf(1.0 - (aim + wobble()).distance_to(to_screen(tg.pos)) / 160.0, 0.0, 1.0))
+		var near := proximity()
 		for i in 6:
 			_px(560 + i * 11, 300 - i * 3, 8, 6 + i * 3, Color("6affa0") if near > i / 6.0 else Color("2a2a40"))
 	if state == S.FOCUS:

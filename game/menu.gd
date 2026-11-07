@@ -15,9 +15,9 @@ func _ready() -> void:
 	add_child(fx)
 	var jania := Sprite2D.new()  # Jania na balkonie, tyłem, patrzy w niebo
 	jania.texture = Game.tex("jania")
-	jania.hframes = 7
+	jania.hframes = 8
 	jania.vframes = 3
-	jania.frame = 14
+	jania.frame = 16  # tyłem (rząd 2, kolumna 0)
 	jania.position = Vector2(300, 296)
 	jania.centered = false
 	add_child(jania)
@@ -38,6 +38,11 @@ func _ready() -> void:
 	_box.add_theme_constant_override("separation", 4)
 	_ui.add_child(_box)
 	_build()
+	Game.loop("music/menu", -8.0, "Music")  # motyw menu (music/compose.py: menu())
+
+
+func _exit_tree() -> void:
+	Game.loop("music/menu", -INF)
 
 
 func _btn(parent: Control, text: String, cb: Callable) -> Button:
@@ -90,24 +95,8 @@ func _new_game() -> void:
 
 func _settings() -> void:
 	_clear()
-	var fs := _btn(_box, "", func(): pass)
-	var crt := _btn(_box, "", func(): pass)
-	var vol := {"Music": "MUZYKA", "SFX": "EFEKTY", "Ambient": "OTOCZENIE"}  # osobne głośności (GDD), 4 stopnie
-	var vb := {}
-	for bus in vol:
-		vb[bus] = _btn(_box, "", func(): Game.settings[bus] = (int(Game.settings[bus]) + 3) % 4; Game.apply_settings(); Game.sfx("pop"))
-	var refresh := func():
-		fs.text = "PEŁNY EKRAN: " + ("TAK" if Game.settings.fullscreen else "NIE")
-		crt.text = "EFEKT CRT: " + ("SUBTELNY" if Game.settings.crt else "WYŁ.")
-		for bus in vol:
-			vb[bus].text = vol[bus] + ": " + ["WYŁ.", "33%", "66%", "100%"][int(Game.settings[bus])]
-	for bus in vol:
-		vb[bus].pressed.connect(refresh)
-	fs.pressed.connect(func(): Game.settings.fullscreen = not Game.settings.fullscreen; Game.apply_settings(); refresh.call())
-	crt.pressed.connect(func(): Game.settings.crt = not Game.settings.crt; Game.apply_settings(); refresh.call())
-	refresh.call()
+	Game.settings_ui(_box).grab_focus.call_deferred()
 	_btn(_box, "WRÓĆ", _build)
-	fs.grab_focus.call_deferred()
 
 
 func _unhandled_input(e: InputEvent) -> void:

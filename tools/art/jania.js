@@ -99,9 +99,15 @@ function frame(dir, f) {
   return ink(P.rimLight(b, R.fur, { dir: dir === 1 ? [-1, -1] : [0, -1] }));
 }
 
-const ROWS = [[0, 7], [1, 5], [2, 3]], COLS = 7;
+// oddech (kolumna 7): klatka spoczynkowa z górą ciała uniesioną o 1 px; stopy zostają, rząd w pasie się powiela
+function breath(src, split = 40) {
+  const o = new P.Buf(src.w, src.h);
+  for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) o.px[y * src.w + x] = src.px[(y < split - 1 ? y + 1 : y) * src.w + x];
+  return o;
+}
+const ROWS = [[0, 7], [1, 5], [2, 3]], COLS = 8;
 const frames = [];
-for (const [dir, n] of ROWS) for (let f = 0; f < COLS; f++) frames.push(f < n ? frame(dir, f) : new P.Buf(FW, FH));
+for (const [dir, n] of ROWS) for (let f = 0; f < COLS; f++) frames.push(f === 7 ? breath(frame(dir, 0)) : f < n ? frame(dir, f) : new P.Buf(FW, FH));
 module.exports = { frames, FW, FH, COLS, R };
 
 if (require.main === module) {

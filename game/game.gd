@@ -205,7 +205,7 @@ var comet := {"left": 0, "gap": 0, "seed": 0}
 var tips := {}
 var location := "balcony"
 var stage_done := false
-var settings := {"fullscreen": false, "crt": true, "Music": 3, "SFX": 3, "Ambient": 3}  # głośności 0–3 (GDD: osobne suwaki)
+var settings := {"fullscreen": false, "crt": true, "vol": {"Music": 8, "SFX": 8, "Ambient": 8}}  # głośności 0–10 (GDD: osobne suwaki)
 var pad := false           # ostatnie urządzenie: pad?
 var font: FontFile          # UI
 var font_os: FontFile       # komputer
@@ -359,6 +359,24 @@ func _setup_theme() -> void:
 	theme.set_color("font_color", "Label", Color("f4ecdc"))
 	theme.set_stylebox("panel", "Panel", flat.call(Color(0.1, 0.08, 0.15, 0.94), Color("4a3f6a")))
 	theme.set_stylebox("panel", "PanelContainer", flat.call(Color(0.1, 0.08, 0.15, 0.94), Color("4a3f6a")))
+	# suwak głośności: ciemny rowek, złote wypełnienie, gałka jak mały klawisz (pełny obrys 1 px)
+	var track: StyleBoxFlat = flat.call(Color("1a1426"), Color("4a3f6a"))
+	track.set_content_margin_all(2)
+	theme.set_stylebox("slider", "HSlider", track)
+	var fill: StyleBoxFlat = flat.call(Color("c8a24a"), Color("4a3f6a"))
+	fill.set_content_margin_all(2)
+	theme.set_stylebox("grabber_area", "HSlider", fill)
+	theme.set_stylebox("grabber_area_highlight", "HSlider", fill)
+	for k in ["grabber", "grabber_highlight"]:
+		var im := Image.create(8, 14, false, Image.FORMAT_RGBA8)
+		im.fill(Color("ffcf6b") if k == "grabber_highlight" else Color("e8e0cc"))
+		for x in 8:
+			im.set_pixel(x, 0, Color("1a1426"))
+			im.set_pixel(x, 13, Color("1a1426"))
+		for y in 14:
+			im.set_pixel(0, y, Color("1a1426"))
+			im.set_pixel(7, y, Color("1a1426"))
+		theme.set_icon(k, "HSlider", ImageTexture.create_from_image(im))
 	get_tree().root.theme = theme
 	# CanvasLayer przerywa dziedziczenie motywu: nadaj go każdej kontrolce najwyższego poziomu
 	get_tree().node_added.connect(func(n): if n is Control and n.theme == null and not (n.get_parent() is Control): n.theme = theme)
@@ -813,11 +831,51 @@ func _load_settings() -> void:
 func apply_settings() -> void:
 	get_window().mode = Window.MODE_FULLSCREEN if settings.fullscreen else Window.MODE_WINDOWED
 	for bus in ["Music", "SFX", "Ambient"]:
-		settings[bus] = clampi(int(settings[bus]), 0, 3)  # plik ustawień mógł być edytowany ręcznie
-		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus), linear_to_db(settings[bus] / 3.0))
+		settings.vol[bus] = clampi(int(settings.vol.get(bus, 8)), 0, 10)  # plik ustawień mógł być edytowany ręcznie
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus), linear_to_db(settings.vol[bus] / 10.0))
 	var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))
+
+
+## ustawienia (menu główne i pauza – ten sam blok): pełny ekran, CRT i suwaki głośności
+func settings_ui(box: Container, on_change := Callable()) -> Control:
+	var first: Control
+	var toggle := func(opt: String, label: String, on_txt: String, off_txt: String) -> Button:
+		var b := Button.new()
+		var txt := func(): b.text = label + ": " + (on_txt if settings[opt] else off_txt)
+		txt.call()
+		b.pressed.connect(func():
+			settings[opt] = not settings[opt]
+			apply_settings()
+			txt.call()
+			if on_change.is_valid():
+				on_change.call())
+		box.add_child(b)
+		return b
+	first = toggle.call("fullscreen", "PEŁNY EKRAN", "TAK", "NIE")
+	toggle.call("crt", "EFEKT CRT", "SUBTELNY", "WYŁ.")
+	for bus in ["Music", "SFX", "Ambient"]:
+		var row := HBoxContainer.new()
+		var l := Label.new()
+		l.text = {"Music": "MUZYKA", "SFX": "EFEKTY", "Ambient": "OTOCZENIE"}[bus]
+		l.custom_minimum_size = Vector2(84, 0)
+		row.add_child(l)
+		var sl := HSlider.new()
+		sl.min_value = 0
+		sl.max_value = 10
+		sl.step = 1
+		sl.value = settings.vol[bus]
+		sl.custom_minimum_size = Vector2(110, 20)
+		sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sl.value_changed.connect(func(v: float):
+			settings.vol[bus] = int(v)
+			apply_settings()
+			if bus != "Music":
+				sfx("tick", 1.0, -6.0))  # słychać od razu, jak głośno będą efekty
+		row.add_child(sl)
+		box.add_child(row)
+	return first
 
 
 # testy piszą do osobnego pliku, zapis gracza zostaje nietknięty

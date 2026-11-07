@@ -14,6 +14,7 @@ func _ready() -> void:
 	for i in 20: await get_tree().process_frame
 	var tel = w.viewport
 	assert(tel != null and tel.is_telescope, "telescope opened")
+	assert(tel.steer() < 3.0 and tel.hum != null, "bez ulepszeń celownik chodzi ciężko, wykrywacz buczy")
 	print("targets: ", tel.targets.map(func(x): return x.id))
 	for tg in tel.targets.duplicate():
 		tel.cam = tg.pos
@@ -107,5 +108,11 @@ func _ready() -> void:
 	Game.offer = {"uid": 9998, "who": "Test", "price": 123}
 	var m1 := Game.money
 	assert(Game.accept_offer() == 123 and Game.money == m1 + 123 and Game.offer_entry().is_empty(), "oferta")
+	Game.settings.vol.SFX = 99
+	Game.apply_settings()
+	assert(Game.settings.vol.SFX == 10, "głośność z pliku ustawień przycięta do 0–10")
+	Game.settings.vol.SFX = 8
+	Game.apply_settings()
 	print("TEST OK")
+	FileAccess.open("res://debug_shots/test_result.txt", FileAccess.WRITE).store_string("TEST OK")  # wynik czytelny po wyjściu z gry
 	Game.quit()

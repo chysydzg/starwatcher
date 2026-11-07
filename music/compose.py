@@ -18,7 +18,7 @@ VOICE = {
     'A7sus4': [55, 59, 62, 64], 'A7': [55, 59, 61, 66], 'Bm7': [50, 54, 57, 62], 'Bm9': [50, 54, 57, 64],
     'Em7': [52, 55, 59, 62], 'Em9': [52, 55, 59, 62], 'F#7': [52, 58, 62], 'B7': [57, 63, 66],
     'A13': [55, 61, 66, 71], 'Cmaj9': [52, 59, 62, 67], 'Am9': [60, 64, 67, 71], 'B7sus4': [57, 64, 66],
-    'D69': [54, 59, 64, 69], 'A9': [55, 59, 61, 64], 'F#m7b5': [52, 57, 60],
+    'D69': [54, 59, 64, 69], 'A9': [55, 59, 61, 64], 'A': [57, 61, 64], 'F#7sus4': [52, 59, 61], 'F#m7b5': [52, 57, 60],
 }
 ROOT = {'D': 38, 'E': 40, 'F#': 42, 'G': 43, 'A': 45, 'B': 35, 'C': 36}
 
@@ -313,7 +313,96 @@ def night():
     s.save('night')
 
 
+# ---------------------------------------------------------------- MENU: h-moll, 90 BPM, 24 takty (64 s)
+def menu():
+    A = [[(0, 'Bm7')], [(0, 'Gmaj7')], [(0, 'Dmaj7')], [(0, 'A7sus4'), (2, 'A')],
+         [(0, 'Bm7')], [(0, 'Gmaj7')], [(0, 'Dmaj7')], [(0, 'A')]]
+    B = [[(0, 'Em9')], [(0, 'F#7sus4'), (2, 'F#7')], [(0, 'Bm7')], [(0, 'Gmaj7')],
+         [(0, 'Em9')], [(0, 'F#7')], [(0, 'Gmaj7')], [(0, 'A')]]
+    prog = A + B + A[:7] + [[(0, 'A'), (2, 'A13')]]  # B w ostatnim takcie: Bm7 po szwie nie jest obcy
+    sec = [{'id': 'a', 'start_bar': 0, 'bars': 8, 'intent': 'title theme on ocarina over a busy celesta arpeggio'},
+           {'id': 'b', 'start_bar': 8, 'bars': 8, 'intent': 'answer: longer notes, minor iv and V'},
+           {'id': 'a2', 'start_bar': 16, 'bars': 8, 'intent': 'theme returns, celesta doubles it, chip arpeggio joins'}]
+    s = Song('Star Watcher - Menu', 90, 24, sec,
+             'Title screen loop. SNES-style samples like the day/night loops, livelier and brighter: '
+             'ocarina lead, dense celesta arpeggios, a quiet chip pulse in the return.')
+    s.chords(prog)
+    SW = {'ratio': 0.56, 'unit': 0.25}
+    s.track('lead', 'melody', {'level_dbfs': -19, 'highpass': 220, 'lowpass': 9000, 'reverb_db': -14, 'eq': [[3000, 2]],
+                               'delay': {'beats': 0.75, 'feedback': 0.3, 'send_db': -16, 'lowpass': 3500, 'ping_pong': True}},
+            program=79)
+    s.track('celesta', 'texture', {'level_dbfs': -25, 'highpass': 140, 'lowpass': 9000, 'reverb_db': -12, 'pan': -0.35},
+            program=8)
+    s.track('keys', 'harmony', {'level_dbfs': -27, 'highpass': 100, 'lowpass': 6000, 'reverb_db': -16, 'pan': 0.35,
+                                'eq': [[250, -3]], 'effects': [{'type': 'chorus', 'depth': 0.5}]}, program=4)
+    s.track('strings', 'texture', {'level_dbfs': -31, 'highpass': 150, 'lowpass': 5000, 'reverb_db': -10, 'pan': 0.15},
+            program=48)
+    s.track('bass', 'bass', {'level_dbfs': -21, 'highpass': 35, 'lowpass': 2000}, program=33)
+    s.track('sub', 'bass', {'level_dbfs': -29, 'highpass': 25, 'lowpass': 300}, engine='synth', synth={'preset': 'sub_bass'})
+    s.track('chip', 'texture', {'level_dbfs': -32, 'highpass': 300, 'lowpass': 7000, 'pan': 0.3}, engine='synth',
+            synth={'preset': 'chip_pulse25'})
+    s.track('drums', 'drums', {'level_dbfs': -17, 'highpass': 40, 'lowpass': 14000, 'reverb_db': -20,
+                               'effects': [{'type': 'bitcrush', 'bits': 12, 'downsample': 2, 'mix': 0.5}], 'saturate': 0.2},
+            drums=True)
+    for k in ('keys', 'bass', 'drums', 'celesta', 'chip'):
+        s.t[k]['performance']['swing'] = SW
+    theme = [
+        [(0, .5, 78), (.5, .5, 81), (1, 1, 83), (2, .5, 81), (2.5, .5, 78), (3, 1, 74)],
+        [(0, .75, 83), (.75, .75, 81), (1.5, .5, 79), (2, 2, 78)],
+        [(0, .5, 76), (.5, .5, 78), (1, 1, 81), (2, .5, 85), (2.5, 1.5, 86)],
+        [(0, 1, 86), (1, 1, 81), (2, 2, 76)],
+        [(0, .5, 78), (.5, .5, 81), (1, 1, 83), (2, .5, 86), (2.5, .5, 85), (3, 1, 83)],
+        [(0, .75, 86), (.75, .75, 83), (1.5, .5, 79), (2, 2, 83)],
+        [(0, .5, 81), (.5, .5, 78), (1, .5, 76), (1.5, .5, 74), (2, 1, 73), (3, 1, 76)],
+        [(0, 3, 73), (3, .5, 76), (3.5, .5, 78)],
+    ]
+    answer = [
+        [(0, 1.5, 79), (1.5, .5, 78), (2, 2, 76)], [(0, 2, 83), (2, 2, 82)], [(0, 1, 81), (1, 1, 78), (2, 2, 74)],
+        [(0, 1.5, 79), (1.5, .5, 81), (2, 2, 83)], [(0, 1, 86), (1, 1, 83), (2, 1, 79), (3, 1, 78)],
+        [(0, 2, 82), (2, 1, 78), (3, 1, 73)], [(0, 1.5, 74), (1.5, .5, 76), (2, 2, 78)], [(0, 2, 76), (2, 1, 73), (3, 1, 69)],
+    ]
+    for i, cells in enumerate(theme):
+        s.line('lead', i, cells, 80)
+        s.line('lead', 16 + i, cells, 84)
+        s.line('celesta', 16 + i, [(b, min(d, 1.0), p + 12) for b, d, p in cells], 56)
+    for i, cells in enumerate(answer):
+        s.line('lead', 8 + i, cells, 76)
+    for bar, items in enumerate(prog):
+        for b, ln, sym in spans(items):
+            v = VOICE[sym]
+            on = bar * 4 + b
+            for p in v:
+                s.note('keys', on, min(1.5, ln), p, 60, 0.9)
+                s.note('strings', on, ln, p, 50)
+            tones = sorted(set(v + [x + 12 for x in v]))
+            seq = tones + tones[-2:0:-1]  # w górę i w dół: gęste, „tytułowe” szesnastki
+            for k in range(int(ln / .25)):
+                if bar < 16 or k % 2:  # w powrocie celesta gra temat, arpeggio zostaje rzadsze
+                    s.note('celesta', on + k * .25, .25, seq[k % len(seq)] + 12, 58 - 8 * (k % 2), 0.9)
+                if bar >= 16 and k % 2 == 0:
+                    s.note('chip', on + k * .25, .2, seq[k % len(seq)], 70, 0.8)
+            r = root_of(sym)
+            for k in range(int(ln / .5)):  # bas ósemkami: pęd, ale miękko
+                s.note('bass', on + k * .5, .45, r + (12 if k % 4 == 2 else 0), 82 if k % 2 == 0 else 64, 0.85)
+            s.note('sub', on, ln - .05, r - 12 if r > 40 else r, 90)
+    for bar in range(24):
+        o = bar * 4
+        for b, vel in ((0, 92), (1.5, 64), (2.5, 84)):
+            s.note('drums', o + b, .2, 36, vel)
+        for b in (1, 3):
+            s.note('drums', o + b, .2, 38, 86)
+        for k in range(16):
+            s.note('drums', o + k * .25, .08, 42, 62 if k % 4 == 0 else (48 if k % 2 == 0 else 36))
+        if bar % 8 == 7:
+            for b, p in ((3, 45), (3.25, 43), (3.5, 41), (3.75, 41)):
+                s.note('drums', o + b, .2, p, 72)
+    vinyl(s, 24)
+    s.p['tracks'][-1]['mix']['level_dbfs'] = -48  # ledwie słyszalne trzaski: menu ma być czystsze
+    s.save('menu')
+
+
 if __name__ == '__main__':
     day()
     night()
+    menu()
     print('ok')
