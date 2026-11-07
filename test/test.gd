@@ -9,7 +9,7 @@ func _ready() -> void:
 	var w = get_tree().root.get_node("World")
 	assert(w.name == "World", "world loaded")
 	w._enter("balcony", true)
-	assert(w.music["balcony"].playing and w.music["balcony"].stream.loop, "night loop on balcony")
+	assert(Game._loops["music/night"].playing and Game._loops["music/night"].stream.loop, "night loop on balcony")
 	w._interact("teleskop")
 	for i in 20: await get_tree().process_frame
 	var tel = w.viewport
@@ -35,10 +35,24 @@ func _ready() -> void:
 	await get_tree().create_timer(0.8).timeout
 	assert(w.viewport == null, "telescope closed")
 	w._enter("room", true)
-	assert(w.music["room"].playing, "day loop in room")
+	assert(Game._loops["music/day"].playing, "day loop in room")
+	for k in ["lampa", "lampka"]:
+		w._interact(k)
+		assert(not w.lamps[k].on and w.lamps[k].light.energy == 0.0, "lamp switches off")
+		w._interact(k)
+		assert(w.lamps[k].on and w.lamps[k].light.energy > 0.0, "lamp switches on")
 	w._sleep()
 	await get_tree().create_timer(0.3).timeout
 	assert(not Game.night and Game.day == 2, "morning of day 2")
+	var next: Button = w.top.find_children("*", "Button", true, false).filter(func(x): return x.text == "KOLEJNY DZIEŃ")[0]
+	next.pressed.emit()  # w trakcie animacji: pierwszy klik tylko ją pomija
+	await get_tree().create_timer(1.5).timeout
+	assert(is_instance_valid(next) and w.busy, "first click skips the summary animation")
+	assert(not Game._loops["music/night"].playing, "wyciszona pętla zatrzymuje się po przenikaniu")
+	next.pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert(not is_instance_valid(next), "second click starts the day")
 	w.busy = false
 	w._interact("komputer")
 	for i in 5: await get_tree().process_frame
@@ -94,4 +108,4 @@ func _ready() -> void:
 	var m1 := Game.money
 	assert(Game.accept_offer() == 123 and Game.money == m1 + 123 and Game.offer_entry().is_empty(), "oferta")
 	print("TEST OK")
-	get_tree().quit()
+	Game.quit()

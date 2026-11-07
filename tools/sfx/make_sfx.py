@@ -1,0 +1,288 @@
+"""Builds game/sfx/*.ogg: the sound design from GDD chapter 22, for what the game has in Stage 1.
+
+One-shots come from earshot's shipped bank (sounds made in code, checked by measurement); the rest is written here
+with earshot.forge.dsp (modal resonators, filtered noise, rooms). No recorded audio anywhere.
+Run: python tools/sfx/make_sfx.py <earshot src folder>   (needs numpy, scipy, ffmpeg on PATH)
+"""
+import os, subprocess, sys, tempfile, wave
+
+import numpy as np
+
+sys.path.insert(0, sys.argv[1] if len(sys.argv) > 1 else os.environ.get('EARSHOT_SRC', ''))
+from earshot.forge import bank, dsp  # noqa: E402
+
+SR = dsp.SR
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'game', 'sfx')
+
+
+def save(name, y, peak_db=-3.0, loop=False):
+    y = np.asarray(y, np.float64)
+    if y.ndim == 1:
+        y = np.stack([y, y], 1)
+    y = y / (np.abs(y).max() + 1e-12) * 10 ** (peak_db / 20)
+    if not loop:
+        y = dsp.fade(y, 0.0005, 0.01)
+    pcm = (np.clip(y, -1, 1) * 32767).astype('<i2')
+    os.makedirs(OUT, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        w = os.path.join(tmp, 'x.wav')
+        with wave.open(w, 'wb') as f:
+            f.setnchannels(2), f.setsampwidth(2), f.setframerate(SR)
+            f.writeframes(pcm.tobytes())
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', w, '-c:a', 'libvorbis', '-q:a', '5',
+                        os.path.join(OUT, name + '.ogg')], check=True)
+    assert np.isfinite(y).all() and len(y) > 0, name
+    print(f'{name}: {len(y) / SR:.2f} s{" loop" if loop else ""}')
+
+
+def b(sound, **kw):
+    y, _ = bank.render(sound, seed=kw.pop('seed', 1), **kw)
+    return y
+
+
+def seamless(y, xf=1.0):
+    """loop: the last `xf` seconds are crossfaded into the start, so the end runs straight into the beginning"""
+    n = int(xf * SR)
+    head, body, tail = y[:n], y[n:-n] if n else y, y[-n:]
+    k = np.sqrt(np.linspace(0, 1, n))[:, None] if y.ndim == 2 else np.sqrt(np.linspace(0, 1, n))
+    return np.concatenate([head * k + tail * k[::-1], body])
+
+
+def drops(seconds, r, rate, f_lo, f_hi, decay, gain_db=(-30, -6)):
+    """raindrops / splashes / crackles: short noise bursts band-passed at random centres (no ringing: rings read
+    as bubbles under water)"""
+    y = np.zeros(dsp.n_of(seconds))
+    for t in np.sort(r.uniform(0, seconds, int(rate * seconds))):
+        burst = dsp.noise(decay * 5, r) * dsp.env_exp(decay * 5, decay, 0.0003)
+        d = dsp.svf(burst, r.uniform(f_lo, f_hi), q=0.8, mode='band')
+        dsp.place(y, d * 10 ** (r.uniform(*gain_db) / 20), t)
+    return y
+
+
+def am(seconds, r, rate, depth):
+    """slow random amplitude movement (wind, waves)"""
+    w = dsp.wander(seconds, r, rate=rate, octaves=2)
+    w = (w - w.min()) / (np.ptp(w) + 1e-9)
+    return 1 - depth + depth * w
+
+
+# ------------------------------------------------------------------ telescope and table
+def lens_click():  # sweet spot: a light lens snapping into its seat, a small metal detent under it
+    return dsp.stack([(b('click/snap'), 0, 0), (b('hover_tick/detent'), 0.003, -8)], peak_db=-1)
+
+
+def pencil(r, seconds=0.42):  # graphite scribbling: back-and-forth strokes, each a rough friction burst
+    t = dsp.t_of(dsp.n_of(seconds))
+    n = dsp.svf(dsp.noise(seconds, r, 'white'), 2600, q=1.6, mode='band')
+    strokes = np.abs(np.sin(2 * np.pi * 7 * t)) ** 1.5  # the hand going back and forth
+    grit = np.repeat(r.uniform(0.2, 1.0, len(t) // 60 + 1), 60)[:len(t)]  # paper grain under the tip
+    e = dsp.env_curve([(0, 0), (0.02, 1), (seconds - 0.08, 0.9), (seconds, 0)], seconds)
+    return dsp.room(dsp.butter(n * strokes * grit * e, 'low', 6000), r, rt60=0.12, wet=0.05)
+
+
+def paper(r, seconds=0.8):  # unwrapping a parcel: dense crinkle crackles in two handfuls
+    y = drops(seconds, r, 260, 1500, 9000, 0.0012, (-26, -4)) * dsp.env_curve(
+        [(0, 0), (0.05, 1), (0.3, 0.4), (0.42, 1), (0.7, 0.5), (seconds, 0)], seconds)
+    return dsp.room(y, r, rt60=0.15, wet=0.06)
+
+
+def chord(notes, sound='mallet/celesta', step=0.0):
+    return dsp.stack([(b(sound, pitch=p, seed=i + 1), i * step, -2 * i) for i, p in enumerate(notes)], peak_db=-1)
+
+
+def space_hum(r, seconds=24.0):  # "szum kosmosu": dark rumbling noise and slow detuned drones, nothing insect-high
+    hum = dsp.butter(dsp.noise(seconds, r, 'brown'), 'low', 500) * am(seconds, r, 0.06, 0.5)
+    t = dsp.t_of(dsp.n_of(seconds))
+    drone = sum(np.sin(2 * np.pi * f * t + 0.3 * np.sin(2 * np.pi * 0.05 * t + k)) * a
+                for k, (f, a) in enumerate([(55, 1), (82.6, 0.6), (110.3, 0.35), (164.7, 0.2)]))
+    y = 0.6 * hum / np.abs(hum).max() + 0.3 * drone / np.abs(drone).max()
+    return seamless(dsp.stereo(y, r, width=0.6))
+
+
+def lens_slide(r, seconds=4.0):  # moving the tube: soft mechanical slide, brushed metal
+    n = dsp.svf(dsp.noise(seconds, r, 'pink'), 1400, q=1.5, mode='band')
+    rumble = dsp.butter(dsp.noise(seconds, r, 'brown'), 'low', 180)
+    return seamless(dsp.stereo(n * am(seconds, r, 3, 0.4) + 0.5 * rumble / np.abs(rumble).max(), r, 0.2))
+
+
+# ------------------------------------------------------------------ computer (AstroOS on the CRT)
+def crt_on(r):  # relay click and soft thump, the degauss coil's decaying mains buzz, static, the tube's whine
+    t = dsp.t_of(dsp.n_of(1.6))
+    thump = np.sin(2 * np.pi * 60 * t) * np.exp(-t / 0.05) * 0.6
+    saw = 2 * (t * 100 % 1) - 1  # rectified mains: rich 100 Hz buzz
+    buzz = dsp.butter(saw, 'low', 1800) * np.exp(-t / 0.45) * (1 + 0.3 * np.sin(2 * np.pi * 7 * t))
+    static = dsp.butter(dsp.noise(1.6, r), 'high', 2000) * np.exp(-t / 0.15) * 0.15
+    whine = np.sin(2 * np.pi * 15734 * t) * np.clip((t - 0.2) / 0.5, 0, 1) * 0.04
+    y = thump + 0.7 * buzz + static + whine
+    dsp.place(y, b('click/snap').mean(1) * 0.6, 0.0)
+    return dsp.room(y, r, rt60=0.25, wet=0.12)
+
+
+def crt_hum(r, seconds=10.0):  # idle tower: fan, mains hum, faint tube whine, a few HDD seeks
+    t = dsp.t_of(dsp.n_of(seconds))
+    fan = dsp.butter(dsp.noise(seconds, r, 'pink'), 'low', 1200) * 0.5
+    hum = 0.25 * np.sin(2 * np.pi * 50 * t) + 0.1 * np.sin(2 * np.pi * 100 * t)
+    whine = 0.012 * np.sin(2 * np.pi * 15734 * t)
+    y = fan / np.abs(fan).max() + hum + whine
+    for s in r.uniform(1, seconds - 1, 3):  # HDD: quiet rhythmic ticks of the head, under the fan
+        for k in range(r.integers(3, 6)):
+            dsp.place(y, b('hover_tick/mid', seed=k + 1).mean(1) * 0.08, s + k * 0.05)
+    return seamless(y, 0.5)
+
+
+def floppy(r):  # saving to a 3.5" disk: the drive's clack, a short motor whir, the head stepping in quick ticks
+    y = np.zeros(dsp.n_of(1.1))
+    dsp.place(y, b('knock/plastic').mean(1) * 0.8, 0.0)
+    t = dsp.t_of(dsp.n_of(0.7))
+    whir = (np.sin(2 * np.pi * 300 * t) * 0.3 + dsp.butter(dsp.noise(0.7, r), 'low', 1500)) * np.sin(np.pi * t / 0.7)
+    dsp.place(y, whir * 0.15, 0.12)
+    for k in range(10):  # rhythmic ticking of the head (reads like the GDD's "stukanie głowicy")
+        dsp.place(y, b('hover_tick/mid', seed=k + 1).mean(1) * 0.5, 0.2 + k * 0.05 + (0.15 if k > 5 else 0))
+    return dsp.room(y, r, rt60=0.2, wet=0.08)
+
+
+def key(i):  # Cherry MX Brown / buckling spring: soft deep clicks, takes alternate
+    return b('fit/key/thock' if i % 2 == 0 else 'fit/key/medium', seed=i + 1)
+
+
+def modem(r):  # handshake when sending a report: dial tone, DTMF, answer tone, V.8 chirps, scrambled data
+    parts, t = [], lambda s: dsp.t_of(dsp.n_of(s))
+    tt = t(0.6)
+    parts.append(0.4 * (np.sin(2 * np.pi * 350 * tt) + np.sin(2 * np.pi * 440 * tt)))
+    dtmf = {'1': (697, 1209), '4': (770, 1209), '8': (852, 1336), '0': (941, 1336), '5': (770, 1336), '2': (697, 1336)}
+    for d in '480125':
+        tt = t(0.08)
+        lo, hi = dtmf[d]
+        parts += [0.4 * (np.sin(2 * np.pi * lo * tt) + np.sin(2 * np.pi * hi * tt)), np.zeros(dsp.n_of(0.05))]
+    parts.append(np.zeros(dsp.n_of(0.3)))
+    tt = t(1.0)  # answer tone with phase reversals every 450 ms
+    parts.append(0.5 * np.sin(2 * np.pi * 2100 * tt + np.pi * (np.floor(tt / 0.45) % 2)))
+    tt = t(0.5)
+    parts.append(0.35 * (np.sin(2 * np.pi * (980 + 400 * np.sin(2 * np.pi * 7 * tt)) * tt) + np.sin(2 * np.pi * 1650 * tt)))
+    data = dsp.svf(dsp.noise(1.3, r), 1800, q=0.8, mode='band')
+    data *= 0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 9 * t(1.3)))
+    parts.append(0.6 * data / np.abs(data).max())
+    y = np.concatenate(parts)
+    y = dsp.butter(dsp.butter(y, 'high', 300), 'low', 3400)  # telephone line
+    return dsp.room(np.tanh(1.5 * y), r, rt60=0.2, wet=0.12)
+
+
+# ------------------------------------------------------------------ weather and nature
+def rain(r, room, seconds=20.0):
+    if room:  # muffled drops on the window and the roof
+        bed = dsp.butter(dsp.noise(seconds, r, 'pink'), 'low', 1500) * am(seconds, r, 0.15, 0.3)
+        y = bed / np.abs(bed).max() * 0.5 + drops(seconds, r, 60, 300, 900, 0.012, (-34, -14))
+        y = dsp.butter(y, 'low', 2500)
+    else:  # crisp rain on the lake and pings on the metal railing
+        bed = dsp.butter(dsp.noise(seconds, r, 'white'), 'high', 900) * am(seconds, r, 0.2, 0.25)
+        y = bed / np.abs(bed).max() * 0.35 + drops(seconds, r, 220, 1500, 5000, 0.004, (-36, -10))
+        y += drops(seconds, r, 6, 2500, 4200, 0.06, (-30, -18))  # railing
+    return seamless(dsp.stereo(y, r, width=0.8))
+
+
+def lake(r, seconds=30.0):  # water lapping the shore, wind in the reeds
+    swell = dsp.butter(dsp.noise(seconds, r, 'brown'), 'low', 400)
+    t = dsp.t_of(dsp.n_of(seconds))
+    waves = 0.6 + 0.4 * np.sin(2 * np.pi * t / 3.0) ** 2
+    lap = swell / np.abs(swell).max() * waves
+    wind = dsp.air(seconds, r, center=700, flutter=0.4, rate=0.5) * 0.3 * am(seconds, r, 0.07, 0.8)
+    return seamless(dsp.stereo(dsp.butter(lap, 'low', 1600) + wind, r, width=0.9), 2.0)
+
+
+def owl(r):  # tawny owl far over the lake: "hoo ... hu-hoooo", breathy, with a little wavering
+    def hoot(seconds, f0, f1):
+        t = dsp.t_of(dsp.n_of(seconds))
+        f = np.linspace(f0, f1, len(t)) * (1 + 0.012 * np.sin(2 * np.pi * 9 * t))
+        ph = 2 * np.pi * np.cumsum(f) / SR
+        tone = np.sin(ph) + 0.25 * np.sin(2 * ph) + 0.08 * np.sin(3 * ph)
+        breath = dsp.svf(dsp.noise(seconds, r), f0 * 1.5, q=2, mode='band') * 0.35
+        return (tone + breath) * np.sin(np.pi * t / seconds) ** 1.5
+    y = np.zeros(dsp.n_of(2.4))
+    dsp.place(y, hoot(0.5, 420, 390), 0.0)
+    dsp.place(y, hoot(0.18, 400, 400), 1.05)
+    dsp.place(y, hoot(0.9, 430, 380), 1.3)
+    return dsp.room(dsp.butter(y, 'low', 1500), r, rt60=1.6, size=0.9, wet=0.5)
+
+
+def crickets(r, seconds=12.0):  # summer: pulse trains on a 4.6 kHz carrier, a few insects at different rates
+    y = np.zeros(dsp.n_of(seconds))
+    t = dsp.t_of(dsp.n_of(0.05))
+    for k in range(4):
+        f, rate, g = r.uniform(4300, 5000), r.uniform(1.4, 2.6), r.uniform(0.4, 1)
+        for s in np.arange(r.uniform(0, 1), seconds, 1 / rate):
+            for p in range(3):
+                dsp.place(y, g * np.sin(2 * np.pi * f * t) * np.sin(np.pi * t / 0.05) ** 2 * 0.3, s + p * 0.06)
+    return seamless(dsp.stereo(dsp.room(y, r, rt60=0.8, wet=0.35), r, width=0.9), 0.5)
+
+
+def frogs(r, seconds=12.0):  # spring: a chorus of peepers (short rising whistles) and a few deep croaks
+    y = np.zeros(dsp.n_of(seconds))
+    tp = dsp.t_of(dsp.n_of(0.12))
+    for k in range(6):
+        f0, rate, g = r.uniform(2600, 3200), r.uniform(0.8, 1.6), r.uniform(0.3, 1)
+        ph = 2 * np.pi * np.cumsum(np.linspace(f0, f0 * 1.12, len(tp))) / SR
+        peep = np.sin(ph) * np.sin(np.pi * tp / 0.12) ** 2
+        for s in np.arange(r.uniform(0, 1), seconds, 1 / rate):
+            dsp.place(y, peep * g * 0.3, s + r.uniform(-0.05, 0.05))
+    tc = dsp.t_of(dsp.n_of(0.35))
+    for s in np.sort(r.uniform(0, seconds - 0.5, 7)):
+        f = r.uniform(180, 260)
+        pulses = np.sin(2 * np.pi * 12 * tc).clip(0) ** 2
+        c = dsp.svf(np.tanh(2 * np.sin(2 * np.pi * f * tc)), 650, q=2) * pulses * np.sin(np.pi * tc / 0.35)
+        dsp.place(y, c * r.uniform(0.3, 0.7), s)
+    return seamless(dsp.stereo(dsp.room(y, r, rt60=1.0, wet=0.4), r, width=0.9), 0.5)
+
+
+def leaves(r, seconds=12.0):  # autumn: dry leaves skittering in separate gusts, crisp crackles, quiet between
+    y = np.zeros(dsp.n_of(seconds))
+    for s in np.sort(r.uniform(0, seconds - 1.2, 6)):
+        d = r.uniform(0.4, 1.1)
+        gust = dsp.svf(dsp.noise(d, r), 4500, q=0.6, mode='band') * 0.15 + drops(d, r, 120, 2000, 8000, 0.0015, (-24, -6))
+        dsp.place(y, gust * dsp.env_curve([(0, 0), (d * 0.3, 1), (d, 0)], d), s)
+    return seamless(dsp.stereo(y, r, width=0.9), 1.0)
+
+
+def frost(r, seconds=12.0):  # winter: almost silence, a cold breeze and a rare squeak of frost (stick-slip)
+    y = dsp.air(seconds, r, center=400, flutter=0.2, rate=0.3) * 0.15
+    for s in r.uniform(1, seconds - 1, 3):
+        d = r.uniform(0.15, 0.3)
+        t = dsp.t_of(dsp.n_of(d))
+        slips = (np.sin(2 * np.pi * np.cumsum(np.linspace(380, 520, len(t))) / SR) > 0.7).astype(float)
+        dsp.place(y, dsp.svf(slips - slips.mean(), 1400, q=1.2) * np.sin(np.pi * t / d) * 0.25, s)
+    return seamless(dsp.stereo(y, r, width=0.8), 1.0)
+
+
+def main():
+    r = dsp.rng(7)
+    save('ding', b('mallet/celesta', pitch='G6'))
+    save('lens_click', lens_click())
+    save('focus_tick', b('hover_tick/detent'), -10)
+    save('star_glass', b('pro_hover_tick/glass'), -14)
+    save('pencil', pencil(r), -8)
+    save('chimes', b('mallet/up4'))
+    save('miss', b('tap/finger'), -16)
+    save('meteor', b('whoosh_fast/whistle'), -6)
+    save('click', b('click/soft'), -8)
+    for i in range(3):
+        save(f'key{i}', key(i), -8)
+    save('crt_on', crt_on(r), -6)
+    save('floppy', floppy(r), -8)
+    save('modem', modem(r), -6)
+    save('tick', b('fit/tick/domino'), -12)
+    save('chord', chord(['C6', 'E6', 'G6', 'C7'], step=0.04))
+    save('pop', b('pro_pop/bloop'), -8)
+    save('switch', b('fit/snap/switch_flip'), -6)
+    save('paper', paper(r), -8)
+    save('owl', owl(r), -10)
+    save('amb_space', space_hum(r), -12, loop=True)
+    save('lens_slide', lens_slide(r), -14, loop=True)
+    save('crt_hum', crt_hum(r), -18, loop=True)
+    save('rain_room', rain(r, True), -10, loop=True)
+    save('rain_balcony', rain(r, False), -8, loop=True)
+    save('lake', lake(r), -12, loop=True)
+    for name, fn in [('spring', frogs), ('summer', crickets), ('autumn', leaves), ('winter', frost)]:
+        save('season_' + name, fn(r), -16, loop=True)
+
+
+if __name__ == '__main__':
+    main()

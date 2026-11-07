@@ -19,7 +19,6 @@ const METEOR_INTERVAL := Vector2(40, 60)
 const METEOR_WINDOW := 3.5
 const RAIN_CHANCE := 0.20
 const COMET_NIGHTS := 3
-const COMET_MIN_Q := 70
 const COMET_GAP := 8
 const SEASONS := ["Wiosna", "Lato", "Jesień", "Zima"]
 const CATS := {"moon": "Księżyc", "const": "Konstelacje", "zodiac": "Znaki zodiaku", "nebula": "Mgławice",
@@ -206,12 +205,14 @@ var comet := {"left": 0, "gap": 0, "seed": 0}
 var tips := {}
 var location := "balcony"
 var stage_done := false
-var settings := {"fullscreen": false, "crt": true}
+var settings := {"fullscreen": false, "crt": true, "Music": 3, "SFX": 3, "Ambient": 3}  # głośności 0–3 (GDD: osobne suwaki)
 var pad := false           # ostatnie urządzenie: pad?
 var font: FontFile          # UI
 var font_os: FontFile       # komputer
 var font_title: FontFile    # nagłówki
-var _ding: AudioStreamWAV
+var _sfx := {}    # nazwa -> AudioStream (game/sfx/*.ogg, tools/sfx/make_sfx.py)
+var _loops := {}  # nazwa -> AudioStreamPlayer pętli tła
+var _fades := {}  # nazwa -> Tween
 var theme: Theme
 var _textures := {}
 var _id_seq := 0
@@ -222,36 +223,85 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()
 	_setup_theme()
-	_make_ding()
+	for bus in ["Music", "SFX", "Ambient"]:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, bus)
 	_load_settings()
 	get_tree().set_auto_accept_quit(false)
 
 
 # ---------------------------------------------------------------- zasoby
-## krótki, ciepły „ding” generowany w kodzie (pełna oprawa audio w późniejszym etapie)
-func _make_ding() -> void:
-	var rate := 22050
-	var n := int(rate * 0.4)
-	var data := PackedByteArray()
-	data.resize(n * 2)
-	for i in n:
-		var tt := float(i) / rate
-		var v := (sin(TAU * 1568.0 * tt) * 0.6 + sin(TAU * 2352.0 * tt) * 0.25) * exp(-tt * 9.0) * minf(1.0, tt * 400.0)
-		data.encode_s16(i * 2, int(v * 11000))
-	_ding = AudioStreamWAV.new()
-	_ding.format = AudioStreamWAV.FORMAT_16_BITS
-	_ding.mix_rate = rate
-	_ding.data = data
+func _stream(file: String) -> AudioStream:
+	if not _sfx.has(file):
+		var path := "res://game/" + (file if "/" in file else "sfx/" + file) + ".ogg"  # "music/day" albo efekt z sfx/
+		_sfx[file] = load(path) if ResourceLoader.exists(path) else AudioStreamOggVorbis.load_from_file(path)
+	return _sfx[file]
 
 
-func ding(pitch := 1.0) -> void:
+## jednorazowy efekt (oprawa z GDD rozdz. 22)
+func sfx(file: String, pitch := 1.0, db := 0.0) -> void:
 	var p := AudioStreamPlayer.new()
-	p.stream = _ding
+	p.stream = _stream(file)
 	p.pitch_scale = pitch
-	p.volume_db = -12.0
+	p.volume_db = db
+	p.bus = "SFX"
 	add_child(p)
 	p.play()
 	p.finished.connect(p.queue_free)
+
+
+func looped(file: String) -> AudioStreamOggVorbis:
+	var s: AudioStreamOggVorbis = _stream(file).duplicate()
+	s.loop = true
+	return s
+
+
+func ding(pitch := 1.0) -> void:
+	sfx("ding", pitch, -6.0)
+
+
+## pętla tła (deszcz, jezioro, szum kosmosu…) płynnie do `db`; db = -INF wycisza i zatrzymuje
+func loop(file: String, db: float, bus := "Ambient") -> void:
+	var p: AudioStreamPlayer = _loops.get(file)
+	if p == null:
+		if db == -INF:
+			return
+		p = AudioStreamPlayer.new()
+		p.stream = looped(file)
+		p.bus = bus
+		p.volume_db = -50.0
+		add_child(p)
+		_loops[file] = p
+	if not p.playing and db != -INF:
+		p.play()
+	if _fades.has(file):
+		_fades[file].kill()  # stare wyciszanie nie zatrzyma ponownie włączonej pętli
+	var tw := create_tween()
+	_fades[file] = tw
+	tw.tween_property(p, "volume_db", -50.0 if db == -INF else db, 0.8)
+	if db == -INF:
+		tw.tween_callback(p.stop)  # bez lambdy: lambda trzymała odtwarzanie Ogg (wyciek przy wyjściu)
+
+
+## wycisza wszystkie pętle tła (wyjście ze świata do menu)
+func hush() -> void:
+	for file: String in _loops.keys():
+		loop(file, -INF)
+
+
+## wyjście z gry: zapis, potem zwolnienie dźwięków (odtwarzanie Ogg zwalnia się z opóźnieniem, inaczej silnik
+## zgłasza wyciek przy zamknięciu) i dopiero wtedy quit
+func quit() -> void:
+	var world := get_tree().root.get_node_or_null("World")
+	if world:
+		save_game()
+		world.queue_free()
+	for p: AudioStreamPlayer in _loops.values():
+		p.queue_free()
+	_loops.clear()
+	_fades.clear()
+	await get_tree().create_timer(0.2).timeout
+	get_tree().quit()
 
 
 func layout(prefix: String) -> Array:
@@ -358,9 +408,7 @@ func key(action: String) -> String:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if get_tree().current_scene and get_tree().current_scene.name == "World":
-			save_game()
-		get_tree().quit()
+		quit()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT and get_tree().current_scene and get_tree().current_scene.name == "World":
 		save_game()
 
@@ -371,11 +419,11 @@ func has(id: String) -> bool:
 
 
 func season() -> int:
-	return int((day - 1) / 7) % 4
+	return floori((day - 1) / 7.0) % 4
 
 
 func calendar() -> String:
-	return "Dzień %d · %s, rok %d" % [day, SEASONS[season()], int((day - 1) / 28) + 1]
+	return "Dzień %d · %s, rok %d" % [day, SEASONS[season()], floori((day - 1) / 28.0) + 1]
 
 
 func moon_phase() -> int:
@@ -764,6 +812,9 @@ func _load_settings() -> void:
 
 func apply_settings() -> void:
 	get_window().mode = Window.MODE_FULLSCREEN if settings.fullscreen else Window.MODE_WINDOWED
+	for bus in ["Music", "SFX", "Ambient"]:
+		settings[bus] = clampi(int(settings[bus]), 0, 3)  # plik ustawień mógł być edytowany ręcznie
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus), linear_to_db(settings[bus] / 3.0))
 	var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))

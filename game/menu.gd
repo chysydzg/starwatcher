@@ -32,11 +32,6 @@ func _ready() -> void:
 	title.add_theme_constant_override("shadow_offset_y", 2)
 	title.position = Vector2(46, 24)
 	_ui.add_child(title)
-	var sub := Label.new()
-	sub.text = "Balkonowa Astronomka"
-	sub.add_theme_color_override("font_color", Color("9aa0d0"))
-	sub.position = Vector2(50, 70)
-	_ui.add_child(sub)
 	_box = VBoxContainer.new()
 	_box.position = Vector2(48, 104)
 	_box.custom_minimum_size = Vector2(176, 0)
@@ -66,7 +61,7 @@ func _build() -> void:
 		first = _btn(_box, "KONTYNUUJ", _continue)
 	var s := _btn(_box, "START", _start)
 	_btn(_box, "USTAWIENIA", _settings)
-	_btn(_box, "WYJDŹ", func(): get_tree().quit())
+	_btn(_box, "WYJDŹ", Game.quit)
 	(first if first else s).grab_focus.call_deferred()
 
 
@@ -97,9 +92,17 @@ func _settings() -> void:
 	_clear()
 	var fs := _btn(_box, "", func(): pass)
 	var crt := _btn(_box, "", func(): pass)
+	var vol := {"Music": "MUZYKA", "SFX": "EFEKTY", "Ambient": "OTOCZENIE"}  # osobne głośności (GDD), 4 stopnie
+	var vb := {}
+	for bus in vol:
+		vb[bus] = _btn(_box, "", func(): Game.settings[bus] = (int(Game.settings[bus]) + 3) % 4; Game.apply_settings(); Game.sfx("pop"))
 	var refresh := func():
 		fs.text = "PEŁNY EKRAN: " + ("TAK" if Game.settings.fullscreen else "NIE")
 		crt.text = "EFEKT CRT: " + ("SUBTELNY" if Game.settings.crt else "WYŁ.")
+		for bus in vol:
+			vb[bus].text = vol[bus] + ": " + ["WYŁ.", "33%", "66%", "100%"][int(Game.settings[bus])]
+	for bus in vol:
+		vb[bus].pressed.connect(refresh)
 	fs.pressed.connect(func(): Game.settings.fullscreen = not Game.settings.fullscreen; Game.apply_settings(); refresh.call())
 	crt.pressed.connect(func(): Game.settings.crt = not Game.settings.crt; Game.apply_settings(); refresh.call())
 	refresh.call()

@@ -30,6 +30,9 @@ var sharp_t := 0.0
 var lit := {}                    # zaznaczone gwiazdy aktualnej konstelacji
 var bursts := []                 # rozbłyski po kliknięciu gwiazdy
 var shake := 0.0
+var slide: AudioStreamPlayer  # szmer przesuwanych soczewek, głośniej przy szybkim obrocie
+var _notch := 0      # ząbek pierścienia ostrości (klik zębatki przy każdym)
+var _prev_cam := Vector2.ZERO
 var ring_a := 0.0  # kąt radełka pierścienia (rysowany)
 var meteor := {}
 var next_meteor := 0.0
@@ -54,6 +57,14 @@ func _ready() -> void:
 	_build_frame()
 	_place_targets()
 	next_meteor = _meteor_gap()
+	Game.loop("amb_space", -8.0)
+	slide = AudioStreamPlayer.new()
+	slide.stream = Game.looped("lens_slide")
+	slide.bus = "SFX"
+	slide.volume_db = -60.0
+	add_child(slide)
+	slide.play()
+	_prev_cam = cam  # bez tego pierwsza klatka liczy skok od (0, 0) i słychać szum
 	if Game.rain:
 		for i in 6:
 			clouds.append([Vector2(_rng.randf_range(0, SKY_SIZE.x), _rng.randf_range(0, SKY_SIZE.y)), _rng.randf_range(60, 120)])
@@ -230,6 +241,7 @@ func _process(dt: float) -> void:
 		cam = cam.clamp(Vector2(R, R) / zoom, SKY_SIZE - Vector2(R, R) / zoom)
 		var h := hover_target()
 		if not h.is_empty() and hovered != h:
+			Game.sfx("star_glass", 1.0, -6.0)
 			tut_next(0)
 		hovered = h
 	for c in clouds:
@@ -237,6 +249,12 @@ func _process(dt: float) -> void:
 	for tg in targets:
 		if tg.has("vel") and not tg.done:
 			tg.pos = (tg.pos + tg.vel * dt).clamp(Vector2(140, 140), SKY_SIZE - Vector2(140, 140))
+	var speed := cam.distance_to(_prev_cam) / maxf(dt, 0.001) * zoom
+	_prev_cam = cam
+	slide.volume_db = lerpf(slide.volume_db, -46.0 + 30.0 * clampf(speed / 300.0, 0.0, 1.0), minf(1.0, dt * 8.0))
+	if state == S.FOCUS and int(f * 30.0) != _notch:
+		_notch = int(f * 30.0)
+		Game.sfx("focus_tick", _rng.randf_range(0.92, 1.08), -6.0)
 	if state == S.FOCUS:
 		var fin := Input.get_action_strength("focus_in") - Input.get_action_strength("focus_out")
 		if absf(fin) > 0.1:
@@ -263,6 +281,7 @@ func _process(dt: float) -> void:
 			next_meteor = _meteor_gap()
 			var a0 := _rng.randf() * TAU  # start za krawędzią okularu, lot w stronę środka
 			meteor = {"pos": to_sky(C + Vector2.from_angle(a0) * (R + 70)), "vel": -Vector2.from_angle(a0 + _rng.randf_range(-0.35, 0.35)) * 70.0 / zoom, "t": 0.0}
+			Game.sfx("meteor", 1.0, -10.0)
 		if not meteor.is_empty():
 			meteor.t += dt
 			meteor.pos += meteor.vel * dt
@@ -352,6 +371,7 @@ func _lock_or_confirm() -> void:
 			idle_focus = 0.0
 			sharp_t = 0.0
 			state = S.FOCUS
+			_notch = int(f * 30.0)  # pierwszy klik zębatki dopiero, gdy gracz pokręci
 			tut_next(1)
 		S.FOCUS:
 			if quality() < 20:
@@ -363,7 +383,8 @@ func _lock_or_confirm() -> void:
 
 
 func _after_focus() -> void:
-	Game.ding(1.0)  # klik przeskakującej soczewki
+	Game.sfx("lens_click")  # klik przeskakującej soczewki i ciepły „ding”
+	Game.ding(1.0)
 	tut_next(2)
 	if target.info.has("pts"):
 		lit.clear()
@@ -386,10 +407,13 @@ func _click_star() -> void:
 			lit[i] = true
 			bursts.append({"p": pts[i], "t": 0.0})
 			shake = 0.12
+			Game.sfx("pencil", _rng.randf_range(0.9, 1.1), -4.0)
 			Game.ding(1.0 + lit.size() * 0.12)
 			if lit.size() == pts.size():
+				Game.sfx("chimes")
 				_finish()
 			return
+	Game.sfx("miss", 1.0, -8.0)  # gwiazda spoza sekwencji: cicho, bez kary
 
 
 func _finish(replace := false) -> void:
@@ -401,6 +425,7 @@ func _finish(replace := false) -> void:
 		_full_dialog()
 		return
 	target.done = true
+	Game.sfx("floppy")  # zapis odkrycia na dyskietkę
 	tut_next(3)
 	if pts > 0:
 		Game.tips.tut_connect = true
@@ -458,6 +483,7 @@ func tired() -> void:
 
 
 func close() -> void:
+	Game.loop("amb_space", -INF)
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.25)
 	tw.tween_callback(func(): closed.emit(); queue_free())
@@ -477,10 +503,10 @@ func _text(p: Vector2, s: String, c: Color, center := false) -> void:
 ## jasny punkt z połyskiem w 4 strony (od światła)
 func _glint(p: Vector2, col: Color, sz: float, a := 1.0) -> void:
 	p = p.floor()
-	var size := sz * 1.5  # duże, jasne punkty
+	var rad := sz * 1.5  # duże, jasne punkty
 	for k in 3:
-		draw_circle(p, size * (1.6 - k * 0.45), Color(col, 0.12 * a * (k + 1)))
-	var arm := int(size * 2.2)
+		draw_circle(p, rad * (1.6 - k * 0.45), Color(col, 0.12 * a * (k + 1)))
+	var arm := int(rad * 2.2)
 	for i in range(1, arm):
 		var fa := a * (1.0 - float(i) / arm)
 		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
@@ -671,7 +697,7 @@ func _draw_crosshair() -> void:
 func _draw_panels() -> void:
 	var dim := Color("8a90c0")
 	_text(Vector2(10, 318), "DYSK %d/%d" % [Game.stored().size(), Game.storage_cap()], dim)
-	_text(Vector2(10, 340), "NOC %d:%02d" % [int(Game.night_left) / 60, int(Game.night_left) % 60], Color("ff9a6a") if Game.night_left < 40 else dim)
+	_text(Vector2(10, 340), "NOC %d:%02d" % [floori(Game.night_left / 60.0), int(Game.night_left) % 60], Color("ff9a6a") if Game.night_left < 40 else dim)
 	# prawy panel: odkryte tej nocy
 	_text(Vector2(500, 24), "ODKRYTE", Color("ffcf6b"))
 	var y := 48.0

@@ -8,16 +8,15 @@ const SPEED := 144.0
 const ROOM_WALK := Rect2(14, 122, 612, 224)
 const BALCONY_WALK := Rect2(20, 318, 610, 42)
 const MUSIC_DB := -8.0  # pętle są masterowane na -16 LUFS
+const SEASON_LOOPS := ["season_spring", "season_summer", "season_autumn", "season_winter"]  # kolejność jak Game.SEASONS
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
-const ROOM_SPOTS := {"komputer": [Rect2(334, 104, 94, 48), "Komputer"], "lozko": [Rect2(12, 96, 88, 100), "Łóżko"],
-	"drzwi": [Rect2(518, 104, 46, 18), "Drzwi na balkon"], "szafa": [Rect2(568, 104, 62, 24), "Szafa"],
-	"plakat": [Rect2(248, 104, 32, 18), "Plakat"], "model": [Rect2(132, 104, 34, 18), "Model Układu Słonecznego"],
-	"paczka": [Rect2(488, 126, 26, 12), "Paczka"], "radio": [Rect2(572, 312, 48, 22), "Radio"]}
-const BALCONY_SPOTS := {"wroc": [Rect2(0, 300, 66, 60), "Wróć do pokoju"], "teleskop": [Rect2(214, 326, 70, 22), "Teleskop"],
-	"krzeslo": [Rect2(416, 330, 34, 16), "Krzesło"], "skrzynka": [Rect2(472, 330, 32, 14), "Kubek"], "kwiatek": [Rect2(564, 330, 36, 16), "Kwiatek"]}
+const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96, 88, 100), "drzwi": Rect2(518, 104, 46, 18),
+	"szafa": Rect2(568, 104, 62, 24), "plakat": Rect2(248, 104, 32, 18), "model": Rect2(132, 104, 34, 18),
+	"paczka": Rect2(488, 126, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(160, 258, 26, 16), "lampka": Rect2(96, 108, 36, 24)}
+const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
+	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
 var room: Node2D
-var music := {}  # lokacja -> AudioStreamPlayer: pokój gra dzień, balkon noc
 var balcony: Node2D
 var room_sort: Node2D
 var balcony_sort: Node2D
@@ -27,6 +26,8 @@ var body: CharacterBody2D
 var modulate_node: CanvasModulate
 var lights: Array[PointLight2D] = []
 var pc_light: PointLight2D
+var lamps := {}  # spot -> {"light", "on"}: lampka nocna i lampa stojąca, włączane ręcznie
+var owl_t := 20.0  # odległe pohukiwanie sowy nad jeziorem, co jakiś czas nocą
 var glow: Node2D
 var props := {}
 var feet := {"room": [], "balcony": []}
@@ -71,7 +72,6 @@ func _ready() -> void:
 	body.add_child(jania)
 	_build_room()
 	_build_balcony()
-	music = {"room": _music("day.ogg"), "balcony": _music("night.ogg")}
 	modulate_node = CanvasModulate.new()
 	add_child(modulate_node)
 	glow = Node2D.new()
@@ -96,8 +96,8 @@ func _ready() -> void:
 		daynight.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	daynight.draw.connect(func():
 		var down := daynight.is_hovered() or daynight.button_pressed  # najechanie = wciśnięty klawisz
-		var face := _key(daynight, Rect2(Vector2.ZERO, daynight.size), down)
-		daynight.draw_texture(Game.tex("os/ui_moon"), (face.get_center() - Vector2(10, 10)).floor()))
+		var cap := _key(daynight, Rect2(Vector2.ZERO, daynight.size), down)
+		daynight.draw_texture(Game.tex("os/ui_moon"), (cap.get_center() - Vector2(10, 10)).floor()))
 	daynight.focus_mode = Control.FOCUS_NONE
 	daynight.pressed.connect(_toggle_phase)
 	hud_layer.add_child(daynight)
@@ -202,6 +202,8 @@ func _build_room() -> void:
 		p.position = l[0]
 		room.add_child(p)
 		lights.append(p)
+	# shortcut: stan lamp nie trafia do zapisu (po wczytaniu włączone), dopisać do save_game, gdy lampy na coś wpłyną
+	lamps = {"lampka": {"light": lights[0], "on": true}, "lampa": {"light": lights[4], "on": true}}  # przed pop_at monitora
 	pc_light = lights.pop_at(2)  # monitor świeci też w dzień i migocze razem z obrazem – sterowany w _process
 
 
@@ -255,6 +257,22 @@ func _refresh() -> void:
 	rain_front.raining = Game.rain
 	sky_fx.meteors = Game.has("meteory")
 	sky_fx.comet = Game.comet.left > 0
+	_ambience()
+
+
+## dźwięki otoczenia z GDD 22: deszcz (inny w pokoju i na balkonie), jezioro i pora roku nad jeziorem nocą
+func _ambience() -> void:
+	var bal := Game.location == "balcony"
+	Game.loop("rain_room", -12.0 if Game.rain and not bal else -INF)
+	Game.loop("rain_balcony", -8.0 if Game.rain and bal else -INF)
+	Game.loop("lake", -10.0 if bal else -INF)
+	for i in SEASON_LOOPS.size():
+		var on := Game.night and not Game.rain and i == Game.season()
+		Game.loop(SEASON_LOOPS[i], (-14.0 if bal else -26.0) if on else -INF)  # w pokoju cicho, zza okna
+
+
+func _exit_tree() -> void:
+	Game.hush()
 
 
 # ---------------------------------------------------------------- fazy i miejsca
@@ -262,6 +280,9 @@ func _apply_phase(instant := false) -> void:
 	var col := NIGHT_TINT if Game.night and Game.location == "room" else Color.WHITE
 	for l in lights:
 		var e: float = l.get_meta("e") if Game.night else 0.0
+		for k in lamps:
+			if l == lamps[k].light:
+				e = _lamp_e(k)
 		if instant:
 			l.energy = e
 		else:
@@ -300,23 +321,23 @@ func _toggle_phase() -> void:
 
 ## zmierzch: niebo w pasmach, chmury podświetlone od dołu, Słońce z poświatą zachodzi łukiem,
 ## Księżyc wschodzi z drugiej strony, odbicia w jeziorze, wzgórza z lasem, wychodzą gwiazdy
-func _draw_dusk(o: Control, t: float) -> void:
-	var dusk := clampf(t * 2.0, 0, 1)
-	var night := clampf(t * 2.0 - 1.0, 0, 1)
-	var top := Color("4a8ad8").lerp(Color("3a3a78"), dusk).lerp(Color("0a0c24"), night)
+func _draw_dusk(o: Control, prog: float) -> void:
+	var dusk := clampf(prog * 2.0, 0, 1)
+	var night := clampf(prog * 2.0 - 1.0, 0, 1)
+	var sky_top := Color("4a8ad8").lerp(Color("3a3a78"), dusk).lerp(Color("0a0c24"), night)
 	var hor := Color("a8d8f4").lerp(Color("ff9a5a"), dusk).lerp(Color("2a2650"), night)
 	for i in 12:  # 12 pasm koloru jak w pixel arcie (bez gładkiego gradientu)
-		o.draw_rect(Rect2(0, i * 20, 640, 20), top.lerp(hor, pow(i / 11.0, 1.6)))
+		o.draw_rect(Rect2(0, i * 20, 640, 20), sky_top.lerp(hor, pow(i / 11.0, 1.6)))
 	for i in 90:  # gwiazdy z migotaniem
-		var a := clampf(t * 3.0 - 1.9 - (i % 7) * 0.08, 0, 1) * (0.6 + 0.4 * sin(Time.get_ticks_msec() / 300.0 + i))
+		var a := clampf(prog * 3.0 - 1.9 - (i % 7) * 0.08, 0, 1) * (0.6 + 0.4 * sin(Time.get_ticks_msec() / 300.0 + i))
 		o.draw_rect(Rect2((i * 97) % 640, (i * 53) % 200, 1 + int(i % 11 == 0), 1 + int(i % 11 == 0)), Color(1, 0.95, 0.85, a))
 	var c := Vector2(320, 252)
-	var sun := (c + Vector2.from_angle(lerpf(-PI / 2, 0.3, t)) * Vector2(250, 200)).floor()
+	var sun := (c + Vector2.from_angle(lerpf(-PI / 2, 0.3, prog)) * Vector2(250, 200)).floor()
 	for k in 3:  # poświata Słońca w trzech pierścieniach
 		o.draw_circle(sun, 22 + k * 10, Color(1, 0.8, 0.45, 0.16 - k * 0.04))
 	o.draw_circle(sun, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
 	o.draw_circle(sun + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
-	var m := clampf((t - 0.35) / 0.65, 0, 1)
+	var m := clampf((prog - 0.35) / 0.65, 0, 1)
 	if m > 0:
 		var moon := (c + Vector2.from_angle(lerpf(PI, PI * 1.38, m)) * Vector2(250, 200)).floor()
 		o.draw_circle(moon, 24, Color(0.9, 0.9, 1, 0.08 * m))
@@ -324,7 +345,7 @@ func _draw_dusk(o: Control, t: float) -> void:
 		for q in [Vector2(-4, 3), Vector2(3, -5), Vector2(4, 4)]:
 			o.draw_rect(Rect2(moon + q, Vector2(2, 2)), Color("d8ceaa"))
 	for i in 4:  # chmury: płaskie pasma, spód podświetlony zachodem
-		var cx := fposmod(60.0 + i * 170.0 + t * 30.0, 760.0) - 60.0
+		var cx := fposmod(60.0 + i * 170.0 + prog * 30.0, 760.0) - 60.0
 		var cy := 70.0 + (i % 2) * 40.0 + i * 8.0
 		var body_c := Color("e8f0fa").lerp(Color("7a5a88"), dusk).lerp(Color("1a1838"), night)
 		o.draw_rect(Rect2(cx, cy, 70, 6), body_c)
@@ -335,9 +356,9 @@ func _draw_dusk(o: Control, t: float) -> void:
 		Color("5a7aa8").lerp(Color("4a3a6a"), dusk).lerp(Color("141430"), night))
 	o.draw_rect(Rect2(0, 260, 640, 40), Color("6aa8d8").lerp(Color("c87a5a"), dusk).lerp(Color("0c1030"), night))
 	for row in range(262, 300, 3):  # odbicie Słońca / Księżyca w wodzie
-		var w := 18 - (row - 262) / 3
+		var w := 18 - floori((row - 262) / 3.0)
 		if sun.y < 262:
-			o.draw_rect(Rect2(sun.x - w / 2 + 3 * sin(row * 0.7 + t * 9.0), row, w, 1), Color(1, 0.8, 0.5, 0.5 * (1.0 - night)))
+			o.draw_rect(Rect2(sun.x - w / 2.0 + 3 * sin(row * 0.7 + prog * 9.0), row, w, 1), Color(1, 0.8, 0.5, 0.5 * (1.0 - night)))
 		if m > 0.2:
 			o.draw_rect(Rect2(160 + 2 * sin(row * 0.9), row, w * 0.6, 1), Color(0.95, 0.92, 0.8, 0.4 * m))
 	var ground := Color("4a7a3a").lerp(Color("2a2a3a"), dusk).lerp(Color("07060e"), night)
@@ -351,9 +372,9 @@ func _draw_dusk(o: Control, t: float) -> void:
 		var gy := 296 + 8 * sin(x * 0.012) + 4 * sin(x * 0.037)
 		var hh := 14.0 + (i % 4) * 5.0
 		o.draw_colored_polygon(PackedVector2Array([Vector2(x, gy - hh), Vector2(x - hh * 0.35, gy + 2), Vector2(x + hh * 0.35, gy + 2)]), ground.darkened(0.25))
-	if t > 0.75:
+	if prog > 0.75:
 		var msg := "Zapada noc"
-		var a := (t - 0.75) * 4.0
+		var a := (prog - 0.75) * 4.0
 		o.draw_string(Game.font_title, Vector2(320 - Game.font_title.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x / 2, 170).floor(), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.96, 0.93, 0.86, a))
 
 
@@ -388,30 +409,8 @@ func _enter(where: String, instant := false) -> void:
 	elif body.position == Vector2.ZERO:
 		body.position = Vector2(300, 220)
 	_apply_phase(true)
-	_music_to(where)
-
-
-func _music(file: String) -> AudioStreamPlayer:
-	var path := "res://game/music/" + file
-	var s: AudioStreamOggVorbis = load(path) if ResourceLoader.exists(path) else AudioStreamOggVorbis.load_from_file(path)
-	s.loop = true  # loop.ogg kończy się dokładnie na końcu pętli, ogon pogłosu jest wklejony w jej początek
-	var p := AudioStreamPlayer.new()
-	p.stream = s
-	p.volume_db = -60.0
-	add_child(p)
-	return p
-
-
-func _music_to(where: String) -> void:
-	for k in music:
-		var p: AudioStreamPlayer = music[k]
-		var on: bool = k == where
-		if on and not p.playing:
-			p.play()
-		var tw := create_tween()
-		tw.tween_property(p, "volume_db", MUSIC_DB if on else -60.0, 1.0)
-		if not on:
-			tw.tween_callback(func(): if Game.location != k: p.stop())
+	Game.loop("music/day", MUSIC_DB if where == "room" else -INF, "Music")  # pokój: dzień, balkon: noc
+	Game.loop("music/night", MUSIC_DB if where == "balcony" else -INF, "Music")
 
 
 func _go(where: String) -> void:
@@ -440,6 +439,11 @@ func _process(dt: float) -> void:
 				viewport.tired()
 	if is_instance_valid(dusk_o):
 		dusk_o.queue_redraw()
+	if Game.night and Game.location == "balcony" and not Game.rain:
+		owl_t -= dt
+		if owl_t <= 0.0:
+			owl_t = randf_range(25.0, 60.0)
+			Game.sfx("owl", randf_range(0.95, 1.05), -14.0)
 	if not speech.is_empty():
 		speech.t -= dt
 		if speech.t <= 0:
@@ -449,7 +453,7 @@ func _process(dt: float) -> void:
 		if toasts[i].t <= 0:
 			toasts.remove_at(i)
 	if viewport == null and not busy:
-		_move(dt)
+		_move()
 	_animate(dt)
 	daynight.visible = not Game.night and viewport == null and not busy
 	glow.queue_redraw()
@@ -457,7 +461,7 @@ func _process(dt: float) -> void:
 	hud.queue_redraw()
 
 
-func _move(dt: float) -> void:
+func _move() -> void:
 	var v := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var walking := v.length() > 0.1
 	jania.set_meta("walking", walking)
@@ -508,7 +512,7 @@ func _nearest() -> String:
 	for k in sp:
 		if (k == "paczka" and Game.parcels.is_empty()) or (k == "radio" and not Game.has("radio")):
 			continue
-		var r: Rect2 = sp[k][0]
+		var r: Rect2 = sp[k]
 		var d := body.position.distance_to(body.position.clamp(r.position, r.end))
 		if d < REACH and d < best_d:
 			best_d = d
@@ -556,6 +560,7 @@ func _interact(k: String) -> void:
 			else:
 				_say("Jeszcze nie pora spać.")
 		"paczka":
+			Game.sfx("paper")
 			Game.unpack_all()
 		"szafa":
 			_say("Moje ogrodniczki. Najwygodniejsze na świecie.")
@@ -571,6 +576,16 @@ func _interact(k: String) -> void:
 			_say("Gorąca czekolada. Najlepsze paliwo astronomki." if Game.has("termos") else "Pusty kubek. Przydałby się termos.")
 		"kwiatek":
 			_say("Rośnie jak na drożdżach.")
+		"lampa", "lampka":
+			Game.sfx("switch")
+			lamps[k].on = not lamps[k].on
+			lamps[k].light.energy = _lamp_e(k)  # pstryczek działa od razu, bez przenikania
+
+
+## włączona lampa świeci też w dzień, słabiej
+func _lamp_e(k: String) -> float:
+	var l: PointLight2D = lamps[k].light
+	return ((l.get_meta("e") if Game.night else 0.5) if lamps[k].on else 0.0)
 
 
 ## monolog wewnętrzny Jani: tekst nad jej głową, bez ramki (patrz CLAUDE.md)
@@ -617,6 +632,8 @@ func _sleep() -> void:
 		l.position = Vector2(14, 34)
 		p.add_child(l)
 	var delay := 0.3
+	var anims: Array[Tween] = []  # należą do panelu: giną razem z nim
+	var finals := []  # [opis, kwota, tekst końcowy] – pokazywane od razu, gdy gracz pominie animację
 	for i in rows.size():
 		var r: Array = rows[i]
 		var a := Label.new()
@@ -631,10 +648,18 @@ func _sleep() -> void:
 		p.add_child(a)
 		p.add_child(v)
 		var fmt: String = ("+" if r[3] > 0 else "-") + ("$%d" if r[2] == "$" else "%d PW")
-		var tw := create_tween()  # wiersz pojawia się, a kwota „nabija się” od zera
+		finals.append([a, v, fmt % r[1]])
+		var tw := p.create_tween()  # wiersz pojawia się, a kwota „nabija się” od zera
+		anims.append(tw)
 		tw.tween_interval(delay)
 		tw.tween_property(a, "modulate:a", 1.0, 0.12)
-		tw.tween_method(func(x): v.text = fmt % int(x), 0.0, float(r[1]), 0.5 if r[3] > 0 else 0.25)
+		var step := maxf(1.0, r[1] / 8.0)  # terkot licznika: ~8 tyknięć na wiersz
+		var last := [0]
+		tw.tween_method(func(x: float):
+			if int(x / step) != last[0]:
+				last[0] = int(x / step)
+				Game.sfx("tick", 1.0, -8.0)
+			v.text = fmt % int(x), 0.0, float(r[1]), 0.5 if r[3] > 0 else 0.25)
 		if r[3] > 0:
 			tw.tween_callback(Game.ding.bind(1.0 + 0.15 * i))
 		delay += 0.7 if r[3] > 0 else 0.35
@@ -648,7 +673,9 @@ func _sleep() -> void:
 	total.position = Vector2(14, h - 38)
 	total.modulate.a = 0.0
 	p.add_child(total)
-	create_tween().tween_property(total, "modulate:a", 1.0, 0.3).set_delay(delay)
+	anims.append(p.create_tween())
+	anims[-1].tween_property(total, "modulate:a", 1.0, 0.3).set_delay(delay)
+	anims[-1].tween_callback(Game.sfx.bind("chord"))  # mocniejszy akord przy sumie
 	var fc := Label.new()
 	fc.text = "Prognoza na noc: " + s.forecast
 	fc.position = Vector2(14, h - 22)
@@ -661,6 +688,15 @@ func _sleep() -> void:
 	p.get_parent().add_child(ok)
 	ok.grab_focus.call_deferred()
 	ok.pressed.connect(func():
+		if anims.any(func(tw: Tween): return tw.is_running()):  # pierwszy klik w trakcie animacji tylko pokazuje wynik
+			for tw: Tween in anims:
+				tw.kill()
+			for e: Array in finals:
+				e[0].modulate.a = 1.0
+				e[1].text = e[2]
+			total.modulate.a = 1.0
+			Game.sfx("chord")
+			return
 		p.get_parent().queue_free()
 		body.position = Vector2(56, 210)
 		face = 0
@@ -740,6 +776,7 @@ func _stage_complete() -> void:
 # ---------------------------------------------------------------- komunikaty
 func _toast(text: String, kind: String) -> void:
 	toasts.push_back({"text": text, "kind": kind, "t": 4.0})  # kolejne pod spodem, na środku ekranu
+	Game.sfx("pop", 1.0, -10.0)
 	if toasts.size() > 5:
 		toasts.pop_front()
 
@@ -782,8 +819,9 @@ func _draw_glow() -> void:
 				_px(n, r.position.x + 2 + (k * 7 + i * 3) % int(r.size.x - 3), r.position.y + yy, 1, 3, Color(0.85, 0.92, 1.0, 0.6))
 	if Game.night:
 		n.draw_circle(Vector2(208, 37), 4, Color("f8e9b4"))
-		for lamp in [Rect2(107, 83, 14, 8), Rect2(407, 75, 10, 7)]:
-			_px(n, lamp.position.x, lamp.position.y, lamp.size.x, lamp.size.y, Color("ffe6a0"))
+		_px(n, 407, 75, 10, 7, Color("ffe6a0"))  # klosz lampki na biurku
+	if lamps.lampka.on:  # klosz lampki nocnej świeci, gdy jest włączona
+		_px(n, 107, 83, 14, 8, Color("ffe6a0"))
 
 
 ## miniatura pulpitu AstroOS na monitorze CRT: niebo, wzgórze, płynące chmurki, okienko i kursor
@@ -805,27 +843,26 @@ func _pc_screen(n: Node2D) -> void:
 
 
 ## cienka ramka z polerowanej stali (styl przyrządu); inset = ciemny „wyświetlacz” w środku
-func _metal(n: CanvasItem, r: Rect2, pressed := false, inset := false) -> void:
+func _metal(n: CanvasItem, r: Rect2) -> void:
 	n.draw_rect(r.grow(1), Color("120e1a"))
 	n.draw_rect(r, Color("6c7692"))
 	n.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color("d8e0ee"))
 	n.draw_rect(Rect2(r.position, Vector2(1, r.size.y)), Color("aab4c8"))
 	n.draw_rect(Rect2(r.position.x, r.end.y - 1, r.size.x, 1), Color("2a3044"))
 	n.draw_rect(Rect2(r.end.x - 1, r.position.y, 1, r.size.y), Color("2a3044"))
-	if inset:
-		var d := r.grow(-3)
-		n.draw_rect(d, Color("10141f"))
-		n.draw_rect(Rect2(d.position, Vector2(d.size.x, 1)), Color("05070c"))
+	var d := r.grow(-3)  # wpuszczone okienko na tekst
+	n.draw_rect(d, Color("10141f"))
+	n.draw_rect(Rect2(d.position, Vector2(d.size.x, 1)), Color("05070c"))
 
 
 ## przycisk jak klawisz klawiatury: zaokrąglone rogi, widoczny bok; wciśnięty = wierzch opada
 func _key(n: CanvasItem, r: Rect2, down: bool) -> Rect2:
 	_round(n, r, Color("120e1a"))
 	_round(n, r.grow(-1), Color("3a4258"))
-	var face := Rect2(r.position + Vector2(3, 2 + (2 if down else 0)), r.size - Vector2(6, 8))
-	_round(n, face, Color("7a84a0") if down else Color("8e98b2"))
-	n.draw_rect(Rect2(face.position + Vector2(1, 0), Vector2(face.size.x - 2, 1)), Color("d8e0ee"))
-	return face
+	var cap := Rect2(r.position + Vector2(3, 2 + (2 if down else 0)), r.size - Vector2(6, 8))
+	_round(n, cap, Color("7a84a0") if down else Color("8e98b2"))
+	n.draw_rect(Rect2(cap.position + Vector2(1, 0), Vector2(cap.size.x - 2, 1)), Color("d8e0ee"))
+	return cap
 
 
 func _round(n: CanvasItem, r: Rect2, c: Color) -> void:
@@ -865,17 +902,16 @@ func _draw_hud() -> void:
 	var n := hud
 	if viewport and viewport.get("hide_hud"):
 		return
-	var bg := Color(0.1, 0.08, 0.15, 0.9)
-	_metal(n, Rect2(4, 4, 92, 40), false, true)
+	_metal(n, Rect2(4, 4, 92, 40))
 	_txt(Vector2(11, 21), "$ %d" % Game.money, Color("ffcf6b"))
 	_txt(Vector2(11, 37), "PW %d" % Game.pw, Color("6affa0"))
 	var cal := Game.calendar()
-	_metal(n, Rect2(622 - _w(cal), 4, _w(cal) + 14, 24), false, true)
+	_metal(n, Rect2(622 - _w(cal), 4, _w(cal) + 14, 24))
 	_txt(Vector2(629 - _w(cal), 21), cal, Color("c8c4e8"))
 	if Game.night:  # pasek pozostałego czasu nocy
 		var frac := Game.night_left / Game.night_length()
-		_metal(n, Rect2(500, 32, 136, 24), false, true)
-		_txt(Vector2(507, 49), "NOC %d:%02d" % [int(Game.night_left) / 60, int(Game.night_left) % 60], Color("c8c4e8"))
+		_metal(n, Rect2(500, 32, 136, 24))
+		_txt(Vector2(507, 49), "NOC %d:%02d" % [floori(Game.night_left / 60.0), int(Game.night_left) % 60], Color("c8c4e8"))
 		n.draw_rect(Rect2(572, 41, 56, 6), Color("2a2a40"))
 		n.draw_rect(Rect2(572, 41, 56 * frac, 6), Color("8aa8ff") if frac > 0.2 else Color("ff9a6a"))
 	var y := 72.0
@@ -893,12 +929,11 @@ func _draw_hud() -> void:
 			_otxt(n, (body.position + Vector2(-_w(lines[i]) / 2, -58 - (lines.size() - 1 - i) * 16)).floor().clamp(Vector2(4, 16), Vector2(636 - _w(lines[i]), 356)), lines[i], c)
 	var k := _nearest()
 	if k != "" and not busy and speech.is_empty():
-		var label: String = Game.key("interact") + " " + _spots()[k][1]
-		var w := _w(label)
-		var p := (body.position + Vector2(-w / 2, -60)).floor()
-		p.x = clampf(p.x, 6, 634 - w)
-		n.draw_rect(Rect2(p.x - 4, p.y - 16, w + 8, 21), Color(0.1, 0.08, 0.15, 0.9))
-		_txt(p, label, Color("ffcf6b"))
+		var label: String = Game.key("interact").trim_prefix("[").trim_suffix("]")  # sam klawisz, bez opisu obiektu
+		var r := Rect2((body.position + Vector2(-(_w(label) + 14) / 2, -80)).floor(), Vector2(_w(label) + 14, 24))
+		r.position = r.position.clamp(Vector2(4, 4), Vector2(636, 356) - r.size)
+		var cap := _key(n, r, false)
+		_txt_on(n, (cap.position + Vector2((cap.size.x - _w(label)) / 2, 13)).floor(), label, Color("1a1426"))
 	if tip != "":
 		var w := _w(tip)
 		n.draw_rect(Rect2(320 - w / 2 - 6, 332, w + 12, 22), Color(0.1, 0.08, 0.15, 0.9))

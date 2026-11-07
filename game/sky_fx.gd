@@ -77,7 +77,7 @@ func _draw() -> void:
 		var w := int(14.0 - d * 0.12 + 3.0 * sin(t * 1.6 + d * 0.5))
 		var off := int(2.0 * sin(t * 1.1 + d * 0.8))
 		if w > 1:
-			_px(MOON.x - w / 2 + off, row, w, 1, Color(0.97, 0.91, 0.7, (0.75 - d / 80.0) * dim))
+			_px(MOON.x - floori(w / 2.0) + off, row, w, 1, Color(0.97, 0.91, 0.7, (0.75 - d / 80.0) * dim))
 	for i in 24:  # refleksy na wodzie
 		var x := fposmod(i * 53.0 + t * (3 + i % 3), 560.0) + 80.0
 		var y := float(LAKE.x + 3 + (i * 7) % (LAKE.y - LAKE.x - 4))
@@ -87,7 +87,7 @@ func _draw() -> void:
 		var sag := 3.0 * sin(PI * fposmod(x - 80.0, 22.0) / 22.0)
 		_px(x, 262 + sag, 1, 1, Color("1a1426"))
 		if (x - 84) % 8 == 0:
-			var c := Color("ffd27a") if (x / 8) % 2 else Color("ff9a6a")
+			var c := Color("ffd27a") if floori(x / 8.0) % 2 else Color("ff9a6a")
 			c.a = 0.6 + 0.4 * sin(t * 2.0 + x * 0.4)
 			_px(x, 263 + sag, 1, 2, c)
 			_px(x - 1, 264 + sag, 3, 1, Color(c, c.a * 0.25))

@@ -40,11 +40,11 @@ func _ready() -> void:
 		w._enter(where, true)
 		var spots: Dictionary = w.BALCONY_SPOTS if where == "balcony" else w.ROOM_SPOTS
 		for id in spots:
-			var r: Rect2 = spots[id][0]
+			var r: Rect2 = spots[id]
 			w.body.position = Vector2(clampf(r.get_center().x, 40, 600), 236.0 if where == "room" else 352.0)
 			for i in 90:
 				w.body.velocity = (r.get_center() - w.body.position).normalized() * 150
 				w.body.move_and_slide()
 				await get_tree().physics_frame
 			print("strefa ", id, " -> ", w._nearest(), " @", w.body.position.round())
-	get_tree().quit()
+	Game.quit()

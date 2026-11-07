@@ -50,6 +50,8 @@ var t := 0.0
 func _ready() -> void:
 	size = Vector2(640, 360)
 	theme = _make_theme()
+	Game.sfx("crt_on")  # „thump” i pisk kineskopu, potem szum blaszaka
+	Game.loop("crt_hum", -10.0)
 	var wall := TextureRect.new()
 	wall.texture = Game.tex("os/os_wallpaper")
 	add_child(wall)
@@ -85,7 +87,7 @@ func _ready() -> void:
 		if e is InputEventMouseButton and e.pressed and e.position.x > 570:
 			close())
 	Game.changed.connect(bar.queue_redraw)
-	var k := maxi(1, mini(get_window().size.x / 640, get_window().size.y / 360))  # gra skaluje się całkowicie
+	var k := maxi(1, mini(floori(get_window().size.x / 640.0), floori(get_window().size.y / 360.0)))  # gra skaluje się całkowicie
 	var arrow := Game.img("os/ui_cursor")
 	arrow.resize(arrow.get_width() * k, arrow.get_height() * k, Image.INTERPOLATE_NEAREST)
 	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(arrow))
@@ -347,6 +349,7 @@ func _gielda() -> void:
 	var total := _label(body, "", Vector2(460, 22), Color("6aff8a"))
 	total.add_theme_font_size_override("font_size", Game.OS_FS * 2)
 	var sell := _button("WYŚLIJ RAPORT", func():
+		Game.sfx("modem")
 		Game.send_report(stored.filter(func(e): return selected.get(e.uid, false)))
 		selected.clear()
 		_rebuild())
@@ -695,6 +698,14 @@ func _pomoc() -> void:
 	l.custom_minimum_size = Vector2(604, 0)
 
 
+## miękkie, głębokie kliknięcia myszy i mechanicznej klawiatury (GDD 22)
+func _input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		Game.sfx("click", randf_range(0.95, 1.05), -4.0)
+	elif e is InputEventKey and e.pressed and not e.echo:
+		Game.sfx("key%d" % (randi() % 3), randf_range(0.95, 1.05), -6.0)
+
+
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_action_pressed("back"):
 		if app != "":
@@ -709,5 +720,6 @@ func _exit_tree() -> void:
 
 
 func close() -> void:
+	Game.loop("crt_hum", -INF)
 	closed.emit()
 	queue_free()

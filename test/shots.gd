@@ -90,4 +90,4 @@ func _ready() -> void:
 	await shot("zmierzch")
 	await get_tree().create_timer(2.0).timeout
 	await shot("noc_kontynuuj")
-	get_tree().quit()
+	Game.quit()

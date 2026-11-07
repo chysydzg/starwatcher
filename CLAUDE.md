@@ -15,3 +15,11 @@
 ## Grafika
 - Pixel art generowany kodem (codixel, `tools/art/*.js`); referencje od autora służą do kolorów/kształtu.
 - Ramki HUD: cienka stal (`_metal`), przyciski jak klawisze klawiatury (`_key`).
+
+## Dźwięk
+- Efekty i pętle tła: `game/sfx/*.ogg` generuje `tools/sfx/make_sfx.py` (bank i dsp earshot, wszystko liczone kodem) –
+  zmieniać skrypt, nie pliki. W grze: `Game.sfx()` (jednorazowe), `Game.loop()` (pętle), magistrale Music / SFX /
+  Ambient z głośnością w Ustawieniach.
+- Muzyka: `music/compose.py` → `game/music/day.ogg` (pokój) i `night.ogg` (balkon), grane przez `Game.loop("music/…")`.
+- Odtwarzacze Ogg: w tweenach żadnych lambd łapiących odtwarzacz (trzyma odtwarzanie → wyciek przy wyjściu); wychodzić
+  przez `Game.quit()`.
