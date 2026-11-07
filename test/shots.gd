@@ -69,6 +69,8 @@ func _ready() -> void:
 	await get_tree().create_timer(3.2).timeout
 	await shot("swit")
 	w.dusk_o.queue_free()
+	Game.tutorial(w, "shop")
+	await tut_pages(w, "shop")
 	w.busy = false
 	w._enter("room", true)
 	w._apply_phase(true)

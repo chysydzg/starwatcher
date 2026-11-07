@@ -190,7 +190,6 @@ var money := 0
 var pw := 0
 var science := {}          # id -> true
 var shop := {}             # id -> true (rozpakowane, działa)
-var pending := []          # zamówione, dojdą przy zmianie fazy
 var parcels := []          # dostarczone, czekają na rozpakowanie
 var journal := []          # wpisy Dziennika: wszystkie odkrycia (w pamięci, sprzedane, nadpisane) – historia na stronach
 var history := []          # podsumowania minionych dni (to, co pokazało okienko PODSUMOWANIE)
@@ -393,7 +392,7 @@ func _setup_input() -> void:
 		"move_left": [KEY_A, KEY_LEFT, JOY_BUTTON_DPAD_LEFT], "move_right": [KEY_D, KEY_RIGHT, JOY_BUTTON_DPAD_RIGHT],
 		"move_up": [KEY_W, KEY_UP, JOY_BUTTON_DPAD_UP], "move_down": [KEY_S, KEY_DOWN, JOY_BUTTON_DPAD_DOWN],
 		"interact": [KEY_E, JOY_BUTTON_A], "back": [KEY_ESCAPE, JOY_BUTTON_B], "pause": [JOY_BUTTON_START],
-		"daynight": [KEY_N, JOY_BUTTON_Y], "confirm": [KEY_SPACE, KEY_ENTER, JOY_BUTTON_A],
+		"confirm": [KEY_SPACE, KEY_ENTER, JOY_BUTTON_A],
 		"prev_obj": [KEY_Q, JOY_BUTTON_LEFT_SHOULDER], "next_obj": [KEY_E, JOY_BUTTON_RIGHT_SHOULDER],
 		"focus_in": [KEY_X], "focus_out": [KEY_Z],
 	}
@@ -426,7 +425,7 @@ func _input(e: InputEvent) -> void:
 
 ## podpowiedź przycisku zgodna z urządzeniem
 func key(action: String) -> String:
-	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "daynight": ["N", "Y"], "confirm": ["LPM", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"]}
+	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"]}
 	return "[%s]" % k[action][1 if pad else 0]
 
 
@@ -665,7 +664,7 @@ func buy_science(row: Array) -> void:
 
 
 func can_buy_shop(row: Array) -> String:
-	if shop.has(row[0]) or row[0] in pending or row[0] in parcels:
+	if shop.has(row[0]) or row[0] in parcels:
 		return "owned"
 	if row[0] == "certyfikat" and not science.has("manifest"):
 		return "hidden"
@@ -677,9 +676,10 @@ func can_buy_shop(row: Array) -> String:
 func buy_shop(row: Array) -> void:
 	money -= row[2]
 	today.bought = today.get("bought", []) + [["Zakup: " + row[1], row[2], "$"]]
-	pending.append(row[0])
+	parcels.append(row[0])
+	sfx("knock")  # kurier od razu puka, paczka ląduje na środku pokoju
 	changed.emit()
-	toast.emit("Zamówiono: %s. Kurier przyjdzie przy zmianie pory dnia." % row[1], "info")
+	toast.emit("Kupiono: %s. Paczka czeka w pokoju." % row[1], "info")
 
 
 func unpack_all(quiet := false) -> void:
@@ -698,14 +698,6 @@ func _shop_name(id: String) -> String:
 	return id
 
 
-func _deliver() -> void:
-	unpack_all()  # nierozpakowane paczki rozpakowują się same przy kolejnej zmianie fazy
-	parcels = pending.duplicate()
-	pending.clear()
-	if not parcels.is_empty():
-		toast.emit("Kurier zostawił paczkę pod drzwiami!", "info")
-
-
 func stage_ready() -> bool:
 	return science.has("manifest") and shop.has("certyfikat") and discovered.keys().any(func(k): return SKY.has(k) and SKY[k].cat == "planet")
 
@@ -717,7 +709,6 @@ func start_night() -> void:
 	tonight.clear()
 	_roll_sky()
 	rain = rain_next
-	_deliver()
 	if has("materac"):
 		add_pw(50)
 	changed.emit()
@@ -747,7 +738,6 @@ func sleep() -> Dictionary:
 	summary.forecast = "deszcz – słaba widoczność" if rain_next else "pogodnie"
 	_roll_demand()
 	_roll_offer()
-	_deliver()
 	history.append(summary)
 	save_game()
 	return summary
@@ -773,7 +763,6 @@ func new_game() -> void:
 	pw = 0
 	for d in [science, shop, discovered, moon_done, tonight, tips, demand, today]:
 		d.clear()
-	pending.clear()
 	parcels.clear()
 	journal.clear()
 	history.clear()
@@ -791,7 +780,7 @@ func new_game() -> void:
 
 
 # ---------------------------------------------------------------- zapis
-const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "pending", "parcels", "journal", "discovered",
+const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "parcels", "journal", "discovered",
 	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq", "history"]
 
 
@@ -819,6 +808,7 @@ func load_game() -> bool:
 			for k in SAVED:
 				if d.has(k):
 					set(k, d[k])
+			parcels.append_array(d.get("pending", []))  # zapis sprzed natychmiastowych paczek
 			day = int(day)
 			money = int(money)
 			pw = int(pw)

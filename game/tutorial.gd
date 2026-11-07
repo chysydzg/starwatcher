@@ -5,12 +5,20 @@ extends CanvasLayer
 const TUTORIALS := {
 	"tel": {"title": "Teleskop", "pages": [
 		{"img": "tut/tel1", "text": "Odkrywaj obiekty na niebie, żeby zdobywać punkty wiedzy i pieniądze. Zbliż celownik do obiektu, a gdy zacznie drgać, wciśnij {confirm}."},
-		{"img": "tut/tel2", "text": "Wyostrz obiekt, a dostaniesz za niego więcej. {focus}, aż znacznik trafi w zielone pole, i wciśnij {confirm}."},
+		{"img": "tut/tel2", "text": "Wyostrz obiekt, a dostaniesz za niego więcej $. {focus}, aż znacznik trafi w zielone pole, i wciśnij {confirm}."},
 		{"img": "tut/tel3", "text": "Niektóre obiekty, np. konstelacje, trzeba odsłonić. Zaznacz po kolei jasno świecące gwiazdy {confirm}."},
 	]},
 	"pc": {"title": "Komputer", "pages": [
-		{"img": "tut/pc1", "text": "Odkrycia sprzedajesz w Giełdzie. Zaznacz je i wyślij raport. Pieniądze przyjdą rano."},
-		{"img": "tut/pc2", "text": "Punkty wiedzy wydajesz w Badaniach. Wybierz podświetloną umiejętność i wciśnij {confirm}."},
+		{"img": "tut/pc_walk", "text": "Aby sprzedawać odkrycia i zdobywać nowe umiejętności, podejdź do komputera i wciśnij {interact}."},
+		{"img": "tut/pc_desk", "text": "Wybierz Giełdę, żeby sprzedać odkrycia."},
+		{"img": "tut/pc_chart", "text": "Wykresy pokazują, które obiekty opłaca się dziś sprzedać."},
+		{"img": "tut/pc_sell", "text": "Zaznacz odkrycia pojedynczo lub przyciskiem Zaznacz wszystkie, potem wyślij raport. Pieniądze z Giełdy przychodzą codziennie rano."},
+		{"img": "tut/pc_tree", "text": "Punkty wiedzy wydajesz w Badaniach. Wybierz podświetloną umiejętność i wciśnij {confirm}."},
+	]},
+	"shop": {"title": "Sklep", "pages": [
+		{"img": "tut/shop_desk", "text": "W Retro-Tech kupisz sprzęt, który ułatwia obserwacje. Wybierz go na pulpicie."},
+		{"img": "tut/shop_buy", "text": "Kliknij KUP przy przedmiocie."},
+		{"img": "tut/shop_parcel", "text": "Kurier od razu przyniesie paczkę. Podejdź do niej i wciśnij {interact}, żeby ją otworzyć."},
 	]},
 }
 const FW := 320  # klatka nagrania 320x180, klatki obok siebie w jednym PNG
@@ -43,8 +51,8 @@ func _ready() -> void:
 	dim.size = Vector2(640, 360)
 	add_child(dim)
 	var p := Panel.new()
-	p.position = Vector2(140, 17)
-	p.size = Vector2(360, 326)
+	p.position = Vector2(140, 8)
+	p.size = Vector2(360, 344)  # tekst do 4 linii
 	dim.add_child(p)
 	_title = Label.new()
 	_title.position = Vector2(20, 10)
@@ -67,8 +75,8 @@ func _ready() -> void:
 	_text.custom_minimum_size = Vector2(FW, 0)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_text)
-	_back = _button(p, "WSTECZ", Vector2(20, 288), func(): _turn(-1))
-	_next = _button(p, "DALEJ", Vector2(240, 288), func(): _turn(1))
+	_back = _button(p, "WSTECZ", Vector2(20, 306), func(): _turn(-1))
+	_next = _button(p, "DALEJ", Vector2(240, 306), func(): _turn(1))
 	create_tween().set_loops().tween_callback(_tick).set_delay(0.12)
 	_show()
 
@@ -90,7 +98,7 @@ func _pages() -> Array:
 func _show() -> void:
 	var pg: Dictionary = _pages()[page]
 	_title.text = "%s  %d/%d" % [TUTORIALS[id].title.to_upper(), page + 1, _pages().size()]
-	_text.text = pg.text.replace("{confirm}", Game.key("confirm")).replace("{focus}", "Wychylaj prawy drążek" if Game.pad else "Kręć kółkiem myszy")
+	_text.text = pg.text.replace("{confirm}", Game.key("confirm")).replace("{interact}", Game.key("interact")).replace("{focus}", "Wychylaj prawy drążek" if Game.pad else "Kręć kółkiem myszy")
 	_pic.atlas = Game.tex(pg.img)
 	_f = 0
 	_tick()

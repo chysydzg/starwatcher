@@ -132,15 +132,7 @@ glyph("glyph_optyka", (s) => { s.ring(7, 7, 5.5, 1.6, WHITE); s.blob(7, 7, 2, WH
 glyph("glyph_analiza", (s) => { s.rect(5, 0, 9, 2, WHITE); s.rect(5, 2, 7, 6, WHITE); s.rect(7, 2, 9, 6, WHITE); s.poly([[4, 6], [10, 6], [14, 13], [0, 13]], WHITE); }); // kolba
 glyph("glyph_kosmos", (s) => { s.blob(7, 7, 4.5, WHITE); s.line(0, 10, 14, 4, WHITE, 1); }); // planeta z pierścieniem
 
-// ---------------------------------------------------------------- interfejs: ikona nocy (sierp Księżyca) i kursor AstroOS
-icon("ui_moon", 18, 18, (s) => {
-  const M = P.hueRamp(3, { hue: 50, shift: 14, sat: 0.8, light: [0.6, 0.88] });
-  for (let y = 0; y < 18; y++) for (let x = 0; x < 18; x++) {
-    const d = Math.hypot(x - 8.5, y - 8.5), cut = Math.hypot(x - 13, y - 5.5);
-    if (d < 8.6 && cut > 7.2) s.pset(x, y, M[d > 6.5 ? 0 : x < 6 ? 2 : 1]);
-  }
-  for (const [x, y] of [[4, 9], [6, 13], [3, 6]]) s.pset(x, y, M[0]); // kratery
-});
+// ---------------------------------------------------------------- interfejs: kursor AstroOS
 { // strzałka myszy: biała z czarnym obrysem (rysowana w Godot w siatce 640x360, więc skaluje się z grą)
   const rows = ["X", "XX", "XoX", "XooX", "XoooX", "XooooX", "XoooooX", "XooooooX", "XoooooooX", "XooooooooX", "XoooooXXXXX",
     "XooXooX", "XoX XooX", "XX  XooX", "X    XooX", "     XooX", "      XX"];

@@ -14,7 +14,7 @@ const HELP := """NOC (balkon)
 
 DZIEŃ (komputer)
 • Giełda: wyślij raport z odkryciami (także w nocy), Centrum Naukowe zapłaci rano. Ceny zależą od popytu dnia.
-• Retro-Tech ($): sprzęt i komfort. Zakupy przychodzą kurierem.
+• Retro-Tech ($): sprzęt i komfort. Zakup od razu przychodzi paczką do pokoju.
 • Badania (PW): nowe obiekty na niebie i ułatwienia.
 • Esc zamyka okno, drugie Esc wyłącza komputer.
 
@@ -604,7 +604,6 @@ func _card(r: Array, st: String) -> Panel:
 	c.add_theme_stylebox_override("panel", _box(bg, Color("6a6a80")))
 	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 132)
 	title.max_lines_visible = 2
-	_label(c, "T%d" % r[3], Vector2(144, 2), Color("8a8aa0"))
 	var price := _label(c, "$%d" % r[2], Vector2(6, 52), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
 	if st == "owned":
 		price.text = ""
@@ -622,7 +621,7 @@ func _card(r: Array, st: String) -> Panel:
 			buy.add_theme_color_override(k, Color.WHITE)
 		c.add_child(buy)
 	else:
-		var tag: String = {"owned": "W drodze" if (r[0] in Game.pending or r[0] in Game.parcels) else "Posiadane", "cost": "Za mało $", "req": "Zablokowane"}[st]
+		var tag: String = {"owned": "W paczce" if r[0] in Game.parcels else "Posiadane", "cost": "Za mało $", "req": "Zablokowane"}[st]
 		var l := _label(c, tag, Vector2(0, 52), Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
 		l.size.x = 160
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -632,7 +631,7 @@ func _card(r: Array, st: String) -> Panel:
 
 func _desc(r: Array, st: String, is_shop: bool) -> String:
 	var cost := ("$%d" if is_shop else "%d PW") % r[2]
-	var why: String = {"owned": "Posiadane." if not (r[0] in Game.pending or r[0] in Game.parcels) else "W drodze – kurier dostarczy przy zmianie pory dnia.",
+	var why: String = {"owned": "Paczka czeka w pokoju." if r[0] in Game.parcels else "Posiadane.",
 		"ok": "Kliknij KUP, aby zamówić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
 		"tier": "Wymaga %s." % ("3 umiejętności z 1. rzędu" if r[3] == 2 else "4 umiejętności z 2. rzędu")}.get(st, "")
 	return "%s  [%s]  %s\n%s" % [r[1], cost, why, r[6]]
@@ -788,11 +787,11 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 # ---------------------------------------------------------------- POMOC.TXT (konsola)
 func _pomoc() -> void:
 	_bg(Color("1f4a34"))
-	for i in 2:  # samouczki do ponownego obejrzenia
-		var id: String = ["tel", "pc"][i]
-		var b := _button("SAMOUCZEK: " + ["TELESKOP", "KOMPUTER"][i], func(): Game.tutorial(self, id))
-		b.position = Vector2(10 + i * 216, 6)
-		b.size = Vector2(206, 24)
+	for i in 3:  # samouczki do ponownego obejrzenia
+		var id: String = ["tel", "pc", "shop"][i]
+		var b := _button("SAMOUCZEK: " + ["TELESKOP", "KOMPUTER", "SKLEP"][i], func(): Game.tutorial(self, id))
+		b.position = Vector2(10 + i * 208, 6)
+		b.size = Vector2(200, 24)
 		body.add_child(b)
 	var v := _scroll(body, Rect2(10, 38, 624, 280))
 	var l := _label(v, "AstroOS: Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))

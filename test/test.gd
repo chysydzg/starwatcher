@@ -18,7 +18,8 @@ func _ready() -> void:
 		tut[0]._next.pressed.emit()
 	await get_tree().process_frame
 	assert(not get_tree().paused and Game.tips.has("tut_tel"), "samouczek zamknięty OK")
-	Game.tips.tut_pc = true  # samouczek komputera oglądają zrzuty
+	Game.tips.tut_pc = true  # samouczki komputera i sklepu oglądają zrzuty
+	Game.tips.tut_shop = true
 	var tel = w.viewport
 	assert(tel != null and tel.is_telescope, "telescope opened")
 	assert(tel.steer() < 3.0 and tel.hum != null, "bez ulepszeń celownik chodzi ciężko, wykrywacz buczy")
@@ -75,6 +76,12 @@ func _ready() -> void:
 	await get_tree().process_frame
 	assert(not is_instance_valid(next), "second click starts the day")
 	w.busy = false
+	w.dusk_o.queue_free()
+	w._interact("drzwi")
+	var no: Array = w.top.find_children("*", "Button", true, false).filter(func(x): return x.text == "NIE")
+	assert(no.size() == 1 and w.busy, "drzwi za dnia: pytanie o porę dnia")
+	no[0].pressed.emit()
+	assert(not w.busy, "NIE zamyka pytanie")
 	w._interact("komputer")
 	for i in 5: await get_tree().process_frame
 	var os = w.viewport
@@ -97,10 +104,10 @@ func _ready() -> void:
 	for r in Game.SHOP:
 		if Game.can_buy_shop(r) == "ok":
 			Game.buy_shop(r)
-	print("science: ", Game.science.keys(), " pending: ", Game.pending)
+	print("science: ", Game.science.keys(), " parcels: ", Game.parcels)
+	assert(not Game.parcels.is_empty(), "zakup od razu jako paczka w pokoju")
 	os.close()
 	Game.start_night()
-	print("parcels after nightfall: ", Game.parcels, " night len ", Game.night_length())
 	Game.unpack_all()
 	Game.save_game()
 	var before := JSON.stringify([Game.day, Game.money, Game.pw, Game.journal.size(), Game.science.size(), Game.shop.size()])

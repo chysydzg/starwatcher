@@ -15,7 +15,7 @@ const SEASON_LOOPS := ["season_spring", "season_summer", "season_autumn", "seaso
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
 const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96, 88, 100), "drzwi": Rect2(518, 104, 46, 18),
 	"szafa": Rect2(568, 104, 62, 24), "plakat": Rect2(248, 104, 32, 18), "model": Rect2(132, 104, 34, 18),
-	"paczka": Rect2(488, 126, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24)}
+	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24)}
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -40,7 +40,6 @@ var ui: CanvasLayer
 var top: CanvasLayer
 var crt: ColorRect
 var fade: ColorRect
-var daynight: Button
 var viewport: Control = null
 var face := 0
 var flip := false
@@ -92,19 +91,6 @@ func _ready() -> void:
 	hud = Node2D.new()
 	hud.draw.connect(_draw_hud)
 	hud_layer.add_child(hud)
-	daynight = Button.new()
-	daynight.flat = true  # rozpoczęcie nocy: metalowy przycisk z Księżycem w lewym dolnym rogu
-	daynight.position = Vector2(4, 320)
-	daynight.custom_minimum_size = Vector2(36, 36)
-	for st in ["normal", "hover", "pressed", "focus", "hover_pressed"]:
-		daynight.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	daynight.draw.connect(func():
-		var down := daynight.is_hovered() or daynight.button_pressed  # najechanie = wciśnięty klawisz
-		var cap := _key(daynight, Rect2(Vector2.ZERO, daynight.size), down)
-		daynight.draw_texture(Game.tex("os/ui_moon"), (cap.get_center() - Vector2(10, 10)).floor()))
-	daynight.focus_mode = Control.FOCUS_NONE
-	daynight.pressed.connect(_toggle_phase)
-	hud_layer.add_child(daynight)
 	top = _layer(20)
 	fade = ColorRect.new()
 	fade.color = Color("1a1426")
@@ -184,7 +170,7 @@ func _build_room() -> void:
 	props.radio = _sprite("radio", Vector2(588, 285) - props.room_box.position, props.room_box)
 	props.parcel = Sprite2D.new()
 	props.parcel.texture = Game.tex("parcel")
-	props.parcel.position = Vector2(489, 136)
+	props.parcel.position = Vector2(292, 244)  # na środku pokoju, na dywanie
 	props.parcel.offset = Vector2(0, -24)
 	props.parcel.centered = false
 	room_sort.add_child(props.parcel)
@@ -298,11 +284,43 @@ func _apply_phase(instant := false) -> void:
 	_refresh()
 
 
+## drzwi balkonu za dnia: zmierzch, a po nim od razu na balkon
 func _toggle_phase() -> void:
 	if Game.night or busy or viewport:
 		return
 	busy = true
-	_sky_anim(false, _start_night)
+	_sky_anim(false, func(): _start_night(); _go("balcony"))
+
+
+## okienko z pytaniem Tak/Nie (kursor widać, bo busy)
+func _ask(q: String, yes: Callable) -> void:
+	busy = true
+	var p := _panel(Vector2(260, 92))
+	var l := Label.new()
+	l.text = q
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(260, 20)
+	l.position = Vector2(0, 16)
+	p.add_child(l)
+	var close := func(): p.get_parent().queue_free(); busy = false
+	for i in 2:
+		var b := Button.new()
+		b.text = ["TAK", "NIE"][i]
+		b.position = Vector2(30 + i * 110, 50)
+		b.custom_minimum_size = Vector2(90, 26)
+		b.pressed.connect(func():
+			close.call()
+			if i == 0:
+				yes.call())
+		p.add_child(b)
+		if i == 0:
+			b.grab_focus.call_deferred()
+		else:
+			b.shortcut = Shortcut.new()  # ESC = NIE
+			var ev := InputEventAction.new()
+			ev.action = "back"
+			ev.pressed = true
+			b.shortcut.events = [ev]
 
 
 ## zmierzch (dawn = false: Słońce zachodzi, wschodzi Księżyc) albo świt (odwrotnie); potem KONTYNUUJ → then
@@ -479,7 +497,6 @@ func _process(dt: float) -> void:
 	if viewport == null and not busy:
 		_move()
 	_animate(dt)
-	daynight.visible = not Game.night and viewport == null and not busy
 	glow.queue_redraw()
 	pc_light.energy = (1.1 if Game.night else 0.45) * (0.86 + 0.08 * sin(t * 2.1) + 0.04 * sin(t * 13.0) + (0.12 if fmod(t, 7.0) < 2.5 else 0.0))
 	hud.queue_redraw()
@@ -554,11 +571,6 @@ func _unhandled_input(e: InputEvent) -> void:
 		return
 	if e.is_action_pressed("back") or e.is_action_pressed("pause"):
 		_pause()
-	elif e.is_action_pressed("daynight"):
-		if Game.night:
-			_toast("Noc trwa. Do łóżka trzeba dojść samemu.", "info")
-		else:
-			_toggle_phase()
 	elif e.is_action_pressed("interact"):
 		_interact(_nearest())
 
@@ -581,7 +593,7 @@ func _interact(k: String) -> void:
 			if Game.night:
 				_go("balcony")
 			else:
-				_say("Za dnia na balkonie nic nie zobaczę. Wrócę w nocy.")
+				_ask("Czy zmienić porę dnia?", _toggle_phase)
 		"wroc":
 			_go("room")
 		"lozko":
@@ -626,7 +638,12 @@ func _say(s: String) -> void:
 func _open(v: Control) -> void:
 	viewport = v
 	ui.add_child(v)
-	v.closed.connect(func(): viewport = null; _refresh())
+	v.closed.connect(func():
+		viewport = null
+		_refresh()
+		if Game.night and not v.get("is_telescope") and not Game.tips.has("hint_bed"):
+			Game.tips.hint_bed = true
+			_tip("Aby zakończyć dzień, skorzystaj z łóżka."))
 	if v.has_signal("discovered"):
 		v.discovered.connect(func(): happy_t = 1.6; idle_t = 0.0)
 	if v.has_signal("stage_complete"):
@@ -739,7 +756,8 @@ func _sleep() -> void:
 			face = 0
 			_enter("room", true)
 			tired_told = false
-			_toast("Nowy dzień! " + Game.calendar(), "info")))
+			_toast("Nowy dzień! " + Game.calendar(), "info")
+			Game.tutorial_once(self, "shop")))
 
 
 func _panel(sz: Vector2) -> Panel:

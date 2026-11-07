@@ -155,6 +155,16 @@ def step(r, i):  # króliczek na drewnianej podłodze: miękka łapka (futro tł
     return dsp.room(y, r, rt60=0.2, wet=0.08)
 
 
+def door_knock(r):  # kurier puka do drzwi: trzy stuknięcia knykciem w drewniane drzwi (ciemniej niż klocek, z ramą pod spodem)
+    from earshot.forge.recipes import knock
+    p = dict(knock.FAMILY['knock'][0])
+    p.update(f1=230.0, body=-4.0, body_f=90.0, body_ms=18.0, room=0.25, rt=0.35)
+    y = np.zeros((dsp.n_of(0.8), 2))
+    for i, (t, g) in enumerate([(0.0, 1.0), (0.17, 0.8), (0.34, 0.9)]):
+        dsp.place(y, knock.render(p, dsp.rng(10 + i)) * g, t)
+    return y
+
+
 def scan_hum(seconds=2.0):  # wykrywacz w okularze: miękkie buczenie pulsujące 3 razy/s (pitch_scale w grze przyspiesza puls)
     t = dsp.t_of(dsp.n_of(seconds))
     tone = np.sin(2 * np.pi * 140 * t) + 0.35 * np.sin(2 * np.pi * 280 * t) + 0.08 * np.sin(2 * np.pi * 420 * t)
@@ -300,6 +310,7 @@ def main():
         save(f'step{i}', step(r, i), -10)
     save('scan_hum', scan_hum(), -8, loop=True)
     save('detect', detect(r), -6)
+    save('knock', door_knock(r), -4)
     save('dawn', dsp.stack([(chord(['C6', 'E6', 'G6', 'C7'], step=0.13), 0, 0), (b('pro_shimmer/m1'), 0.3, -12)], peak_db=-1))
     save('dusk', dsp.stack([(chord(['G6', 'E6', 'C6', 'G5'], 'mallet/marimba', step=0.16), 0, 0), (b('reverse_swell/dark'), 0.0, -14)], peak_db=-1))
     save('floppy', floppy(r), -8)
