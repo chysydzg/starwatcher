@@ -5,7 +5,17 @@
   pokazuje się **nad jej głową, bez ramki i bez paddingu** – sam tekst z obrysem 1 px (`world.gd: _say()`).
   Nigdy jako powiadomienie ani okienko.
 - Powiadomienia (paczki, zakupy, nowy dzień): **na środku ekranu, jedno pod drugim, bez ramek** (`_toast()`).
-- Komunikaty w okularze teleskopu: na środku, bez ramki; tylko podpowiedzi samouczka mają ramkę na dole.
+- Komunikaty w okularze teleskopu: na środku, bez ramki.
+
+## Samouczki (zawsze w ten sposób)
+- Okienko na kilka stron (`game/tutorial.gd`, `Game.tutorial_once`): na stronie jak najmniej tekstu + obraz albo
+  nagranie z gry (`test/rec_tut.gd` → `game/art/tut/*.png`, klatki 320x180), na ostatniej stronie OK. Gra w pauzie.
+- Pokazuje się raz (`Game.tips`), potem do obejrzenia w POMOC.TXT na komputerze.
+- Teksty krótkie, bez półpauz/myślników (–, —), przyciski zgodne z wejściem: `{confirm}` itp. (mysz albo pad).
+- Bez przegadanych opisów: podpisy i komunikaty możliwie krótkie.
+
+## Praca przy limicie użycia
+- Gdy zbliża się limit użycia: zapisać pracę, commit + push, i dokończyć następnego dnia.
 
 ## Czcionki (3 kroje, zawsze w rozmiarach z siatką 1:1 – inaczej kreski są nierówne)
 - UI: Pixel Operator (CC0) z dorysowanymi polskimi znakami (`tools/fonts/pl.py`) – 16 px (`Game.FS`).

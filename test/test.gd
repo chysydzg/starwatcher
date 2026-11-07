@@ -12,6 +12,13 @@ func _ready() -> void:
 	assert(Game._loops["music/night"].playing and Game._loops["music/night"].stream.loop, "night loop on balcony")
 	w._interact("teleskop")
 	for i in 20: await get_tree().process_frame
+	var tut: Array = w.get_children().filter(func(n): return n.get("id") == "tel")
+	assert(tut.size() == 1 and get_tree().paused, "samouczek teleskopu przy pierwszym wejściu, gra w pauzie")
+	for i in 3:
+		tut[0]._next.pressed.emit()
+	await get_tree().process_frame
+	assert(not get_tree().paused and Game.tips.has("tut_tel"), "samouczek zamknięty OK")
+	Game.tips.tut_pc = true  # samouczek komputera oglądają zrzuty
 	var tel = w.viewport
 	assert(tel != null and tel.is_telescope, "telescope opened")
 	assert(tel.steer() < 3.0 and tel.hum != null, "bez ulepszeń celownik chodzi ciężko, wykrywacz buczy")

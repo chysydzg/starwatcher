@@ -4,6 +4,14 @@ func shot(label: String) -> void:
 	await get_tree().create_timer(0.7).timeout
 	get_viewport().get_texture().get_image().save_png("res://debug_shots/sw_%s.png" % label)
 
+func tut_pages(w: Node, id: String) -> void:
+	for n in w.get_children():
+		if n.get("id") == id:
+			for i in n.TUTORIALS[id].pages.size():
+				await shot("tut_%s_%d" % [id, i + 1])
+				n._next.pressed.emit()
+
+
 func _ready() -> void:
 	Game.use_test_save()
 	var m = load("res://game/menu.tscn").instantiate()
@@ -20,6 +28,7 @@ func _ready() -> void:
 	w.body.position = Vector2(250, 330)  # za teleskopem: sortowanie głębi
 	await shot("balkon_glebia")
 	w._interact("teleskop")
+	await tut_pages(w, "tel")
 	await get_tree().create_timer(0.5).timeout
 	var tel = w.viewport
 	tel.aim = tel.C + Vector2(-60, 40)
@@ -46,6 +55,7 @@ func _ready() -> void:
 	tel.close()
 	await get_tree().create_timer(0.5).timeout
 	w._enter("room", true)
+	await tut_pages(w, "pc")
 	w.body.position = Vector2(372, 128)  # za krzesłem
 	await shot("pokoj_noc")
 	Game.journal.append({"uid": 99, "id": "kasjopeja", "name": "Kasjopeja", "cat": "const", "quality": 92, "base": 25.0, "day": 1, "sold": false})
@@ -69,8 +79,8 @@ func _ready() -> void:
 	await shot("os_pulpit")
 	for id in ["dziennik", "gielda", "sklep", "badania", "pomoc"]:
 		if id == "badania":  # jak na zrzucie autora: dwa węzły kupione, szara gałąź biegnie tym samym odcinkiem
-			Game.science.czyste1 = true
-			Game.science.czyste2 = true
+			Game.science.stab1 = true
+			Game.science.stab2 = true
 		w.viewport._launch(id)
 		if id == "gielda" and not Game.stored().is_empty():  # podgląd okazyjnej oferty
 			Game.offer = {"uid": Game.stored()[0].uid, "who": "Instytut Astronomii w Gwiaździnie", "price": 45}

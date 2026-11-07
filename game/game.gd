@@ -122,8 +122,8 @@ func _build_sky() -> void:
 
 # ---------------------------------------------------------------- drzewko naukowe PW (GDD 11)
 const SCIENCE := [
-	["czyste1", "Czyste Soczewki I", 10, 1, 0, "", "Wyostrzanie +15%."],
-	["czyste2", "Czyste Soczewki II", 25, 1, 0, "czyste1", "Wyostrzanie +25% (łącznie +40%)."],
+	["stab1", "Stabilizacja Obrazu I", 10, 1, 0, "", "Znacznik ostrości buja się o 25% słabiej."],
+	["stab2", "Stabilizacja Obrazu II", 25, 1, 0, "stab1", "Bujanie słabsze o kolejne 25%."],
 	["kursor1", "Precyzyjny Kursor I", 40, 1, 0, "", "Przyciąganie celownika do gwiazd +20%."],
 	["nawyk1", "Nawyk Notowania I", 15, 1, 1, "", "+1 PW za każdy zaznaczony punkt."],
 	["nawyk2", "Nawyk Notowania II", 35, 1, 1, "nawyk1", "+2 PW za punkt (łącznie +3)."],
@@ -132,7 +132,8 @@ const SCIENCE := [
 	["meteory", "Szybkie Spadające Gwiazdy", 60, 1, 2, "podstawowe", "Na niebie przelatują meteory: +25 PW."],
 	["linie", "Linie Kartograficzne", 100, 2, 0, "", "Podpowiedź zarysu konstelacji."],
 	["mikro", "Pokrętło Mikro-Ruchów", 180, 2, 0, "linie", "Usuwa drgania celownika."],
-	["auto1", "Autofokus DIY I", 350, 2, 0, "", "Wyostrza sam po 1 s zatrzymania celownika."],
+	["czyste1", "Czyste Soczewki I", 120, 2, 0, "", "Zielone pole ostrości szersze o 30%."],
+	["czyste2", "Czyste Soczewki II", 220, 2, 0, "czyste1", "Zielone pole szersze o kolejne 30%."],
 	["pamiec1", "Pamięć Fotograficzna I", 120, 2, 1, "", "+10% PW ze wszystkich źródeł."],
 	["pamiec2", "Pamięć Fotograficzna II", 250, 2, 1, "pamiec1", "Kolejne +15% PW."],
 	["instytuty", "Oferty Instytutów", 200, 2, 1, "", "Każdego ranka 30% szans, że instytut zechce kupić jedno odkrycie za 150% ceny."],
@@ -142,7 +143,8 @@ const SCIENCE := [
 	["planety", "Sąsiednie Planety", 450, 2, 2, "obloki", "Mars, Wenus, Jowisz – co noc gdzie indziej."],
 	["samoistne", "Samoistne Łączenie Gwiazd", 600, 3, 0, "", "Jedno kliknięcie łączy całą figurę."],
 	["szukacz", "Automatyczne Wyszukiwanie", 450, 3, 0, "", "Q/E przeskakuje między obiektami na niebie."],
-	["auto2", "Autofokus DIY II", 850, 3, 0, "samoistne", "Autofokus natychmiast."],
+	["auto1", "Autofokus DIY I", 500, 3, 0, "", "Wyostrza sam po 1 s bez kręcenia."],
+	["auto2", "Autofokus DIY II", 850, 3, 0, "auto1", "Autofokus natychmiast."],
 	["wzor", "Wzór Empiryczny", 700, 3, 1, "", "+1 PW za każdy zarobiony $."],
 	["notatki", "Udostępnianie Notatek", 1000, 3, 1, "", "+50% wszystkich PW."],
 	["kolekcjonerzy", "Oferty Kolekcjonerów", 600, 3, 1, "instytuty", "Każdego ranka 20% szans na kolekcjonera, który płaci 250% ceny za jedno odkrycie."],
@@ -853,6 +855,17 @@ func apply_settings() -> void:
 	var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))
+
+
+## samouczek (game/tutorial.gd) pokazany raz; potem tylko z POMOC.TXT
+func tutorial_once(host: Node, id: String) -> void:
+	if not tips.has("tut_" + id):
+		tips["tut_" + id] = true
+		tutorial(host, id)
+
+
+func tutorial(host: Node, id: String) -> void:
+	host.add_child(preload("res://game/tutorial.gd").new().setup(id))
 
 
 ## kursor w stylu AstroOS, skalowany jak gra (całkowicie); w samej grze świat go chowa

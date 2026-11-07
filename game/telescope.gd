@@ -15,7 +15,7 @@ const FOCUS_STEP := 0.02         # jeden ząbek kółka
 # stary wariant: soczewka z opóźnieniem i pływający ostry punkt (do powrotu, jeśli pasek się nie sprawdzi)
 # const FOCUS_STEP := 0.05
 # const FOCUS_LAG := 3.0
-const FOCUS_SWAY := 0.045        # bujanie znacznika na pasku ostrości (czyste soczewki je tłumią)
+const FOCUS_SWAY := 0.045        # bujanie znacznika na pasku ostrości (Stabilizacja Obrazu je tłumi)
 const BAR_K := 200.0             # px paska na jednostkę ostrości
 const SHARP := 96                # od tej jakości soczewka „klika”
 
@@ -91,15 +91,6 @@ func _ready() -> void:
 
 func _meteor_gap() -> float:
 	return _rng.randf_range(Game.METEOR_INTERVAL.x, Game.METEOR_INTERVAL.y) / (1.25 if Game.has("plakat") else 1.0)
-
-
-func tut() -> int:
-	return int(Game.tips.get("tut", 0))
-
-
-func tut_next(step: int) -> void:
-	if tut() == step:
-		Game.tips.tut = step + 1
 
 
 # ---------------------------------------------------------------- generowanie nieba i okularu
@@ -273,7 +264,6 @@ func _process(dt: float) -> void:
 		var h := hover_target()
 		if not h.is_empty() and hovered != h:
 			Game.sfx("detect", 1.0, -4.0)  # pyknięcie: coś wykryte
-			tut_next(0)
 		hovered = h
 	for c in clouds:
 		c[0].x = fposmod(c[0].x + 6.0 * dt, SKY_SIZE.x)
@@ -341,16 +331,21 @@ func _process(dt: float) -> void:
 ## znacznik na pasku: ustawienie pierścienia minus ostry punkt, plus bujanie powietrza
 func focus_offset() -> float:
 	var ph: float = target.get("phase", 0.0)
-	return f - target.get("sweet", 0.5) + FOCUS_SWAY / _lens() * (0.7 * sin(t * 2.1 + ph) + 0.3 * sin(t * 3.7 + ph * 2.0))
+	return f - target.get("sweet", 0.5) + FOCUS_SWAY * _calm() * (0.7 * sin(t * 2.1 + ph) + 0.3 * sin(t * 3.7 + ph * 2.0))
 
 
-## połowa zielonego pola (czyste soczewki je poszerzają)
+## połowa zielonego pola (Czyste Soczewki i radio je poszerzają)
 func green() -> float:
-	return target.get("width", 0.02) * 1.5 * _lens()
+	return target.get("width", 0.02) * 1.5 * (1.0 + (0.3 if Game.has("czyste1") else 0.0) + (0.3 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0)
 
 
-func _lens() -> float:
-	return (1.0 + (0.15 if Game.has("czyste1") else 0.0) + (0.25 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0)
+## siła bujania znacznika (Stabilizacja Obrazu I i II)
+func _calm() -> float:
+	return 1.0 - (0.25 if Game.has("stab1") else 0.0) - (0.25 if Game.has("stab2") else 0.0)
+
+
+# func _lens() -> float:  # stary wariant
+# 	return (1.0 + (0.15 if Game.has("czyste1") else 0.0) + (0.25 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0)
 
 
 func _gui_input(e: InputEvent) -> void:
@@ -424,7 +419,6 @@ func _lock_or_confirm() -> void:
 			sharp_t = 0.0
 			state = S.FOCUS
 			_notch = int(f * 50.0)  # pierwszy klik zębatki dopiero, gdy gracz pokręci
-			tut_next(1)
 		S.FOCUS:
 			if quality() < 20:
 				_center("Za rozmyte")
@@ -437,7 +431,6 @@ func _lock_or_confirm() -> void:
 func _after_focus() -> void:
 	Game.sfx("lens_click")  # klik przeskakującej soczewki i ciepły „ding”
 	Game.ding(1.0)
-	tut_next(2)
 	if target.info.has("pts"):
 		lit.clear()
 		state = S.CONNECT
@@ -478,12 +471,9 @@ func _finish(replace := false) -> void:
 		return
 	target.done = true
 	Game.sfx("floppy")  # zapis odkrycia na dyskietkę
-	tut_next(3)
-	if pts > 0:
-		Game.tips.tut_connect = true
 	discovered.emit()
 	var info: Dictionary = target.info
-	_show(("Znak zodiaku: " if info.cat == "zodiac" else "Odkryto: ") + info.name, "jakość %d%%   +%d PW   → Dziennik" % [q, gained])
+	_show(("Znak zodiaku: " if info.cat == "zodiac" else "Odkryto: ") + info.name, "jakość %d%%   +%d PW" % [q, gained])
 	target = {}
 
 
@@ -618,14 +608,13 @@ func _draw() -> void:
 		draw_arc(b.p, 4 + b.t * 40, 0, TAU, 24, Color(1, 0.85, 0.4, 1.0 - b.t * 2), 1.0)
 	if Game.rain:  # deszcz na soczewce: ciemniejszy obraz i spływające krople
 		draw_circle(C, R, Color(0.08, 0.1, 0.22, 0.3))
-		for i in 40:
-			var dp := C + Vector2.from_angle(i * 2.399) * R * sqrt(fmod(i * 0.618, 1.0)) * 0.95
-			dp.y += fposmod(t * (4.0 + i % 5) + i * 13.0, 50.0) - 25.0
-			dp = dp.floor()
-			if dp.distance_to(C) < R - 4:
-				draw_circle(dp, 2.0 + i % 3, Color(0.7, 0.8, 1.0, 0.2))
-				_px(dp.x - 1, dp.y - 1, 1, 1, Color(1, 1, 1, 0.55))
-				_px(dp.x, dp.y - 6, 1, 4, Color(0.7, 0.8, 1.0, 0.15))
+		for i in 90:  # smugi deszczu przez całą soczewkę, lekko ukośne
+			var x := C.x - R + fposmod(i * 53.7, R * 2.0)
+			var y := C.y - R - 20.0 + fposmod(t * (170.0 + i % 7 * 25.0) + i * 41.0, R * 2.0 + 40.0)
+			var ln := 8.0 + i % 4 * 3.0
+			var top := Vector2(x, y).floor()
+			if top.distance_to(C) < R - 4 and (top + Vector2(-2, ln)).distance_to(C) < R - 4:
+				draw_line(top, top + Vector2(-2, ln), Color(0.72, 0.8, 1.0, 0.22 + i % 3 * 0.06), 1.0)
 	for tg in targets:  # delikatna poświata przy krawędzi soczewki w stronę nieodkrytych obiektów
 		var ts := to_screen(tg.pos)
 		if not tg.done and ts.distance_to(C) > R - 12:
@@ -785,30 +774,12 @@ func _draw_panels() -> void:
 		_px(230, 268, 180, 10, Color("2a2a40"))
 		_px(320 - g, 268, g * 2, 10, Color("6affa0") if q >= SHARP else Color("2f8a5a"))
 		_px(clampf(roundf(320 + focus_offset() * BAR_K), 230, 409) - 1, 264, 3, 18, Color("f4ecdc"))  # znacznik
-	# tutorial i komunikaty na środku
-	var msg := ""
-	match state:
-		S.SCAN:
-			if tut() == 0:
-				msg = "Najedź na świecący obiekt"
-			elif tut() == 1 and not hovered.is_empty():
-				msg = "Kliknij PPM, aby go namierzyć"
-		S.FOCUS:
-			if tut() <= 2:
-				msg = "Kółkiem do zielonego pola, potem kliknij"
-		S.CONNECT:
-			if not Game.tips.has("tut_connect"):
-				msg = "Zaznacz ciąg gwiazd – klikaj je po kolei"
+	# komunikaty na środku (samouczek: okienko Tutorial przy pierwszym wejściu)
 	if center_t > 0:  # komunikat na środku okularu, bez ramki (tekst z obrysem)
 		var x := roundf(320 - Game.font.get_string_size(center_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x / 2.0)
 		for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
 			draw_string(Game.font, Vector2(x, 186) + d, center_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.03, 0.02, 0.06, minf(center_t, 1.0)))
 		draw_string(Game.font, Vector2(x, 186), center_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(1, 0.95, 0.82, minf(center_t, 1.0)))
-	if msg != "":
-		var w := Game.font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
-		_px(320 - w / 2 - 8, 318, w + 16, 24, Color(0.05, 0.04, 0.1, 0.88))  # tutorial na dole okularu
-		_frame(Rect2(floorf(320 - w / 2 - 8), 318, w + 16, 24), Color("ffcf6b"))
-		_text(Vector2(320, 336), msg, Color("f4ecdc"), true)
 	if not result.is_empty():
 		var w := maxf(Game.font.get_string_size(result.a, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x, Game.font.get_string_size(result.b, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x) + 24
 		_px(320 - w / 2, 262, w, 46, Color(0.06, 0.05, 0.1, 0.95))

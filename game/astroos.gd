@@ -6,19 +6,19 @@ signal closed
 signal stage_complete
 
 const HELP := """NOC (balkon)
-• Teleskop: najedź celownikiem na świecący obiekt (zacznie drżeć) i kliknij PPM.
-• Kółkiem myszy kręć w przód i w tył – szukasz balansu. Obraz najpierw się wyostrza, potem znowu rozmywa. Gdy jest ostry, soczewka sama „kliknie”.
+• Teleskop: zbliż celownik do świecącego obiektu, a gdy zacznie drżeć, kliknij.
+• Ostrość: kółkiem ustaw bujający się znacznik w zielonym polu i kliknij.
 • Konstelacje: klikaj świecące gwiazdy po kolei, aż połączą się w figurę.
-• Odkryte obiekty mają znaczek. Zapis trafia na dysk – gdy się zapełni, kup dyskietki.
+• Odkrycia trafiają na dysk. Gdy się zapełni, kup dyskietki.
 • Noc kończy się, gdy pasek czasu dobiegnie końca. Do łóżka trzeba dojść samemu.
 
 DZIEŃ (komputer)
-• Giełda: wyślij raport z odkryciami (także w nocy) – Centrum Naukowe zapłaci rano. Ceny zależą od popytu dnia – patrz wykres.
+• Giełda: wyślij raport z odkryciami (także w nocy), Centrum Naukowe zapłaci rano. Ceny zależą od popytu dnia.
 • Retro-Tech ($): sprzęt i komfort. Zakupy przychodzą kurierem.
-• Drzewko Badań (PW): nowe obiekty na niebie i ułatwienia.
+• Badania (PW): nowe obiekty na niebie i ułatwienia.
 • Esc zamyka okno, drugie Esc wyłącza komputer.
 
-CEL ETAPU: Manifest Naukowy (5000 PW) → Certyfikat Terenu ($5000) → min. 1 planeta → złota gwiazda INICJUJ ETAP 2 na pulpicie."""
+CEL ETAPU: Manifest Naukowy (5000 PW), Certyfikat Terenu ($5000), min. 1 planeta, potem złota gwiazda INICJUJ ETAP 2 na pulpicie."""
 
 const APPS := [["dziennik", "Dziennik"], ["gielda", "Giełda"], ["sklep", "Retro-Tech"], ["badania", "Badania"], ["pomoc", "POMOC.TXT"]]
 const TITLES := {"dziennik": "Dziennik Odkryć", "gielda": "Giełda i Centrum Naukowe", "sklep": "Retro-Tech & Astro Store",
@@ -634,7 +634,7 @@ func _desc(r: Array, st: String, is_shop: bool) -> String:
 	var cost := ("$%d" if is_shop else "%d PW") % r[2]
 	var why: String = {"owned": "Posiadane." if not (r[0] in Game.pending or r[0] in Game.parcels) else "W drodze – kurier dostarczy przy zmianie pory dnia.",
 		"ok": "Kliknij KUP, aby zamówić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
-		"tier": "Tier %d odblokuje się po %s." % [r[3], "3 węzłach z Tier 1" if r[3] == 2 else "4 węzłach z Tier 2"]}.get(st, "")
+		"tier": "Wymaga %s." % ("3 umiejętności z 1. rzędu" if r[3] == 2 else "4 umiejętności z 2. rzędu")}.get(st, "")
 	return "%s  [%s]  %s\n%s" % [r[1], cost, why, r[6]]
 
 
@@ -657,7 +657,7 @@ func _badania() -> void:
 	for k in groups:
 		var g: Array = groups[k]
 		for i in g.size():
-			nodes.append([Vector2(110 + k.x * 210 + (i - (g.size() - 1) / 2.0) * 58, 30 + k.y * 78), g[i]])
+			nodes.append([Vector2(110 + k.x * 210 + (i - (g.size() - 1) / 2.0) * (58 if g.size() < 4 else 50), 30 + k.y * 78), g[i]])
 
 
 func _node_at(p: Vector2) -> int:
@@ -779,7 +779,7 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 	n.draw_rect(Rect2(p, Vector2(w, 168)), Color("243a6a"))
 	n.draw_rect(Rect2(p, Vector2(w, 44)), Color("2f4f8f"))
 	n.draw_multiline_string(Game.font_os, p + Vector2(6, 16), r[1], HORIZONTAL_ALIGNMENT_CENTER, w - 12, Game.OS_FS, 2, Color.WHITE)
-	n.draw_string(Game.font_os, p + Vector2(0, 60), "LVL %d/1 · Tier %d" % [int(st == "owned"), r[3]], HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("a8b8d8"))
+	n.draw_string(Game.font_os, p + Vector2(0, 60), "LVL %d/1" % int(st == "owned"), HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("a8b8d8"))
 	n.draw_multiline_string(Game.font_os, p + Vector2(8, 80), body_text, HORIZONTAL_ALIGNMENT_CENTER, w - 16, Game.OS_FS, 3, Color.WHITE)
 	n.draw_string(Game.font_os, p + Vector2(0, 142), "%d PW" % r[2], HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("ffcf4a") if st != "cost" else Color("ff6a5a"))
 	n.draw_string(Game.font_os, p + Vector2(0, 162), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
@@ -788,8 +788,14 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 # ---------------------------------------------------------------- POMOC.TXT (konsola)
 func _pomoc() -> void:
 	_bg(Color("1f4a34"))
-	var v := _scroll(body, Rect2(10, 6, 624, 312))
-	var l := _label(v, "AstroOS – Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))
+	for i in 2:  # samouczki do ponownego obejrzenia
+		var id: String = ["tel", "pc"][i]
+		var b := _button("SAMOUCZEK: " + ["TELESKOP", "KOMPUTER"][i], func(): Game.tutorial(self, id))
+		b.position = Vector2(10 + i * 216, 6)
+		b.size = Vector2(206, 24)
+		body.add_child(b)
+	var v := _scroll(body, Rect2(10, 38, 624, 280))
+	var l := _label(v, "AstroOS: Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(604, 0)
 

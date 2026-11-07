@@ -378,6 +378,11 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 			for r in 14:
 				var w := 6.0 + 6.0 * absf(sin(now * 3.0 + r * 1.3)) - r * 0.2
 				o.draw_rect(Rect2(floorf(body_pos[0].x - w / 2), 226 + r * 6, floorf(w), 1), Color(body_pos[1], 0.8 - r * 0.045))
+	if Game.rain if dawn else Game.rain_next:  # deszcz tej nocy (zmierzch) albo tej, która minęła (świt)
+		o.draw_rect(Rect2(0, 0, 640, 360), Color(0.12, 0.14, 0.22, 0.3))
+		for i in 140:
+			var p := Vector2(fposmod(i * 53.3 - now * 40.0, 700.0) - 30.0, fposmod(now * (260.0 + i % 5 * 30.0) + i * 37.0, 400.0) - 20.0).floor()
+			o.draw_line(p, p + Vector2(-3, 11), Color(0.75, 0.82, 1.0, 0.25 + i % 3 * 0.08), 1.0)
 	if u > 0.75:
 		var a := (u - 0.75) * 4.0
 		_outlined(o, Game.font_title, 16, 100, "Nowy dzień" if dawn else "Zapada noc", a)
@@ -424,6 +429,8 @@ func _enter(where: String, instant := false) -> void:
 	elif body.position == Vector2.ZERO:
 		body.position = Vector2(300, 220)
 	_apply_phase(true)
+	if where == "room" and Game.tips.has("tut_tel"):  # po pierwszej nocy przy teleskopie: jak sprzedawać i się rozwijać
+		Game.tutorial_once(self, "pc")
 	Game.loop("music/day", MUSIC_DB if where == "room" else -INF, "Music")  # pokój: dzień, balkon: noc
 	Game.loop("music/night", MUSIC_DB if where == "balcony" else -INF, "Music")
 
@@ -567,6 +574,7 @@ func _interact(k: String) -> void:
 				face = 1
 				flip = false
 				_open(preload("res://game/telescope.gd").new())
+				Game.tutorial_once(self, "tel")
 		"komputer":
 			_open(preload("res://game/astroos.gd").new())
 		"drzwi":
