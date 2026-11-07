@@ -9,6 +9,8 @@ func _ready() -> void:
 	var m = load("res://game/menu.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(m)
 	await shot("menu")
+	m._settings()
+	await shot("menu_ustawienia")
 	m.queue_free()
 	Game.new_game()
 	var w = load("res://game/world.tscn").instantiate()
@@ -32,6 +34,7 @@ func _ready() -> void:
 		tel.target = tg
 		tel.state = tel.S.FOCUS
 	tel.f = tg.sweet + 0.14
+	tel.f_goal = tel.f
 	await shot("okular_fokus")
 	tel.f = tg.sweet
 	tel._after_focus()
@@ -48,10 +51,15 @@ func _ready() -> void:
 	await shot("pokoj_noc")
 	Game.journal.append({"uid": 99, "id": "kasjopeja", "name": "Kasjopeja", "cat": "const", "quality": 92, "base": 25.0, "day": 1, "sold": false})
 	Game.analysis.uids.append(99)  # raport poranny do podsumowania
+	Game.parcels = ["statyw"]  # nieodebrana paczka otwiera się przy śnie
 	w._sleep()
 	await get_tree().create_timer(2.5).timeout  # kwoty nabijają się
 	await shot("podsumowanie")
 	w.top.get_child(w.top.get_child_count() - 1).queue_free()
+	w._sky_anim(true, func(): pass)
+	await get_tree().create_timer(3.2).timeout
+	await shot("swit")
+	w.dusk_o.queue_free()
 	w.busy = false
 	w._enter("room", true)
 	w._apply_phase(true)
@@ -61,6 +69,9 @@ func _ready() -> void:
 	w.viewport._close_app()
 	await shot("os_pulpit")
 	for id in ["dziennik", "gielda", "sklep", "badania", "pomoc"]:
+		if id == "badania":  # jak na zrzucie autora: dwa węzły kupione, szara gałąź biegnie tym samym odcinkiem
+			Game.science.czyste1 = true
+			Game.science.czyste2 = true
 		w.viewport._launch(id)
 		if id == "gielda" and not Game.stored().is_empty():  # podgląd okazyjnej oferty
 			Game.offer = {"uid": Game.stored()[0].uid, "who": "Instytut Astronomii w Gwiaździnie", "price": 45}
@@ -68,6 +79,14 @@ func _ready() -> void:
 		if id == "badania":
 			w.viewport.hover = 4
 		await shot("os_" + id)
+		if id == "dziennik":
+			w.viewport.jpage = 2
+			w.viewport._rebuild()
+			await shot("os_dziennik_dzien1")
+		if id == "badania":
+			w.viewport.hover = -1
+			w.viewport.stage_hover = 1
+			await shot("os_badania_etap")
 	w.viewport.close()
 	await get_tree().create_timer(0.3).timeout
 	w._say("Kiedyś narysuję własną mapę nieba.")

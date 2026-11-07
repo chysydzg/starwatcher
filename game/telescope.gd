@@ -12,6 +12,7 @@ const R := 172.0
 const SKY_SIZE := Vector2(1200, 700)
 const STAR_SCALE := 3.0          # rozstaw gwiazd konstelacji na ekranie
 const FOCUS_STEP := 0.05         # jeden ząbek kółka (ostry zakres na starcie jest węższy niż dwa ząbki)
+const FOCUS_LAG := 3.0          # jak szybko soczewka nadąża za kółkiem (czyste soczewki przyspieszają)
 const SHARP := 96                # od tej jakości soczewka „klika”
 
 var is_telescope := true
@@ -25,6 +26,7 @@ var targets := []
 var target := {}
 var hovered := {}
 var f := 0.5
+var f_goal := 0.5          # dokąd kręci gracz; soczewka dochodzi tam z opóźnieniem (łatwo przekręcić)
 var idle_focus := 0.0
 var sharp_t := 0.0
 var lit := {}                    # zaznaczone gwiazdy aktualnej konstelacji
@@ -273,7 +275,7 @@ func _process(dt: float) -> void:
 		if tg.has("vel") and not tg.done:
 			tg.pos = (tg.pos + tg.vel * dt).clamp(Vector2(140, 140), SKY_SIZE - Vector2(140, 140))
 	var near := proximity() if state == S.SCAN and hovered.is_empty() else 0.0
-	hum.volume_db = lerpf(hum.volume_db, -50.0 + 38.0 * near if near > 0.02 else -60.0, minf(1.0, dt * 6.0))
+	hum.volume_db = lerpf(hum.volume_db, -42.0 + 38.0 * near if near > 0.02 else -60.0, minf(1.0, dt * 6.0))
 	hum.pitch_scale = 0.8 + 0.9 * near  # wyżej = szybsze pulsowanie
 	var speed := cam.distance_to(_prev_cam) / maxf(dt, 0.001) * zoom
 	_prev_cam = cam
@@ -284,17 +286,18 @@ func _process(dt: float) -> void:
 	if state == S.FOCUS:
 		var fin := Input.get_action_strength("focus_in") - Input.get_action_strength("focus_out")
 		if absf(fin) > 0.1:
-			f = clampf(f + fin * 0.5 * dt * _lens(), 0.0, 1.0)
+			f_goal = clampf(f_goal + fin * 0.5 * dt * _lens(), 0.0, 1.0)
 			idle_focus = 0.0
 		idle_focus += dt
 		if target.id == "comet":  # kometa ucieka: trzeba ją trzymać w celowniku
 			cam = cam.lerp(target.pos, dt * 0.6)
 			if (aim + wobble()).distance_to(to_screen(target.pos)) > 30:
-				f = clampf(f + 0.1 * dt * signf(f - target.sweet + 0.001), 0.0, 1.0)
+				f_goal = clampf(f_goal + 0.1 * dt * signf(f - target.sweet + 0.001), 0.0, 1.0)
 		else:
 			cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
 		if Game.has("auto2") or (Game.has("auto1") and idle_focus > 1.0):
-			f = move_toward(f, sweet_now(), dt * 0.9)
+			f_goal = move_toward(f_goal, sweet_now(), dt * 0.9)
+		f = lerpf(f, f_goal, 1.0 - exp(-FOCUS_LAG * _lens() * dt))
 		if quality() >= SHARP:
 			sharp_t += dt
 			if sharp_t > 0.35 and idle_focus > 0.3:  # ostro i gracz przestał kręcić → dalej
@@ -325,7 +328,7 @@ func _process(dt: float) -> void:
 
 ## „seeing”: powietrze faluje, ostry punkt lekko pływa – czyste soczewki to tłumią
 func sweet_now() -> float:
-	return target.get("sweet", 0.5) + 0.02 / (_lens() * _lens()) * sin(t * 1.25 + target.get("phase", 0.0))
+	return target.get("sweet", 0.5) + 0.035 / (_lens() * _lens()) * sin(t * 0.9 + target.get("phase", 0.0))
 
 
 func _lens() -> float:
@@ -346,7 +349,7 @@ func _gui_input(e: InputEvent) -> void:
 					_lock_or_confirm()
 			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 				if state == S.FOCUS:
-					f = clampf(f + (FOCUS_STEP if e.button_index == MOUSE_BUTTON_WHEEL_UP else -FOCUS_STEP), 0.0, 1.0)
+					f_goal = clampf(f_goal + (FOCUS_STEP if e.button_index == MOUSE_BUTTON_WHEEL_UP else -FOCUS_STEP), 0.0, 1.0)
 					idle_focus = 0.0
 		accept_event()
 
@@ -398,7 +401,8 @@ func _lock_or_confirm() -> void:
 			if tg.is_empty():
 				return
 			target = tg
-			f = clampf(tg.sweet + (0.3 if _rng.randf() < 0.5 else -0.3), 0.0, 1.0)
+			f = clampf(tg.sweet + _rng.randf_range(0.18, 0.38) * (1 if _rng.randf() < 0.5 else -1), 0.0, 1.0)  # nie wielokrotność ząbka
+			f_goal = f
 			idle_focus = 0.0
 			sharp_t = 0.0
 			state = S.FOCUS

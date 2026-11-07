@@ -44,6 +44,8 @@ var selected := {}
 var shop_cat := 0
 var tab_hover := -1        # karta programu pod kursorem na pasku okna
 var tabs_x := 0.0          # gdzie zaczynają się karty (zależy od długości tytułu)
+var jpage := 0             # strona Dziennika: 0 = pamięć (do wysłania), dalej dni od najnowszego
+var stage_hover := -1      # zakładka etapu pod kursorem (drzewko)
 var hover := -1            # węzeł drzewka pod kursorem
 var nodes := []            # [pozycja, wiersz SCIENCE] drzewka
 var t := 0.0
@@ -313,9 +315,20 @@ func _dziennik() -> void:
 			lines.draw_rect(Rect2(0, y, 640, 1), Color("b8c8e4"))
 		lines.draw_rect(Rect2(36, 0, 1, 322), Color("e88a8a")))
 	body.add_child(lines)
+	jpage = clampi(jpage, 0, Game.day)
+	var nav := [["<", -1, 580], [">", 1, 610]]  # < nowsza strona, > starsza
+	for k in nav:
+		var b := _button(k[0], func(): jpage += k[1]; Game.sfx("paper", 1.0, -8.0); _rebuild())
+		b.position = Vector2(k[2], 0)
+		b.size = Vector2(26, 20)
+		b.disabled = (jpage + k[1]) < 0 or (jpage + k[1]) > Game.day
+		body.add_child(b)
+	if jpage > 0:
+		_journal_day(Game.day + 1 - jpage)
+		return
 	var zod := Game.discovered.keys().filter(func(k): return Game.SKY.has(k) and Game.SKY[k].cat == "zodiac").size()
 	_label(body, "Pamięć %d/%d · Odkryte obiekty %d · Zodiak %d/12 · Sprzedane %d" % [Game.stored().size(), Game.storage_cap(),
-		Game.discovered.size(), zod, Game.journal.size() - Game.stored().size()], Vector2(44, 2), Color("2a3a8a"))
+		Game.discovered.size(), zod, Game.journal.filter(func(j): return j.sold).size()], Vector2(44, 2), Color("2a3a8a"))
 	_label(body, "%-30s%-15s%7s%8s%6s" % ["Obiekt", "Kategoria", "Jakość", "Wartość", "Dzień"], Vector2(44, 24), Color("8a3a3a"))
 	_info(Rect2(44, 268, 590, 50), Color("2a3a8a"))
 	var v := _scroll(body, Rect2(40, 44, 600, 220))
@@ -327,6 +340,43 @@ func _dziennik() -> void:
 		b.add_theme_stylebox_override("hover", _box(Color(1, 0.9, 0.4, 0.35), Color(0, 0, 0, 0)))
 		b.mouse_entered.connect(func(): info.text = _breakdown(e))
 		v.add_child(b)
+
+
+## strona jednego dnia: wszystko, co tej nocy trafiło do Dziennika, i podsumowanie dnia
+func _journal_day(d: int) -> void:
+	_label(body, "Dzień %d · %s%s" % [d, Game.day_name(d), "  (dziś)" if d == Game.day else ""], Vector2(44, 2), Color("2a3a8a"))
+	_label(body, "%-30s%-15s%7s  %s" % ["Obiekt", "Kategoria", "Jakość", "Status"], Vector2(44, 24), Color("8a3a3a"))
+	var v := _scroll(body, Rect2(44, 44, 596, 220))
+	var entries := Game.journal.filter(func(e): return int(e.day) == d)
+	if entries.is_empty():
+		_label(v, "Tej nocy nic nie zapisano.", Vector2.ZERO, Color("6a6a80"))
+	for e in entries:
+		var st := "w pamięci"
+		if e.sold:
+			st = "sprzedane $%d" % e.paid if e.has("paid") else "sprzedane"
+		elif e.get("lost", false):
+			st = "nadpisane"
+		elif Game.analysis.uids.has(e.uid):
+			st = "w raporcie"
+		_label(v, "%-30s%-15s%6d%%  %s" % [e.name.left(29), Game.CATS[e.cat].left(14), e.quality, st], Vector2.ZERO, INK)
+	var sums := Game.history.filter(func(h): return int(h.day) == d)
+	_label(body, "Podsumowanie: " + (_day_summary(sums[0]) if not sums.is_empty() else "dzień trwa – pojawi się, gdy Jania pójdzie spać."),
+		Vector2(44, 268), Color("2a3a8a"), 590)
+
+
+func _day_summary(h: Dictionary) -> String:
+	var parts := []
+	if h.get("sales_n", 0) > 0:
+		parts.append("odkrycia x%d +$%d" % [h.sales_n, h.sales])
+	if h.get("meteors_n", 0) > 0:
+		parts.append("meteory x%d +$%d" % [h.meteors_n, h.meteors])
+	if h.get("pw", 0) > 0:
+		parts.append("+%d PW" % h.pw)
+	for b in h.get("bought", []):
+		parts.append("%s -%s" % [b[0], ("$%d" if b[2] == "$" else "%d PW") % b[1]])
+	for n in h.get("opened", []):
+		parts.append("paczka: " + n)
+	return " · ".join(parts) if not parts.is_empty() else "spokojny dzień, bez wpływów."
 
 
 func _breakdown(e: Dictionary) -> String:
@@ -624,6 +674,10 @@ func _node_at(p: Vector2) -> int:
 func _tree_input(e: InputEvent) -> void:
 	if e is InputEventMouseMotion:
 		hover = _node_at(e.position)
+		stage_hover = -1
+		for i in 3:
+			if _stage_tab(i).has_point(e.position):
+				stage_hover = i
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and hover >= 0:
 		var r: Array = nodes[hover][1]
 		if Game.can_buy_science(r) == "ok":
@@ -650,7 +704,8 @@ func _draw_tree() -> void:
 		n.draw_rect(Rect2(x, 0, 1, 322), Color("232a4e"))
 	for y in range(0, 322, 24):
 		n.draw_rect(Rect2(0, y, 640, 1), Color("232a4e"))
-	for nd in nodes:  # linie: łokcie jak w drzewkach umiejętności
+	var order := nodes.filter(func(nd): return not Game.science.has(nd[1][0])) + nodes.filter(func(nd): return Game.science.has(nd[1][0]))
+	for nd in order:  # linie: łokcie jak w drzewkach umiejętności; jasne na wierzchu, więc szara gałąź nie ścienia wspólnego odcinka
 		var a := _parent(nd[1])
 		var b: Vector2 = nd[0]
 		var lit: bool = Game.science.has(nd[1][0])
@@ -690,8 +745,29 @@ func _draw_tree() -> void:
 		if st in ["req", "tier"]:  # kłódka
 			n.draw_rect(Rect2(c + Vector2(6, 6), Vector2(9, 7)), Color("c8c8d8"))
 			n.draw_arc(c + Vector2(10.5, 6), 3, PI, TAU, 6, Color("c8c8d8"), 1.5)
+	for i in 3:  # zakładki etapów: dziś tylko Etap 1, dalsze wyszarzone
+		var r := _stage_tab(i)
+		var on := i == 0
+		n.draw_rect(r.grow(1), INK)
+		n.draw_rect(r, Color("ffcf4a") if on else Color("3a405e"))
+		n.draw_rect(Rect2(r.position, Vector2(r.size.x, 2)), Color("ffe08a") if on else Color("4a5276"))
+		n.draw_string(Game.font_os, r.position + Vector2(0, 17), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - (8 if not on else 0), Game.OS_FS, INK if on else Color("8a90b0"))
+		if not on:  # kłódka
+			n.draw_rect(Rect2(r.end.x - 11, r.position.y + 10, 7, 6), Color("8a90b0"))
+			n.draw_rect(Rect2(r.end.x - 10, r.position.y + 6, 5, 4), Color("8a90b0"), false, 1.0)
+	if stage_hover >= 0:
+		var msg := "Etap %d%s" % [stage_hover + 1, "" if stage_hover == 0 else " – jeszcze zamknięty"]
+		var w := Game.font_os.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 12
+		var p := Vector2(_stage_tab(2).end.x - w, 34)
+		n.draw_rect(Rect2(p, Vector2(w, 22)).grow(1), Color("e8ecf8"))
+		n.draw_rect(Rect2(p, Vector2(w, 22)), Color("243a6a"))
+		n.draw_string(Game.font_os, p + Vector2(6, 17), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color.WHITE)
 	if hover >= 0:
 		_tooltip(n, nodes[hover][0], nodes[hover][1])
+
+
+func _stage_tab(i: int) -> Rect2:
+	return Rect2(548 + i * 30, 6, 26, 22)
 
 
 func _tooltip(n: Control, at: Vector2, r: Array) -> void:

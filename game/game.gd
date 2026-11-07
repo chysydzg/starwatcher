@@ -21,6 +21,7 @@ const RAIN_CHANCE := 0.20
 const COMET_NIGHTS := 3
 const COMET_GAP := 8
 const SEASONS := ["Wiosna", "Lato", "Jesień", "Zima"]
+const WEEKDAYS := ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]  # dzień 1 = poniedziałek
 const CATS := {"moon": "Księżyc", "const": "Konstelacje", "zodiac": "Znaki zodiaku", "nebula": "Mgławice",
 	"planet": "Planety", "deep": "Głębokie niebo", "comet": "Komety"}
 const MOON_PHASES := ["Nów", "Przybywający sierp", "Pierwsza kwadra", "Przybywający garb", "Pełnia",
@@ -146,7 +147,7 @@ const SCIENCE := [
 	["notatki", "Udostępnianie Notatek", 1000, 3, 1, "", "+50% wszystkich PW."],
 	["kolekcjonerzy", "Oferty Kolekcjonerów", 600, 3, 1, "instytuty", "Każdego ranka 20% szans na kolekcjonera, który płaci 250% ceny za jedno odkrycie."],
 	["gleb_pole", "Głębokie Pole Obserwacji", 900, 3, 2, "", "Gwiazdy podwójne i odległe galaktyki."],
-	["manifest", "Manifest Naukowy „Nasze Miejsce w Kosmosie”", 5000, 3, 2, "planety", "Odblokowuje Certyfikat Terenu w sklepie."],
+	["manifest", "Manifest Naukowy „Nasze Miejsce w Kosmosie”", 5000, 3, 2, "planety", "Pozwala kupić działkę pod własne Centrum Naukowe."],
 ]
 const SCIENCE_PATHS := ["Skanowanie i Optyka", "Analiza i Metodologia", "Kartografia i Kosmos"]
 
@@ -175,7 +176,7 @@ const SHOP := [
 	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Raport wypłacany od razu, bez czekania do rana."],
 	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zagraniczne instytuty: x2 za rzadkie układy i planety."],
 	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "+10% szybkości akcji w minigrach."],
-	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem. Warunek Etapu 2."],
+	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem – tu powstanie Twoje Centrum Naukowe (Etap 2)."],
 ]
 const SHOP_PATHS := ["Hardware i Optyka", "Komputer i Biurko", "Pokój i Komfort Jani"]
 
@@ -189,7 +190,8 @@ var science := {}          # id -> true
 var shop := {}             # id -> true (rozpakowane, działa)
 var pending := []          # zamówione, dojdą przy zmianie fazy
 var parcels := []          # dostarczone, czekają na rozpakowanie
-var journal := []          # wpisy Dziennika (nieprzesłane i sprzedane)
+var journal := []          # wpisy Dziennika: wszystkie odkrycia (w pamięci, sprzedane, nadpisane) – historia na stronach
+var history := []          # podsumowania minionych dni (to, co pokazało okienko PODSUMOWANIE)
 var discovered := {}       # id obiektu -> true (Encyklopedia, „zbadane” na niebie)
 var moon_done := {}        # faza -> true
 var tonight := {}          # obiekty zapisane tej nocy
@@ -437,11 +439,19 @@ func has(id: String) -> bool:
 
 
 func season() -> int:
-	return floori((day - 1) / 7.0) % 4
+	return season_of(day)
+
+
+func season_of(d: int) -> int:
+	return floori((d - 1) / 7.0) % 4
 
 
 func calendar() -> String:
 	return "Dzień %d · %s, rok %d" % [day, SEASONS[season()], floori((day - 1) / 28.0) + 1]
+
+
+func day_name(d := day) -> String:
+	return "%s, %s, rok %d" % [WEEKDAYS[(d - 1) % 7], SEASONS[season_of(d)], floori((d - 1) / 28.0) + 1]
 
 
 func moon_phase() -> int:
@@ -461,7 +471,7 @@ func storage_cap() -> int:
 
 
 func stored() -> Array:
-	return journal.filter(func(j): return not j.sold and not analysis.uids.has(j.uid))
+	return journal.filter(func(j): return not j.sold and not j.get("lost", false) and not analysis.uids.has(j.uid))
 
 
 func pw_mult() -> float:
@@ -538,7 +548,7 @@ func record(id: String, quality: int, points := 0, replace_oldest := false) -> i
 	if s.size() >= storage_cap():
 		if not replace_oldest:
 			return -1
-		journal.erase(s[0])
+		s[0].lost = true  # nadpisany w pamięci, ale zostaje w historii Dziennika
 	_id_seq += 1
 	journal.append({"uid": _id_seq, "id": id, "name": info.name, "cat": info.cat, "quality": quality, "base": float(info.price), "day": day, "sold": false})
 	tonight[id] = true
@@ -557,7 +567,8 @@ func record(id: String, quality: int, points := 0, replace_oldest := false) -> i
 func sell(entries: Array) -> int:
 	var sum := 0
 	for e in entries:
-		sum += price(e).total
+		e.paid = price(e).total
+		sum += e.paid
 		e.sold = true
 	money += sum
 	today.sales = today.get("sales", 0) + sum
@@ -667,10 +678,10 @@ func buy_shop(row: Array) -> void:
 	toast.emit("Zamówiono: %s. Kurier przyjdzie przy zmianie pory dnia." % row[1], "info")
 
 
-func unpack_all() -> void:
+func unpack_all(quiet := false) -> void:
 	for id in parcels:
 		shop[id] = true
-	for id in parcels:  # każdy przedmiot osobno: napisy układają się jeden pod drugim
+	for id in parcels if not quiet else []:  # każdy przedmiot osobno: napisy układają się jeden pod drugim
 		toast.emit("Rozpakowano: " + _shop_name(id), "good")
 	parcels.clear()
 	changed.emit()
@@ -711,6 +722,8 @@ func start_night() -> void:
 ## „Idź spać”: zwraca dane do Podsumowania Dnia, przechodzi w poranek i robi autozapis
 func sleep() -> Dictionary:
 	_pay_report()  # raport poranny: wypłata trafia do podsumowania dnia
+	today.opened = parcels.map(_shop_name)  # paczka spod drzwi otwiera się sama, gdy Jania idzie spać
+	unpack_all(true)
 	var summary := today.duplicate()
 	summary.day = day
 	summary.calendar = calendar()
@@ -731,6 +744,7 @@ func sleep() -> Dictionary:
 	_roll_demand()
 	_roll_offer()
 	_deliver()
+	history.append(summary)
 	save_game()
 	return summary
 
@@ -758,6 +772,7 @@ func new_game() -> void:
 	pending.clear()
 	parcels.clear()
 	journal.clear()
+	history.clear()
 	rain = false
 	rain_next = false
 	comet = {"left": 0, "gap": 0, "seed": 0}
@@ -773,7 +788,7 @@ func new_game() -> void:
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "pending", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq"]
+	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq", "history"]
 
 
 func has_save() -> bool:
@@ -853,8 +868,8 @@ func settings_ui(box: Container, on_change := Callable()) -> Control:
 				on_change.call())
 		box.add_child(b)
 		return b
-	first = toggle.call("fullscreen", "PEŁNY EKRAN", "TAK", "NIE")
-	toggle.call("crt", "EFEKT CRT", "SUBTELNY", "WYŁ.")
+	first = toggle.call("fullscreen", "PEŁNY EKRAN", "WŁĄCZONY", "WYŁĄCZONY")
+	toggle.call("crt", "EFEKT CRT", "WŁĄCZONY", "WYŁĄCZONY")
 	for bus in ["Music", "SFX", "Ambient"]:
 		var row := HBoxContainer.new()
 		var l := Label.new()

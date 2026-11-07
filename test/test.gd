@@ -22,6 +22,10 @@ func _ready() -> void:
 		tel.state = tel.S.SCAN
 		tel._lock_or_confirm()
 		assert(tel.state == tel.S.FOCUS, "locked " + tg.id)
+		tel.f_goal = 0.0 if tel.f > 0.5 else 1.0
+		var f0: float = tel.f
+		tel._process(0.05)
+		assert(tel.f != f0 and absf(tel.f - tel.f_goal) > 0.15, "soczewka nadąża za kółkiem z opóźnieniem")
 		tel.f = tg.sweet
 		tel._after_focus()
 		if tg.info.has("pts"):
@@ -61,6 +65,12 @@ func _ready() -> void:
 	for id in ["dziennik", "gielda", "sklep", "badania", "pomoc"]:
 		os._launch(id)
 		await get_tree().process_frame
+	os.jpage = 2  # dzień 2: strona 1 = dziś, strona 2 = wczorajsza noc z podsumowaniem
+	os._launch("dziennik")
+	await get_tree().process_frame
+	var jl: Array = os.body.find_children("*", "Label", true, false).map(func(l): return l.text)
+	assert(jl.any(func(x): return x.begins_with("Dzień 1 · Poniedziałek")) and jl.any(func(x): return x.contains("w pamięci")), "dziennik: wpisy z dnia 1")
+	assert(jl.any(func(x): return x.begins_with("Podsumowanie:") and not x.contains("dzień trwa")), "dziennik: podsumowanie dnia 1")
 	os._close_app()
 	var earned := Game.sell(Game.stored())
 	print("sold for $", earned, " money=", Game.money)
@@ -102,7 +112,10 @@ func _ready() -> void:
 	var m0 := Game.money
 	Game.send_report([Game.journal[-1]])
 	assert(Game.money == m0 and not Game.stored().any(func(e): return e.uid == 9999), "raport czeka do rana")
-	Game.sleep()
+	var pid: String = Game.SHOP.filter(func(r): return not Game.shop.has(r[0]))[0][0]
+	Game.parcels = [pid]  # paczka nieodebrana: otwiera się sama, gdy Jania idzie spać
+	var sm := Game.sleep()
+	assert(Game.shop.has(pid) and Game.parcels.is_empty() and sm.opened.size() == 1 and Game.history[-1] == sm, "paczka otwarta przy śnie")
 	assert(Game.money > m0 and Game.analysis.uids.is_empty(), "wypłata rano")
 	Game.journal.append({"uid": 9998, "id": "lew", "name": "Lew", "cat": "zodiac", "quality": 80, "base": 50.0, "day": Game.day, "sold": false})
 	Game.offer = {"uid": 9998, "who": "Test", "price": 123}

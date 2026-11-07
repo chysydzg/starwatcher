@@ -8,6 +8,9 @@ const SPEED := 144.0
 const ROOM_WALK := Rect2(14, 122, 612, 224)
 const BALCONY_WALK := Rect2(20, 318, 610, 42)
 const MUSIC_DB := -8.0  # pętle są masterowane na -16 LUFS
+const CLOUDS := [Vector4(0, 33, 22, 3), Vector4(150, 40, 30, 4), Vector4(300, 34, 18, 3), Vector4(430, 57, 26, 3), Vector4(560, 45, 20, 3)]  # x, y, szer., wys.
+const BREATH := 2.6       # rytm oddechu Jani: dół BREATH_DOWN s, potem góra
+const BREATH_DOWN := 1.5
 const SEASON_LOOPS := ["season_spring", "season_summer", "season_autumn", "season_winter"]  # kolejność jak Game.SEASONS
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
 const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96, 88, 100), "drzwi": Rect2(518, 104, 46, 18),
@@ -363,9 +366,18 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
 	o.draw_texture(Game.tex("balcony_view"), Vector2.ZERO, Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
 	if u > 0.75:
-		var msg := "Nowy dzień" if dawn else "Zapada noc"
 		var a := (u - 0.75) * 4.0
-		o.draw_string(Game.font_title, Vector2(320 - Game.font_title.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x / 2, 100).floor(), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.96, 0.93, 0.86, a))
+		_outlined(o, Game.font_title, 16, 100, "Nowy dzień" if dawn else "Zapada noc", a)
+		if dawn:
+			_outlined(o, Game.font, Game.FS, 124, Game.day_name(), a)
+
+
+## napis na środku z obrysem 1 px (czytelny i na jasnym niebie, i na nocnym)
+func _outlined(o: CanvasItem, f: Font, fs: int, y: float, msg: String, a: float) -> void:
+	var p := Vector2(320 - f.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x / 2, y).floor()
+	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		o.draw_string(f, p + d, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.1, 0.08, 0.16, a))
+	o.draw_string(f, p, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.98, 0.95, 0.86, a))
 
 
 func _txt_on(n: CanvasItem, p: Vector2, s: String, c: Color) -> void:
@@ -478,19 +490,19 @@ func _animate(dt: float) -> void:
 		face = 0
 		frame = 6
 	elif face == 0:
-		var c := fmod(idle_t, 9.0)  # idle: mrugnięcie, a co jakiś czas ucho opada i Jania podnosi je łapką
-		if c > 6.0 and c < 6.6:
+		var c := fmod(idle_t, BREATH * 4)  # idle: mrugnięcie, a co jakiś czas ucho opada i Jania podnosi je łapką –
+		if c > BREATH * 2 and c < BREATH * 2 + 0.5:  # zawsze w dolnej fazie oddechu, żeby go nie rwać
 			frame = 4
-		elif c >= 6.6 and c < 7.6:
+		elif c >= BREATH * 2 + 0.5 and c < BREATH * 2 + BREATH_DOWN:
 			frame = 5
-		elif fmod(idle_t, 3.2) < 0.12:
+		elif fmod(idle_t, BREATH * 2) < 0.12:
 			frame = 3
 	elif Game.location == "balcony" and face == 1 and idle_t > 0.8 and viewport == null:
 		face = 2  # na balkonie po chwili odwraca się do nieba
-	if frame == 0 and not walking and fmod(idle_t, 2.6) > 1.5:
+	if frame == 0 and not walking and fmod(idle_t, BREATH) > BREATH_DOWN:
 		frame = 7  # spokojny oddech: góra ciała unosi się o 1 px
 	if walking and frame != _step_frame and (face != 1 or frame in [1, 3]):
-		Game.sfx("step%d" % (randi() % 4), randf_range(0.92, 1.08), -9.0)  # miękkie łapki na drewnie
+		Game.sfx("step%d" % (randi() % 4), randf_range(0.92, 1.08), -12.0)  # miękkie łapki na drewnie
 	_step_frame = frame if walking else -1
 	jania.frame = face * 8 + frame
 	jania.flip_h = flip and face == 1
@@ -611,6 +623,8 @@ func _sleep() -> void:
 		rows.append(["Punkty Wiedzy", s.pw, "PW", 1])
 	for b in s.get("bought", []):
 		rows.append([b[0], b[1], b[2], -1])
+	for n in s.get("opened", []):
+		rows.append(["Paczka: " + n, 0, "", 0])
 	var h := 52 + maxi(rows.size(), 1) * 18 + 46
 	var p := _panel(Vector2(400, h))
 	p.position = Vector2(120, floorf((360 - h - 40) / 2.0))  # okienko na środku, przycisk tuż pod nim
@@ -639,15 +653,19 @@ func _sleep() -> void:
 		v.position = Vector2(250, 34 + i * 18)
 		v.size = Vector2(136, 18)
 		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		v.add_theme_color_override("font_color", Color("ff8a7a") if r[3] < 0 else (Color("ffcf6b") if r[2] == "$" else Color("6affa0")))
+		v.add_theme_color_override("font_color", Color("a8d8f4") if r[3] == 0 else Color("ff8a7a") if r[3] < 0 else (Color("ffcf6b") if r[2] == "$" else Color("6affa0")))
 		p.add_child(a)
 		p.add_child(v)
-		var fmt: String = ("+" if r[3] > 0 else "-") + ("$%d" if r[2] == "$" else "%d PW")
-		finals.append([a, v, fmt % r[1]])
+		var fmt: String = "otwarta" if r[3] == 0 else ("+" if r[3] > 0 else "-") + ("$%d" if r[2] == "$" else "%d PW")
+		finals.append([a, v, fmt if r[3] == 0 else fmt % r[1]])
 		var tw := p.create_tween()  # wiersz pojawia się, a kwota „nabija się” od zera
 		anims.append(tw)
 		tw.tween_interval(delay)
 		tw.tween_property(a, "modulate:a", 1.0, 0.12)
+		if r[3] == 0:
+			tw.tween_callback(v.set_text.bind(fmt))
+			delay += 0.35
+			continue
 		var step := maxf(1.0, r[1] / 8.0)  # terkot licznika: ~8 tyknięć na wiersz
 		var last := [0]
 		tw.tween_method(func(x: float):
@@ -796,8 +814,10 @@ func _draw_glow() -> void:
 		else:
 			_px(n, r.position.x, r.position.y, r.size.x, r.size.y, Color("8cc8f0"))
 			_px(n, r.position.x, r.position.y + r.size.y - 5, r.size.x, 5, Color("a8d8f4"))
-			var cx := fposmod(t * 2.0 + i * 11.0, r.size.x + 10) - 6
-			_px(n, r.position.x + clampf(cx, 0, r.size.x - 6), r.position.y + 5, mini(6, int(r.size.x)), 2, Color("f4f8ff"))
+			for c in CLOUDS:  # jedno wspólne niebo przesuwa się w prawo jak rolka; szyby tylko je wycinają
+				var cr: Rect2 = Rect2(fposmod(c.x + t * 3.0, 640.0) - 40.0, c.y, c.z, c.w).intersection(r)
+				if cr.has_area():
+					_px(n, cr.position.x, cr.position.y, cr.size.x, cr.size.y, Color("f4f8ff"))
 	if not Game.has("lcd"):
 		_pc_screen(n)
 	if Game.rain:  # deszcz spływa po szybach
