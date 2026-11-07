@@ -490,6 +490,14 @@ func close() -> void:
 
 
 # ---------------------------------------------------------------- rysowanie
+## ramka 1 px z pełnych prostokątów (draw_rect bez wypełnienia potrafi zgubić bok)
+func _frame(r: Rect2, c: Color) -> void:
+	_px(r.position.x, r.position.y, r.size.x, 1, c)
+	_px(r.position.x, r.end.y - 1, r.size.x, 1, c)
+	_px(r.position.x, r.position.y, 1, r.size.y, c)
+	_px(r.end.x - 1, r.position.y, 1, r.size.y, c)
+
+
 func _px(x: float, y: float, w: float, h: float, c: Color) -> void:
 	draw_rect(Rect2(floorf(x), floorf(y), w, h), c)
 
@@ -744,11 +752,11 @@ func _draw_panels() -> void:
 	if msg != "":
 		var w := Game.font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 		_px(320 - w / 2 - 8, 318, w + 16, 24, Color(0.05, 0.04, 0.1, 0.88))  # tutorial na dole okularu
-		draw_rect(Rect2(320 - w / 2 - 8, 318, w + 16, 24), Color("ffcf6b"), false)
+		_frame(Rect2(floorf(320 - w / 2 - 8), 318, w + 16, 24), Color("ffcf6b"))
 		_text(Vector2(320, 336), msg, Color("f4ecdc"), true)
 	if not result.is_empty():
 		var w := maxf(Game.font.get_string_size(result.a, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x, Game.font.get_string_size(result.b, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x) + 24
 		_px(320 - w / 2, 262, w, 46, Color(0.06, 0.05, 0.1, 0.95))
-		draw_rect(Rect2(320 - w / 2, 262, w, 46), Color("ffcf6b"), false)
+		_frame(Rect2(floorf(320 - w / 2), 262, w, 46), Color("ffcf6b"))
 		_text(Vector2(320, 281), result.a, Color("ffcf6b"), true)
 		_text(Vector2(320, 300), result.b, Color("6affa0"), true)

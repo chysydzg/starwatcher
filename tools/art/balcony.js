@@ -26,6 +26,8 @@ P.solid(b, [P.ell(MX, MY, 22, 22)], P.hueRamp(5, { hue: 48, shift: 25, sat: 0.55
 for (const [cx, cy, r] of [[484, 66, 4], [500, 82, 5], [496, 62, 2], [478, 82, 3], [507, 70, 2]])
   for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) b.pset(cx + x, cy + y, P.mix(P.unpack(b.get(cx + x, cy + y)), [180, 150, 110], 0.35));
 
+const skyOnly = b.px.slice(); // do wycięcia samego krajobrazu (balcony_view.png – animacja zmierzchu)
+
 // ---- góry (dwa plany) i las na drugim brzegu
 const ridge = (y0, amp, s, cols, haze) => {
   for (let x = 0; x < W; x++) {
@@ -71,6 +73,17 @@ P.reflect(b, { y0: SHORE + 4, y1: DECK, t: 0, T: 1, cols: [[30, 42, 90], [18, 26
 for (let y = SHORE + 5; y < DECK; y++) for (let x = 0; x < W; x++) if (P.fbm(x * 0.03, y * 0.8, 2, 4) > 0.62) b.pset(x, y, P.mix(P.unpack(b.get(x, y)), [90, 110, 170], 0.3));
 
 const lake = b.px.slice(); // do pominięcia jeziora w nocnym przyciemnianiu
+{ // widok zza balkonu bez nieba (przezroczyste), jezioro odbite w dół do krawędzi ekranu – tło animacji zmierzchu
+  const v = new P.Buf(W, H);
+  for (let y = 0; y < H; y++) {
+    const sy = y < DECK ? y : 2 * DECK - 1 - y;
+    for (let x = 0; x < W; x++) {
+      const i = sy * W + x;
+      if (sy >= SHORE || lake[i] !== skyOnly[i]) v.px[y * W + x] = lake[i];
+    }
+  }
+  P.save(v, process.argv[2] + "/balcony_view.png");
+}
 // ---- ściana budynku i otwarte drzwi balkonowe (ciepłe światło z pokoju)
 slab(b, 0, 150, 78, DECK, R.beige, 0.5, 0.35, { grain: 0.06, sx: 0.2, sy: 0.2 });
 for (let y = 156; y < DECK; y += 8) b.rect(0, y, 78, y + 1, R.beige[1]);
@@ -103,7 +116,7 @@ for (let x = 0; x < W; x++) b.pset(x, DECK, R.wood[0]);
 // ---- rekwizyty: tani teleskop, leżak z kocem, skrzynka z kubkiem, roślina
 shadow(b, 254, 340, 22, 3);
 { // teleskop: referencja użytkownika → piksele (codixel: kwantyzacja w pełnym rozmiarze, potem resize mode)
-  const ref = P.load(__dirname + "/scope_ref.png");
+  const ref = P.load(__dirname + "/out/scope_ref.png");
   for (let i = 0; i < ref.px.length; i++) { // usuń półprzezroczyste piksele i brązowy cień pod statywem
     const [r, g, bb] = P.unpack(ref.px[i]), y = Math.floor(i / ref.w);
     if ((ref.px[i] >>> 24) < 220 || (y > ref.h * 0.85 && r > bb + 15 && r < 140)) ref.px[i] = 0;

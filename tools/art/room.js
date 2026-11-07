@@ -166,10 +166,10 @@ obj(b, 520, 26, 42, 88, (s) => {
   slab(s, 5, 54, 37, 82, R.woodL, 0.33, 0.33); s.rect(5, 54, 37, 55, R.woodL[3]);
   s.rect(34, 46, 38, 48, R.gold[2]); s.rect(36, 48, 38, 52, R.gold[1]);
 });
-// ---- pufa i stos książek przy dywanie
-shadow(b, 214, 300, 22, 5);
-piece("pufa", 302, [192,280,238,306], (T) => obj(T, 194, 270, 42, 32, (s) => P.solid(s, [P.ell(21, 18, 20, 12), P.ell(21, 12, 15, 9)], R.purple), { lit: R.purple[2] }));
-piece("books", 312, [434,300,460,316], (T) => obj(T, 436, 296, 22, 16, (s) => {
+// ---- pufa pod lewą ścianą, stos książek przy biurku
+shadow(b, 38, 268, 22, 5);
+piece("pufa", 270, [16,248,62,274], (T) => obj(T, 18, 238, 42, 32, (s) => P.solid(s, [P.ell(21, 18, 20, 12), P.ell(21, 12, 15, 9)], R.purple), { lit: R.purple[2] }));
+piece("books", 130, [298,116,322,132], (T) => obj(T, 300, 114, 22, 16, (s) => {
   slab(s, 0, 9, 20, 15, R.red, 0.6, 0.4, { grain: 0 }); slab(s, 2, 4, 19, 9, R.teal, 0.6, 0.4, { grain: 0 }); slab(s, 1, 0, 17, 4, R.gold, 0.6, 0.4, { grain: 0 });
   s.rect(0, 11, 20, 12, R.cream[2]); s.rect(2, 6, 19, 7, R.cream[2]);
 }));
@@ -178,13 +178,12 @@ piece("books", 312, [434,300,460,316], (T) => obj(T, 436, 296, 22, 16, (s) => {
 light(b, (x, y) => (y > WALL + 2 && y < 250 && x > 174 + (y - WALL) * 0.55 && x < 236 + (y - WALL) * 0.55 ? Math.min(1, (250 - y) / 40) : 0), [255, 236, 190], 0.22);
 light(b, (x, y) => { const d = Math.hypot((x - 114) / 46, (y - 112) / 30); return d < 1 ? (1 - d) * 1.6 : 0; }, [255, 200, 120], 0.2);
 light(b, (x, y) => { const d = Math.hypot((x - 410) / 40, (y - 96) / 26); return d < 1 ? (1 - d) * 1.6 : 0; }, [255, 200, 120], 0.18);
-// ---- lampa stojąca przy pufie, kapcie, karton z rupieciami, kosz z praniem
-shadow(b, 172, 268, 9, 3);
-piece("lamp", 270, [160,258,186,274], (T) => obj(T, 162, 214, 20, 56, (s) => {
+// ---- lampa stojąca pod ścianą obok okna, karton z rupieciami, kosz z praniem
+shadow(b, 236, 128, 9, 3);
+piece("lamp", 128, [224,118,248,132], (T) => obj(T, 226, 72, 20, 56, (s) => {
   slab(s, 2, 0, 18, 12, R.cream, 0.85, 0.55, { grain: 0 }); s.rect(3, 0, 17, 1, R.cream[3]);
   s.rect(9, 12, 11, 52, R.gray[1]); slab(s, 4, 51, 16, 55, R.gray, 0.5, 0.3, { grain: 0 });
 }, { lit: R.cream[1] }));
-obj(b, 104, 206, 22, 10, (s) => { P.solid(s, [P.ell(5, 5, 4, 3)], R.red); P.solid(s, [P.ell(16, 5, 4, 3)], R.red); s.pset(5, 3, R.cream[3]); s.pset(16, 3, R.cream[3]); }, { lit: R.red[2] });
 shadow(b, 596, 330, 22, 4);
 piece("box", 330, [572,312,620,334], (T) => obj(T, 576, 296, 40, 34, (s) => {
   slab(s, 0, 0, 40, 10, R.beige, 0.7, 0.5, { grain: 0.06 }); slab(s, 0, 10, 40, 34, R.beige, 0.45, 0.3, { grain: 0.06 });

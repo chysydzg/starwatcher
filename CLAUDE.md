@@ -15,6 +15,13 @@
 ## Grafika
 - Pixel art generowany kodem (codixel, `tools/art/*.js`); referencje od autora służą do kolorów/kształtu.
 - Ramki HUD: cienka stal (`_metal`), przyciski jak klawisze klawiatury (`_key`).
+- **Symetria i czyste krawędzie (zawsze sprawdzać przed pokazaniem):** obiekty pixel-art są symetryczne lewa–prawa
+  (o ile sam przedmiot nie jest asymetryczny), prostokąty mają proste boki i pełny 1 px outline na wszystkich
+  czterech krawędziach. Żadnych przypadkowych wcięć, ząbków, „ściętych” rogów ani krzywizn (drzwi, nogi krzeseł,
+  doniczki, ramki, przyciski, karty, X). Zaokrąglenie rogu tylko celowe i takie samo w każdym rogu.
+  Sprawdzenie: powiększony podgląd każdego sprite'a/przycisku + automatyczny test symetrii i ciągłości outline'u.
+- Efekty ekranu (CRT itp.) nie przesuwają pikseli: żadnego zakrzywiania ani próbkowania o ułamek piksela – to gubi
+  outline i wygina proste krawędzie. Wolno tylko przyciemniać (linie skanowania, winieta).
 
 ## Dźwięk
 - Efekty i pętle tła: `game/sfx/*.ogg` generuje `tools/sfx/make_sfx.py` (bank i dsp earshot, wszystko liczone kodem) –

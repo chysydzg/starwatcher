@@ -52,17 +52,28 @@ for (let i = 0; i < 70; i++) {
 P.save(wall, out + "os_wallpaper.png");
 
 // ---------------------------------------------------------------- ikony (32x32, czarny obrys)
-const icon = (name, w, h, draw) => { const s = new P.Buf(w, h); draw(s); P.save(ink(s), out + name + ".png"); };
+const icon = (name, w, h, draw) => {
+  const s = new P.Buf(w, h); draw(s); P.save(ink(s), out + name + ".png");
+  if (name.startsWith("icon_") && name !== "icon_etap") { // ikona karty (mieści się w 22x18): zmniejszony rysunek BEZ obrysu, obrys po zmniejszeniu
+    const k = Math.min(14 / w, 14 / h);
+    P.save(ink(P.resize(s, Math.round(w * k), Math.round(h * k), { mode: true })), out + name.replace("icon_", "tab_") + ".png");
+  }
+};
+// lustrzane odbicie lewej połowy na prawą (oś między kolumnami: x' = w - 1 - x) – rasteryzacja wielokątów nie jest symetryczna
+const mirror = (s) => { for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w >> 1; x++) { const c = s.get(x, y); s.px[y * s.w + s.w - 1 - x] = c || 0; } };
 const WHITE = [248, 248, 244], PAPER = [236, 228, 200], BLUE = R.navy, DARK = [30, 30, 46];
 
 icon("icon_dziennik", 26, 30, (s) => { // notes z gwiazdą
-  slab(s, 0, 0, 26, 30, R.red, 0.6, 0.35); s.rect(3, 0, 5, 30, R.red[0]);
-  slab(s, 7, 4, 23, 26, R.cream, 0.95, 0.7);
+  s.rect(0, 0, 26, 30, R.red[2]); s.rect(3, 0, 5, 30, R.red[0]);
+  s.rect(7, 4, 23, 26, R.cream[2]); s.rect(7, 22, 23, 26, R.cream[1]);
   for (let y = 9; y < 25; y += 4) s.rect(9, y, 21, y + 1, [168, 186, 214]);
-  s.poly([[15, 5], [17, 10], [22, 10], [18, 13], [19, 18], [15, 15], [11, 18], [12, 13], [8, 10], [13, 10]], R.gold[2]);
+  const star = new P.Buf(15, 14); // gwiazda symetryczna co do piksela: lewa połowa odbita na prawą
+  star.poly([[7, 0], [9, 5], [14, 5], [10, 8], [11, 13], [7, 10], [3, 13], [4, 8], [0, 5], [5, 5]], R.gold[2]);
+  for (let y = 0; y < 14; y++) for (let x = 0; x < 7; x++) star.px[y * 15 + 14 - x] = star.get(x, y) || 0;
+  s.sprite(star, 8, 5);
 });
 icon("icon_gielda", 30, 28, (s) => { // monitor z wykresem liniowym notowań
-  slab(s, 0, 0, 30, 28, R.gray, 0.85, 0.6);
+  s.rect(0, 0, 30, 28, R.gray[2]);
   s.rect(2, 2, 28, 24, [14, 26, 40]);
   for (let y = 6; y < 23; y += 5) s.rect(3, y, 27, y + 1, [26, 44, 64]);
   const up = [[3, 19], [8, 15], [12, 17], [17, 10], [21, 12], [26, 5]], dn = [[3, 12], [8, 14], [13, 11], [18, 18], [22, 16], [26, 20]];
@@ -71,18 +82,22 @@ icon("icon_gielda", 30, 28, (s) => { // monitor z wykresem liniowym notowań
   s.rect(25, 4, 28, 7, [250, 220, 90]);
 });
 icon("icon_sklep", 30, 28, (s) => { // karton z taśmą i metką
-  slab(s, 0, 0, 30, 8, R.beige, 1, 0.9); slab(s, 0, 8, 30, 28, R.beige, 0.6, 0.45);
+  s.rect(0, 0, 30, 8, R.beige[3]); s.rect(0, 8, 30, 28, R.beige[2]);
   s.rect(12, 0, 18, 28, R.gold[1]); s.rect(0, 8, 30, 9, R.beige[0]);
   s.rect(3, 14, 11, 23, WHITE); s.rect(4, 16, 10, 17, R.navy[2]); s.rect(4, 19, 8, 20, R.navy[2]);
   s.rect(21, 16, 27, 22, R.red[2]); s.rect(23, 18, 25, 20, WHITE);
 });
 icon("icon_badania", 30, 28, (s) => { // trzy węzły drzewka połączone liniami
   s.line(15, 8, 6, 22, [230, 236, 250], 2); s.line(15, 8, 24, 22, [230, 236, 250], 2);
-  const node = (x, y, r) => { slab(s, x - 5, y - 5, x + 5, y + 5, r, 1, 0.55); s.rect(x - 2, y - 2, x + 2, y + 2, WHITE); };
+  const node = (x, y, r) => { s.rect(x - 5, y - 5, x + 5, y + 5, r[1]); s.rect(x - 5, y - 5, x + 5, y - 4, r[2]); s.rect(x - 2, y - 2, x + 2, y + 2, WHITE); };
   node(15, 6, R.gold); node(6, 21, P.hueRamp(3, { hue: 190, shift: 16, sat: 0.7, light: [0.35, 0.7] })); node(24, 21, R.purple);
 });
 icon("icon_pomoc", 24, 30, (s) => { // kartka tekstowa z „?”
-  slab(s, 0, 0, 24, 30, R.cream, 1, 0.8); s.poly([[17, 0], [24, 7], [17, 7]], R.cream[0]);
+  s.rect(0, 0, 24, 30, R.cream[2]);
+  for (let i = 0; i < 7; i++) { // zagięty róg: wycięty trójkąt nad przekątną, pod nią ciemniejsza zakładka
+    s.rect(17, i, 18 + i, i + 1, R.cream[0]);
+    for (let x = 18 + i; x < 24; x++) s.px[i * s.w + x] = 0;
+  }
   for (let y = 15; y < 27; y += 3) s.rect(3, y, 20, y + 1, [150, 150, 160]);
   for (const [x, y] of [[9, 3], [10, 2], [11, 2], [12, 2], [13, 3], [13, 4], [12, 5], [11, 6], [11, 7], [11, 10]]) s.rect(x, y, x + 1, y + 2, BLUE[1]);
 });
@@ -101,20 +116,16 @@ icon("icon_etap", 30, 30, (s) => { // złota gwiazda ETAP 2
   P.save(ink(P.trim(sp)), out + "cat_optyka.png");
 }
 icon("cat_komputer", 22, 20, (s) => { // sam kwadratowy monitor
-  slab(s, 0, 0, 22, 20, R.beige, 0.95, 0.6); s.rect(3, 3, 19, 15, [20, 40, 70]);
+  s.rect(0, 0, 22, 20, R.beige[2]); s.rect(3, 3, 19, 15, [20, 40, 70]);
   s.rect(5, 5, 12, 6, [120, 200, 255]); s.rect(5, 8, 16, 9, [120, 200, 255]); s.rect(5, 11, 10, 12, [120, 200, 255]);
   s.rect(16, 17, 19, 18, [90, 230, 120]);
 });
 icon("cat_pokoj", 22, 24, (s) => { // lampka na stoliku
   s.poly([[6, 0], [16, 0], [20, 9], [2, 9]], R.gold[2]); s.rect(2, 8, 20, 9, R.gold[0]); s.rect(6, 0, 16, 1, R.cream[2]);
   s.rect(10, 9, 12, 14, R.gray[1]); s.rect(7, 14, 15, 15, R.gray[0]);
-  slab(s, 0, 15, 22, 18, R.wood, 0.9, 0.7); s.rect(2, 18, 4, 24, R.wood[0]); s.rect(18, 18, 20, 24, R.wood[0]);
+  s.rect(0, 15, 22, 18, R.wood[3]); s.rect(2, 18, 4, 24, R.wood[0]); s.rect(18, 18, 20, 24, R.wood[0]);
+  mirror(s);
 });
-// małe ikony kart na pasku okna (16 px): ikony pulpitu zmniejszone z zachowaniem najczęstszego koloru
-for (const id of ["dziennik", "gielda", "sklep", "badania", "pomoc"]) {
-  const big = P.load(out + "icon_" + id + ".png");
-  P.save(P.resize(big, 16, Math.round(16 * big.h / big.w), { mode: true }), out + "tab_" + id + ".png");
-}
 // glify węzłów drzewka (białe, 14x14, bez obrysu – tło węzła rysuje Godot)
 const glyph = (name, draw) => { const s = new P.Buf(14, 14); draw(s); const o = new P.Buf(15, 15); for (let i = 0; i < s.px.length; i++) if (s.px[i] >>> 24) o.pset((i % 14) + 1, ((i / 14) | 0) + 1, [20, 20, 40]); o.sprite(s, 0, 0); P.save(o, out + name + ".png"); };
 glyph("glyph_optyka", (s) => { s.ring(7, 7, 5.5, 1.6, WHITE); s.blob(7, 7, 2, WHITE); s.line(10, 10, 13, 13, WHITE, 2); }); // lupa/soczewka

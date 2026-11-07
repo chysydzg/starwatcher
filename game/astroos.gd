@@ -26,6 +26,8 @@ const TITLES := {"dziennik": "Dziennik Odkryć", "gielda": "Giełda i Centrum Na
 const BAR := 22            # górny pasek systemu
 const TB := 20             # pasek tytułu okna
 const INK := Color("1a1626")
+const MKT_Q := 330.0  # prawe krawędzie kolumn Jakość / Cena w portfelu giełdy
+const MKT_P := 420.0
 const PATH_COL := [Color("2fb8e8"), Color("f4b830"), Color("a45ae8")]
 const CAT_COL := {"moon": "f4e8b0", "const": "5ab0ff", "zodiac": "ff8a5a", "nebula": "e86ad8", "planet": "ffcf4a", "deep": "9a9aff", "comet": "6af0c8"}
 const SHOP_ICONS := ["cat_optyka", "cat_komputer", "cat_pokoj"]
@@ -141,6 +143,14 @@ func _button(text: String, f: Callable) -> Button:
 	return b
 
 
+## liczba w kolumnie: prawa krawędź na `right` (proporcjonalne odstępy czcionki nie przesuwają kolumn)
+func _num(parent: Node, text: String, right: float, y: float, col: Color) -> Label:
+	var l := _label(parent, text, Vector2(right - 80, y), col)
+	l.size = Vector2(80, 20)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	return l
+
+
 func _label(parent: Node, text: String, pos: Vector2, col := INK, w := 0.0) -> Label:
 	var l := Label.new()
 	l.text = text
@@ -174,7 +184,7 @@ func _draw_bar() -> void:
 	bar.draw_rect(Rect2(0, 0, 640, 1), Color.WHITE)
 	bar.draw_rect(Rect2(0, BAR - 1, 640, 1), Color("4a4a5c"))
 	bar.draw_rect(Rect2(572, 2, 64, 18), Color("f4f4f8"))
-	bar.draw_rect(Rect2(572, 2, 64, 18), Color("4a4a5c"), false)
+	_frame(bar, Rect2(572, 2, 64, 18), Color("4a4a5c"))
 	bar.draw_string(Game.font_os, Vector2(572, 16), "Wyłącz", HORIZONTAL_ALIGNMENT_CENTER, 64, Game.OS_FS, INK)
 	bar.draw_texture_rect(Game.tex("os/icon_etap"), Rect2(4, 3, 16, 16), false)
 	var os_name := "AstroOS XP" if Game.has("lcd") else "AstroOS"
@@ -250,7 +260,7 @@ func _draw_frame() -> void:
 	win.draw_rect(Rect2(0, TB - 1, 640, 1), INK)
 	for i in 2:  # dwa kwadraciki jak w starych oknach
 		win.draw_rect(Rect2(4 + i * 16, 3, 12, 12), Color("f4f4f8"))
-		win.draw_rect(Rect2(4 + i * 16, 3, 12, 12), Color("6a6a80"), false)
+		_frame(win, Rect2(4 + i * 16, 3, 12, 12), Color("6a6a80"))
 	win.draw_rect(Rect2(7, 6, 6, 6), Color("4a4a5c"))
 	var title: String = TITLES[app]
 	win.draw_string(Game.font_os, Vector2(46, 15), title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, INK)
@@ -259,7 +269,7 @@ func _draw_frame() -> void:
 		var r := Rect2(tabs_x + i * 24, 1, 22, TB - 2)
 		var on: bool = APPS[i][0] == app
 		win.draw_rect(r, Color.WHITE if on else (Color("ececf2") if i == tab_hover else Color("c4c4ce")))
-		win.draw_rect(r, INK if on else Color("8a8a9c"), false)
+		_frame(win, r, INK if on else Color("8a8a9c"))
 		var ic := Game.tex("os/tab_" + APPS[i][0])
 		win.draw_texture(ic, r.position + ((r.size - ic.get_size()) / 2).floor(), Color(1, 1, 1, 1.0 if on or i == tab_hover else 0.7))
 	var x0 := tabs_x + APPS.size() * 24 + 8
@@ -267,9 +277,18 @@ func _draw_frame() -> void:
 		win.draw_rect(Rect2(x0, 6 + k * 3, 610 - x0, 1), Color("8a8a9c"))
 		win.draw_rect(Rect2(x0, 7 + k * 3, 610 - x0, 1), Color.WHITE)
 	win.draw_rect(Rect2(618, 3, 16, 14), Color("e85a4a"))
-	win.draw_rect(Rect2(618, 3, 16, 14), INK, false)
-	win.draw_line(Vector2(622, 6), Vector2(630, 14), Color.WHITE, 2)
-	win.draw_line(Vector2(630, 6), Vector2(622, 14), Color.WHITE, 2)
+	_frame(win, Rect2(618, 3, 16, 14), INK)
+	for i in 8:  # X z pikseli: dwie przekątne 2 px, lustrzane względem środka przycisku
+		win.draw_rect(Rect2(622 + i, 6 + i, 2, 1), Color.WHITE)
+		win.draw_rect(Rect2(628 - i, 6 + i, 2, 1), Color.WHITE)
+
+
+## ramka 1 px z czterech pełnych prostokątów (draw_rect bez wypełnienia potrafi zgubić bok przy skalowaniu)
+func _frame(n: CanvasItem, r: Rect2, col: Color) -> void:
+	n.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), col)
+	n.draw_rect(Rect2(r.position.x, r.end.y - 1, r.size.x, 1), col)
+	n.draw_rect(Rect2(r.position, Vector2(1, r.size.y)), col)
+	n.draw_rect(Rect2(r.end.x - 1, r.position.y, 1, r.size.y), col)
 
 
 func _bg(col: Color) -> void:
@@ -344,7 +363,10 @@ func _gielda() -> void:
 	if stored.is_empty():
 		_label(body, "Nie ma nic do wysłania. Odkrycia z nocy pojawią się tutaj.", Vector2(6, 48), Color("8aa0b8"), 440)
 		return
-	_label(body, "    %-28s%7s%8s" % ["Obiekt", "Jakość", "Cena"], Vector2(6, 40), Color("6a8aa8"))
+	var head := Color("6a8aa8")
+	_label(body, "    Obiekt", Vector2(6, 40), head)
+	_num(body, "Jakość", 4 + MKT_Q, 40, head)  # kolumny jak w wierszach: stałe x, wyrównanie do prawej
+	_num(body, "Cena", 4 + MKT_P, 40, head)
 	var v := _scroll(body, Rect2(4, 60, 440, 80))  # 4 pełne wiersze, przewijanie co wiersz
 	var total := _label(body, "", Vector2(460, 22), Color("6aff8a"))
 	total.add_theme_font_size_override("font_size", Game.OS_FS * 2)
@@ -374,8 +396,10 @@ func _gielda() -> void:
 	body.add_child(sell)
 	for e in stored:
 		var cb := CheckBox.new()
-		var txt := "%-28s%6d%%%8s" % [e.name.left(27), e.quality, "$%d" % Game.price(e).total]
+		var txt: String = e.name.left(24)
 		cb.text = ("[x] " if selected.get(e.uid, false) else "[ ] ") + txt
+		_num(cb, "%d%%" % e.quality, MKT_Q, 0, Color("d8f0e0"))
+		_num(cb, "$%d" % Game.price(e).total, MKT_P, 0, Color("d8f0e0"))
 		cb.button_pressed = selected.get(e.uid, false)
 		cb.custom_minimum_size.y = 20
 		cb.toggled.connect(func(on):

@@ -12,7 +12,7 @@ const SEASON_LOOPS := ["season_spring", "season_summer", "season_autumn", "seaso
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
 const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96, 88, 100), "drzwi": Rect2(518, 104, 46, 18),
 	"szafa": Rect2(568, 104, 62, 24), "plakat": Rect2(248, 104, 32, 18), "model": Rect2(132, 104, 34, 18),
-	"paczka": Rect2(488, 126, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(160, 258, 26, 16), "lampka": Rect2(96, 108, 36, 24)}
+	"paczka": Rect2(488, 126, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24)}
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -186,7 +186,7 @@ func _build_room() -> void:
 	room_sort.add_child(props.parcel)
 	_colliders("room", room)
 	for l in [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82), "ffc070", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
-			[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(172, 218), "ffd890", 0.9, 1.3], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]:
+			[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(236, 78), "ffd890", 0.9, 1.3], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]:
 		var g := GradientTexture2D.new()
 		g.fill = GradientTexture2D.FILL_RADIAL
 		g.fill_from = Vector2(0.5, 0.5)
@@ -338,8 +338,8 @@ func _draw_dusk(o: Control, prog: float) -> void:
 	o.draw_circle(sun, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
 	o.draw_circle(sun + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
 	var m := clampf((prog - 0.35) / 0.65, 0, 1)
-	if m > 0:
-		var moon := (c + Vector2.from_angle(lerpf(PI, PI * 1.38, m)) * Vector2(250, 200)).floor()
+	if m > 0:  # Księżyc wschodzi tam, gdzie potem wisi nad balkonem (492, 74)
+		var moon := Vector2(lerpf(660, 492, m), 74 + 190 * (1.0 - sin(m * PI / 2))).floor()
 		o.draw_circle(moon, 24, Color(0.9, 0.9, 1, 0.08 * m))
 		o.draw_circle(moon, 13, Color("f4ecc8"))
 		for q in [Vector2(-4, 3), Vector2(3, -5), Vector2(4, 4)]:
@@ -351,31 +351,12 @@ func _draw_dusk(o: Control, prog: float) -> void:
 		o.draw_rect(Rect2(cx, cy, 70, 6), body_c)
 		o.draw_rect(Rect2(cx + 12, cy - 5, 36, 5), body_c)
 		o.draw_rect(Rect2(cx + 4, cy + 6, 60, 2), Color("ffb070").lerp(Color("2a2246"), night))
-	# daleki brzeg, jezioro z odbiciami, bliskie wzgórza z lasem
-	o.draw_colored_polygon(PackedVector2Array([Vector2(0, 252), Vector2(140, 236), Vector2(300, 246), Vector2(460, 232), Vector2(640, 248), Vector2(640, 260), Vector2(0, 260)]),
-		Color("5a7aa8").lerp(Color("4a3a6a"), dusk).lerp(Color("141430"), night))
-	o.draw_rect(Rect2(0, 260, 640, 40), Color("6aa8d8").lerp(Color("c87a5a"), dusk).lerp(Color("0c1030"), night))
-	for row in range(262, 300, 3):  # odbicie Słońca / Księżyca w wodzie
-		var w := 18 - floori((row - 262) / 3.0)
-		if sun.y < 262:
-			o.draw_rect(Rect2(sun.x - w / 2.0 + 3 * sin(row * 0.7 + prog * 9.0), row, w, 1), Color(1, 0.8, 0.5, 0.5 * (1.0 - night)))
-		if m > 0.2:
-			o.draw_rect(Rect2(160 + 2 * sin(row * 0.9), row, w * 0.6, 1), Color(0.95, 0.92, 0.8, 0.4 * m))
-	var ground := Color("4a7a3a").lerp(Color("2a2a3a"), dusk).lerp(Color("07060e"), night)
-	var pts := PackedVector2Array([Vector2(0, 360)])
-	for x in range(0, 641, 8):
-		pts.append(Vector2(x, 296 + 8 * sin(x * 0.012) + 4 * sin(x * 0.037)).floor())
-	pts.append(Vector2(640, 360))
-	o.draw_colored_polygon(pts, ground)
-	for i in 26:  # świerki na wzgórzu
-		var x := float((i * 61) % 640)
-		var gy := 296 + 8 * sin(x * 0.012) + 4 * sin(x * 0.037)
-		var hh := 14.0 + (i % 4) * 5.0
-		o.draw_colored_polygon(PackedVector2Array([Vector2(x, gy - hh), Vector2(x - hh * 0.35, gy + 2), Vector2(x + hh * 0.35, gy + 2)]), ground.darkened(0.25))
+	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
+	o.draw_texture(Game.tex("balcony_view"), Vector2.ZERO, Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
 	if prog > 0.75:
 		var msg := "Zapada noc"
 		var a := (prog - 0.75) * 4.0
-		o.draw_string(Game.font_title, Vector2(320 - Game.font_title.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x / 2, 170).floor(), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.96, 0.93, 0.86, a))
+		o.draw_string(Game.font_title, Vector2(320 - Game.font_title.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x / 2, 100).floor(), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.96, 0.93, 0.86, a))
 
 
 func _txt_on(n: CanvasItem, p: Vector2, s: String, c: Color) -> void:
