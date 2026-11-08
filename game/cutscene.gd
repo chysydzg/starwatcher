@@ -352,8 +352,8 @@ func _draw_site() -> void:
 
 
 ## wielki diesel: rusza powoli (12 px/s²), potem jedzie 30 px/s
-func _drive(t: float) -> float:
-	var td := maxf(0.0, t - CLOSE)
+func _drive(when: float) -> float:
+	var td := maxf(0.0, when - CLOSE)
 	return 6.0 * td * td if td < 2.5 else 37.5 + 30.0 * (td - 2.5)
 
 
