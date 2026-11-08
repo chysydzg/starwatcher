@@ -118,7 +118,13 @@ function sitting(fr, f) {
   P.solid(arm, [P.cap(23.8, 26, px + 0.5, py - 0.5, 2, 1.7)], JR.fur, TOP);
   P.solid(arm, [P.ell(px, py, 2.2, 1.9)], JR.cream, TOP);
   const ai = ink(arm);
-  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const c = ai.get(x + 1, y + 1); if (c >>> 24) b.px[y * b.w + x] = c; }
+  const INKP = P.col(INKC);
+  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {  // obrys ręki tylko na zeszycie i od zewnątrz: na tułowiu ręka z niego wyrasta
+    const c = ai.get(x + 1, y + 1);
+    if (!(c >>> 24)) continue;
+    if ((c >>> 0) === (INKP >>> 0) && y < 30 && (b.px[y * b.w + x] >>> 24)) continue;
+    b.px[y * b.w + x] = c;
+  }
   for (let k = 1; k < 5; k++) b.pset(px - 1 + k, py - 1 - k, k === 4 ? [236, 140, 150] : [240, 200, 80]); // ołówek w łapce
   b.pset(px - 1, py + 1, [60, 52, 60]);
   return b;
@@ -189,7 +195,7 @@ function crane() {
 function truck() {
   const b = new P.Buf(62, 31);
   for (let y = 20; y < 25; y++) for (let x = 4; x < 60; x++) b.pset(x, y, y < 22 ? [84, 82, 90] : [60, 58, 66]); // podwozie
-  for (let y = 4; y < 21; y++) { const x0 = 2 + Math.floor((y - 4) / 4), x1 = 37 - Math.floor((y - 4) / 8); for (let x = x0; x < x1; x++) b.pset(x, y, y === 4 ? YEL[0] : (x - y) % 8 < 4 ? YEL[0] : YEL[1]); } // skrzynia
+  for (let y = 4; y < 21; y++) { const x0 = 2 + Math.floor((y - 4) / 4), x1 = 37 - Math.floor((y - 4) / 8); for (let x = x0; x < x1; x++) b.pset(x, y, y === 4 ? YEL[0] : (((x - (y >> 1)) % 8) + 8) % 8 < 4 ? YEL[0] : YEL[1]); } // skrzynia: skośne pasy przez całą skrzynię
   for (let y = 6; y < 23; y++) for (let x = 39; x < 57; x++) { const nose = x > 52 && y < 12 + (x - 52); if (!nose) b.pset(x, y, y > 18 ? YEL[1] : YEL[0]); } // kabina
   for (let y = 8; y < 14; y++) for (let x = 43; x < 52; x++) b.pset(x, y, x > 48 ? [96, 150, 170] : [60, 84, 110]); // szyba
   for (let y = 17; y < 24; y++) for (let x = 56; x < 60; x++) b.pset(x, y, YEL[1]);                       // zderzak
@@ -205,7 +211,7 @@ function scope() {
   const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
   P.solid(b, [P.cap(3, 7, 26, 7, 2.4, 5)], steel, TOP);
   P.solid(b, [P.cap(27, 7, 29, 7, 5.3, 5.3)], white, TOP);
-  return ink(P.smoothEdge(b));
+  return P.outline(P.smoothEdge(b), [18, 12, 22], { corners: true });
 }
 // drzwi balkonowe zamknięte, takie same jak w pokoju (jasne drewno, 4 szybki, ceglasta płycina);
 // od strony balkonu szybki świecą ciepło, bo w mieszkaniu pali się światło

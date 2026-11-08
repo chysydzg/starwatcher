@@ -18,7 +18,7 @@ var top := Node2D.new()    # napis na drzwiach nad wszystkim
 
 
 func _ready() -> void:
-	_sprite("balcony", Vector2.ZERO)
+	_sprite("balcony_cut", Vector2.ZERO)
 	add_child(preload("res://game/sky_fx.gd").new())  # gwiazdy i spadające gwiazdy
 	_sprite("cut_observatory", Vector2(146, 143))      # białe obserwatorium z otwartą kopułą
 	_sprite("cut_door", Vector2(19, 219))              # drzwi balkonowe zamknięte
@@ -92,7 +92,7 @@ func _end() -> void:
 # ---------------------------------------------------------------- montaż: lata mijają w krótkich scenach
 const HOLD := 4.2                     # ile trwa jedna scena
 const QUICK := 0.35                   # szybkie przejście przez czerń
-const CLOSE := 3.8                     # finał: zbliżenie, żuraw przenosi teleskop na wywrotkę
+const CLOSE := 5.2                     # finał: zbliżenie, żuraw wkłada teleskop do wywrotki, ta odjeżdża
 const PULL := 2.6                      # finał: odjazd kamery na balkon
 const BALCONY_CAM := Vector2(275, 255)  # zoom 2: obserwatorium i balkon w kadrze
 var sc: Node2D                         # bieżąca scena montażu
@@ -154,7 +154,7 @@ func _cam(at: Vector2) -> void:
 
 
 func _balcony_night(rain := false) -> void:
-	_spr("balcony", Vector2.ZERO)
+	_spr("balcony_cut", Vector2.ZERO)
 	var sky = preload("res://game/sky_fx.gd").new()
 	sky.raining = rain
 	sc.add_child(sky)
@@ -177,9 +177,9 @@ func _balcony_day() -> void:
 				sky.draw_circle(Vector2(cx + k * 12, 40.0 + i * 13 - (6 if k == 1 else 0)), 9.0 - (2 if k != 1 else 0), Color("f6f8fc")))
 	sc.add_child(sky)
 	var bright := Color(1.9, 2.0, 1.7)
-	_spr("balcony_view", Vector2.ZERO).modulate = bright
+	_spr("balcony_view_cut", Vector2.ZERO).modulate = bright
 	for r in [Rect2(0, 255, 640, 105), Rect2(0, 140, 80, 115)]:  # balustrada, podłoga, ściana z drzwiami
-		var s := _spr("balcony", r.position)
+		var s := _spr("balcony_cut", r.position)
 		s.region_enabled = true
 		s.region_rect = r
 		s.modulate = Color(1.5, 1.5, 1.4)
@@ -308,7 +308,6 @@ func _sc_board() -> void:
 			c.texture = Game.tex("cut_observatory_closed")
 	var dim := Color(0.78, 0.78, 0.9)  # noc: żółć przygaszona
 	_spr("cut_crane", Vector2(88, 80)).modulate = dim
-	_spr("cut_truck", Vector2(226, 176)).modulate = dim
 	var m := _feet("cut_maciej_sit", 300, 334)
 	var j := _feet("jania", 342, 338, 8)
 	j.vframes = 3
@@ -323,18 +322,23 @@ func _sc_board() -> void:
 	fx_draw = _draw_site
 
 
-## wózek żurawia jedzie znad kopuły nad skrzynię wywrotki, potem hak opuszcza teleskop
+## wózek żurawia jedzie znad kopuły nad wywrotkę, hak opuszcza teleskop do skrzyni (grubszy koniec wystaje),
+## hak wraca w górę, a wywrotka z teleskopem odjeżdża w prawo
 func _draw_site() -> void:
 	var tx := lerpf(186.0, 245.0, smoothstep(0.5, 2.5, st))
-	var hy := lerpf(135.0, 161.0, smoothstep(2.6, 3.6, st))
+	var hy := lerpf(135.0, 167.0, smoothstep(2.6, 3.8, st)) - 40.0 * smoothstep(3.9, 4.6, st)
+	var drive := 30.0 * pow(maxf(0.0, st - 4.4), 2.0)
+	var dim := Color(0.78, 0.78, 0.9)
 	var dark := Color(0.12, 0.12, 0.16)
+	var at := Vector2(tx - 17, (hy if st < 3.9 else 167.0) + 5).floor() + Vector2(drive, 0).floor()
 	fx.draw_rect(Rect2(tx - 3, 102, 7, 2), dark)                      # wózek pod wysięgnikiem
 	fx.draw_line(Vector2(tx, 104), Vector2(tx, hy), dark, 1.0)        # lina
 	fx.draw_rect(Rect2(tx - 2, hy, 5, 3), Color(0.66, 0.5, 0.16))     # zblocze haka
-	var at := Vector2(tx - 17, hy + 5).floor()
-	fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)  # zawiesia
-	fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
-	fx.draw_texture(Game.tex("cut_scope"), at)
+	if st < 3.9:  # zawiesia, dopóki teleskop wisi
+		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)
+		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
+	fx.draw_texture(Game.tex("cut_scope"), at, dim)
+	fx.draw_texture(Game.tex("cut_truck"), Vector2(226 + floorf(drive), 176), dim)  # skrzynia zasłania dół teleskopu
 
 
 ## sprite stojący stopami na y (x = lewa krawędź)

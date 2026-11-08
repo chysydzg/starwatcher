@@ -1,6 +1,8 @@
 // Balkon – widok z boku/zza pleców, 640x360. Niebo nocne wypalone w PNG; migotanie, odbicie księżyca i girlandę dorysowuje Godot.
 const { P, R, slab, obj, shadow, piece, savePieces } = require("./kit.js");
 const W = 640, H = 360, SHORE = 210, RAIL = 266, DECK = 302;
+const CUT = process.env.CUT === "1"; // wersja do intro/montażu: bez starego budynku (zastępuje go białe obserwatorium)
+const NAME = CUT ? "_cut" : "";
 const b = new P.Buf(W, H);
 
 // ---- niebo
@@ -47,7 +49,7 @@ for (let x = 4, i = 0; x < W; x += 6 + (i * 7) % 5, i++) {
   P.conifer(b, { x, base: SHORE - 4, h: 14 + (i * 13) % 12, rx: 4 + (i % 3), cols: pine, bark: [[20, 18, 30], [30, 24, 40]], seed: i });
 }
 // ---- opuszczony budynek z małą kopułą (przyszłe laboratorium)
-obj(b, 150, 165, 74, 42, (s) => {
+if (!CUT) obj(b, 150, 165, 74, 42, (s) => {
   const g = P.hueRamp(4, { hue: 230, shift: 20, sat: 0.12, light: [0.12, 0.3] });
   slab(s, 4, 16, 70, 42, g, 0.5, 0.3, { grain: 0.15, sx: 0.3, sy: 0.3 });
   slab(s, 2, 13, 72, 17, g, 0.75, 0.6, { grain: 0 });
@@ -82,7 +84,7 @@ const lake = b.px.slice(); // do pominięcia jeziora w nocnym przyciemnianiu
       if (sy >= SHORE || lake[i] !== skyOnly[i]) v.px[y * W + x] = lake[i];
     }
   }
-  P.save(v, process.argv[2] + "/balcony_view.png");
+  P.save(v, process.argv[2] + "/balcony_view" + NAME + ".png");
 }
 // ---- ściana budynku i otwarte drzwi balkonowe (ciepłe światło z pokoju)
 slab(b, 0, 150, 78, DECK, R.beige, 0.5, 0.35, { grain: 0.06, sx: 0.2, sy: 0.2 });
@@ -161,6 +163,6 @@ const tint = (buf, bg) => {
     }
 };
 tint(b, true);
-P.save(b, process.argv[2] + "/balcony.png");
-savePieces(process.argv[2], "balcony", (buf) => tint(buf, false));
+P.save(b, process.argv[2] + "/balcony" + NAME + ".png");
+if (!CUT) savePieces(process.argv[2], "balcony", (buf) => tint(buf, false));
 console.log("balcony.png");

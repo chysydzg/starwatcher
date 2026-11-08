@@ -105,11 +105,11 @@ function maciej(blink = false) {
   for (let x = 42; x < 46; x++) c.set(x, 73, [96, 28, 70]);                 // dół węzła
   c.add("earL", cap(35, 36, 31, 8, 5.5), fur, { group: "ears" });
   c.add("earLi", cap(34.6, 33, 31.6, 13, 2.4), pinkE, { group: "ears", flat: true });
-  c.add("head", or(sup(CX, 52, 23, 18, 2.4), ell(31, 62, 11, 9), ell(57, 62, 11, 9)), fur, { group: "head" });
-  c.add("muzzle", or(ell(40, 63, 6.5, 5.2), ell(48, 63, 6.5, 5.2)), light, { group: "head", flat: true });
   c.add("earR", cap(53, 36, 55.6, 21, 5.5), fur, { group: "ears" });      // drugie ucho: nasada lustrzana do lewego, za głową
   c.add("earRi", cap(53.4, 33, 55.4, 22, 2.4), pinkE, { group: "ears", flat: true });
   c.add("lop", or(cap(55.6, 20, 63, 23, 5), cap(63, 23, 66, 29.5, 4.6)), furD, { group: "ears" }); // zgina się wysoko, krótki płat opada
+  c.add("head", or(sup(CX, 52, 23, 18, 2.4), ell(31, 62, 11, 9), ell(57, 62, 11, 9)), fur, { group: "head" });
+  c.add("muzzle", or(ell(40, 63, 6.5, 5.2), ell(48, 63, 6.5, 5.2)), light, { group: "head", flat: true });
   // oczy (brązowe), okulary okrągłe, nos, pyszczek, wąsy
   for (const ex of [31, 53]) eye(c, ex, 48, 5, 6, [44, 24, 18], [124, 74, 40], blink ? fur[1] : null);  // środek oka = środek szkła
   for (const ocx of [33, 55]) ring(c, ocx, 51, 6, INK);                     // okrągłe okulary, obręcz 1 px
