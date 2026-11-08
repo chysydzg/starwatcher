@@ -12,3 +12,4 @@ music/*/cache/
 music/*/render_*/
 music/*/analyze_*.txt
 music/render_*.log
+__pycache__/
