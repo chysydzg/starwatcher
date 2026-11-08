@@ -80,7 +80,7 @@ func _dinner() -> void:
 	tw.tween_property(self, "door_a", 1.0, 0.4)
 	tw.tween_interval(2.6)
 	tw.tween_property(fade, "color:a", 1.0, 1.5)
-	tw.tween_callback(_end)
+	tw.tween_callback(_montage)
 
 
 func _end() -> void:
@@ -89,8 +89,249 @@ func _end() -> void:
 	get_tree().change_scene_to_file("res://game/world.tscn")
 
 
+# ---------------------------------------------------------------- montaż: lata mijają w krótkich scenach
+const HOLD := 4.2                     # ile trwa jedna scena
+const QUICK := 0.35                   # szybkie przejście przez czerń
+const PLANKS := [Rect2(156, 188, 11, 3), Rect2(166, 188, 11, 3), Rect2(198, 188, 11, 3), Rect2(208, 188, 11, 3),
+	Rect2(156, 192, 11, 3), Rect2(166, 192, 11, 3), Rect2(198, 192, 11, 3), Rect2(208, 192, 11, 3),
+	Rect2(181, 197, 15, 3), Rect2(181, 203, 15, 3)]  # okna i drzwi obserwatorium (sprite od 147,144)
+const BALCONY_CAM := Vector2(275, 255)  # zoom 2: obserwatorium i balkon w kadrze
+var sc: Node2D                         # bieżąca scena montażu
+var fx := Node2D.new()                 # efekty bieżącej sceny (para, deski, chmury)
+var fx_draw := Callable()
+var tick := Callable()                 # animacja bieżącej sceny: tick(t_sceny)
+var st := 0.0
+
+
+func _exit_tree() -> void:
+	if not fx.is_inside_tree():  # między scenami fx wisi poza drzewem
+		fx.free()
+
+
+func _montage() -> void:
+	for c in get_children():  # scena z rozmową znika pod czernią
+		if c is CanvasItem:
+			c.visible = false
+	fx.draw.connect(func(): if fx_draw.is_valid(): fx_draw.call())
+	for build in [_sc_stars, _sc_mobile, _sc_day, _sc_rain, _sc_pc, _sc_coffee, _sc_board]:
+		sc = Node2D.new()
+		add_child(sc)
+		st = 0.0
+		build.call()
+		add_child(fx)
+		await create_tween().tween_property(fade, "color:a", 0.0, QUICK).finished
+		await get_tree().create_timer(HOLD).timeout
+		await create_tween().tween_property(fade, "color:a", 1.0, QUICK).finished
+		remove_child(fx)
+		sc.queue_free()
+		tick = Callable()
+		fx_draw = Callable()
+		Game.loop("rain_balcony", -INF)
+	await get_tree().create_timer(1.2).timeout  # dalej: szpital (następna scena)
+	_end()
+
+
+func _spr(tex: String, pos: Vector2, parent: Node = null, frames := 1) -> Sprite2D:
+	var s := Sprite2D.new()
+	s.texture = Game.tex(tex)
+	s.centered = false
+	s.position = pos
+	s.hframes = frames
+	(parent if parent else sc).add_child(s)
+	return s
+
+
+## oddech: dwie klatki co 2,6 s, każda postać w swoim rytmie
+func _breathe(s: Sprite2D, phase: float) -> void:
+	s.frame = 1 if fmod(st + phase, 2.6) > 1.5 else 0
+
+
+## kadr sceny: zoom 2 (całe piksele), środek na akcji
+func _cam(at: Vector2) -> void:
+	cam.zoom = Vector2(2, 2)
+	cam.position = at
+
+
+func _balcony_night(rain := false) -> void:
+	_spr("balcony", Vector2.ZERO)
+	var sky = preload("res://game/sky_fx.gd").new()
+	sky.raining = rain
+	sc.add_child(sky)
+	_spr("cut_observatory", Vector2(147, 144))
+	_spr("cut_door", Vector2(19, 219))
+	_cam(BALCONY_CAM)
+
+
+## balkon za dnia: niebo, Słońce i chmury rysowane, widok i balkon rozjaśnione jak w świcie
+func _balcony_day() -> void:
+	var sky := Node2D.new()
+	sky.draw.connect(func():
+		for i in 12:
+			sky.draw_rect(Rect2(0, i * 12, 640, 12), Color("78a8e0").lerp(Color("c8e0f4"), i / 11.0))
+		sky.draw_circle(Vector2(520, 58), 22, Color(1, 0.95, 0.7, 0.25))
+		sky.draw_circle(Vector2(520, 58), 12, Color("fff2c0"))
+		for i in 4:  # chmury płyną powoli w prawo
+			var cx := fposmod(60.0 + i * 170.0 + st * 6.0, 760.0) - 60.0
+			for k in 3:
+				sky.draw_circle(Vector2(cx + k * 12, 40.0 + i * 13 - (6 if k == 1 else 0)), 9.0 - (2 if k != 1 else 0), Color("f6f8fc")))
+	sc.add_child(sky)
+	var bright := Color(1.9, 2.0, 1.7)
+	_spr("balcony_view", Vector2.ZERO).modulate = bright
+	for r in [Rect2(0, 255, 640, 105), Rect2(0, 140, 80, 115)]:  # balustrada, podłoga, ściana z drzwiami
+		var s := _spr("balcony", r.position)
+		s.region_enabled = true
+		s.region_rect = r
+		s.modulate = Color(1.5, 1.5, 1.4)
+	_spr("cut_observatory", Vector2(147, 144)).modulate = Color(1.25, 1.25, 1.2)
+	_spr("cut_door", Vector2(19, 219)).modulate = Color(1.2, 1.2, 1.15)
+	_cam(BALCONY_CAM)
+
+
+## pokój jak w grze: tło i meble według layoutu, sortowane po podstawie
+func _room() -> Node2D:
+	_spr("room", Vector2.ZERO)
+	var sorter := Node2D.new()
+	sorter.y_sort_enabled = true
+	sc.add_child(sorter)
+	for p in Game.layout("room"):
+		var s := _spr(p.name, Vector2(p.x, p.base), sorter)
+		s.offset = Vector2(0, p.y - p.base)
+	return sorter
+
+
+## postać w sortowaniu po stopach (pos = lewy górny róg, h = wysokość sprite'a)
+func _actor(sorter: Node2D, tex: String, pos: Vector2, frames := 2) -> Sprite2D:
+	var s := _spr(tex, pos, sorter, frames)
+	var h: float = s.texture.get_height()
+	s.position = pos + Vector2(0, h)
+	s.offset = Vector2(0, -h)
+	return s
+
+
+## para nad kubkiem: trzy smużki wznoszą się i falują
+func _steam(at: Vector2) -> void:
+	for k in 3:
+		var u := fmod(st * 0.8 + k / 3.0, 1.0)
+		var p := at + Vector2(sin(st * 3.0 + k * 2.0) * 1.5, -u * 14.0)
+		fx.draw_rect(Rect2(p.floor(), Vector2(1, 2)), Color(1, 1, 1, 0.55 * (1.0 - u)))
+
+
+func _sc_stars() -> void:  # balkon nocą: tata z parującą kawą, mała Jania na podłodze z zeszytem
+	_balcony_night()
+	_spr("balcony_telescope", Vector2(372, 293))
+	var m := _spr("cut_maciej_mug", Vector2(312, 274), null, 2)
+	var j := _spr("cut_jania_sit", Vector2(262, 298), null, 2)
+	tick = func(): _breathe(m, 0.0); j.frame = int(st * 3.0) % 2  # ołówek skrobie
+	fx_draw = func(): _steam(Vector2(345, 314))
+
+
+func _sc_mobile() -> void:  # pokój: tata na krześle wiesza układ słoneczny, Jania patrzy
+	var so := _room()
+	_spr("room_chair", Vector2(303, 193))
+	var m := _spr("cut_maciej_hang", Vector2(305, 147), null, 2)  # stoi na siedzisku, łapa przy nitce
+	var j := _actor(so, "cut_jania_joy", Vector2(244, 168))
+	_cam(Vector2(300, 180))
+	tick = func(): _breathe(m, 0.0); _breathe(j, 0.8)
+	fx_draw = func():  # model: nitka z sufitu, obręcz, planety krążą wokół Słońca
+		var c := Vector2(352, 162)  # tata trzyma lewy brzeg obręczy
+		fx.draw_line(Vector2(c.x, 0), c, Color("d8d0c0"), 1.0)
+		var pl := [[Color("c8a070"), 3.0], [Color("6a9ae0"), 4.0], [Color("d06a4a"), 3.0], [Color("e0c070"), 5.0], [Color("8ac0d8"), 4.0]]
+		for k in pl.size():
+			var a := st * 0.7 + k * TAU / pl.size()
+			var p := c + Vector2(cos(a) * 26.0, 10.0 + sin(a) * 6.0)
+			fx.draw_line(c + Vector2(cos(a) * 26.0, sin(a) * 6.0), p, Color("d8d0c0"), 1.0)
+			fx.draw_circle(p.floor(), pl[k][1], pl[k][0])
+		var ring := PackedVector2Array()
+		for k in 33:
+			ring.append(c + Vector2(cos(k * TAU / 32) * 26.0, sin(k * TAU / 32) * 6.0))
+		fx.draw_polyline(ring, Color("b0a890"), 1.0)
+		fx.draw_circle(c + Vector2(0, 12), 6.0, Color("ffd060"))
+
+
+func _sc_day() -> void:  # balkon za dnia: oboje patrzą na drugi brzeg
+	_balcony_day()
+	_spr("balcony_telescope", Vector2(372, 293)).modulate = Color(1.4, 1.4, 1.35)
+	var j := _spr("cut_jania_back", Vector2(283, 300), null, 2)
+	var m := _spr("cut_maciej_back", Vector2(312, 274), null, 2)
+	j.modulate = Color(1.15, 1.15, 1.1)
+	m.modulate = Color(1.15, 1.15, 1.1)
+	tick = func(): _breathe(m, 0.0); _breathe(j, 0.9)
+	fx_draw = func():  # błyski na wodzie
+		for i in 40:
+			var y := 224 + (i * 37) % 36
+			var x := floorf(fposmod(i * 89.0 + st * (4.0 + i % 5 * 2.0), 680.0) - 20.0)
+			fx.draw_rect(Rect2(x, y, 3 + i % 3 * 2, 1), Color(1, 1, 1, 0.25 + 0.35 * maxf(0.0, sin(st * 1.7 + i * 2.3))))
+
+
+func _sc_rain() -> void:  # balkon nocą w deszczu: tata stoi sam
+	_balcony_night(true)
+	var m := _spr("cut_maciej_back", Vector2(312, 274), null, 2)
+	var front = preload("res://game/sky_fx.gd").new()
+	front.raining = true
+	front.front = true
+	sc.add_child(front)
+	Game.loop("rain_balcony", -12.0)
+	tick = func(): _breathe(m, 0.0)
+
+
+func _sc_pc() -> void:  # pokój: Jania przy komputerze, tata obok
+	var so := _room()
+	var j := _actor(so, "cut_teen_back", Vector2(362, 96))
+	var m := _actor(so, "cut_maciej_back", Vector2(400, 82))
+	j.position.y = 146
+	_cam(Vector2(390, 120))
+	tick = func(): _breathe(m, 0.0); _breathe(j, 1.1)
+	fx_draw = func():  # monitor migocze
+		fx.draw_rect(Rect2(350, 72, 24, 18), Color(0.55, 0.9, 1.0, 0.18 + 0.08 * sin(st * 9.0)))
+
+
+func _sc_coffee() -> void:  # pokój: tata o balkoniku, starsza Jania niesie mu kawę
+	var so := _room()
+	var m := _actor(so, "cut_maciej_front", Vector2(430, 118))
+	_actor(so, "cut_walker", Vector2(428, 160), 1).position.y = 188
+	var j := _actor(so, "cut_teen_walk", Vector2(250, 140), 5)
+	_cam(Vector2(370, 160))
+	tick = func():
+		_breathe(m, 0.0)
+		var x := minf(250.0 + st * 40.0, 384.0)  # podchodzi i staje przed tatą
+		j.position.x = x
+		j.frame = 0 if x >= 384.0 else 1 + int(st * 8.0) % 4
+	fx_draw = func():
+		var p: Vector2 = j.position + Vector2(29, -22)  # kubek w wyciągniętej łapie
+		fx.draw_rect(Rect2(p, Vector2(4, 4)), Color("eef0f6"))
+		fx.draw_rect(Rect2(p + Vector2(4, 1), Vector2(1, 2)), Color("d6dce6"))
+		_steam(p + Vector2(1, -1))
+
+
+func _sc_board() -> void:  # balkon: stare obserwatorium zabijają deskami, tata na wózku, dorosła Jania przy nim
+	_balcony_night()
+	var m := _spr("cut_maciej_sit", Vector2(300, 262), null, 2)
+	_spr("cut_wheelchair", Vector2(300, 290))
+	var j := _spr("jania", Vector2(334, 285), null, 8)
+	j.vframes = 3
+	j.frame = 16
+	var placed := [0]
+	tick = func():
+		_breathe(m, 0.0)
+		cam.position = Vector2(205, 205).lerp(Vector2(300, 262), smoothstep(1.0, HOLD, st))  # od desek do taty
+		j.frame = 23 if fmod(st + 1.2, 2.6) > 1.5 else 16
+		var n := mini(PLANKS.size(), int(st / 0.45))
+		if n > placed[0]:  # kolejna deska przybita: ciche, dalekie stuknięcie
+			placed[0] = n
+			Game.sfx("knock", randf_range(1.6, 1.9), -22.0)
+	fx_draw = func():
+		for i in mini(PLANKS.size(), int(st / 0.45)):
+			fx.draw_rect(PLANKS[i].grow(1), Color("2a1c18"))
+			fx.draw_rect(PLANKS[i], Color("8a6a48"))
+			fx.draw_rect(Rect2(PLANKS[i].position, Vector2(PLANKS[i].size.x, 1)), Color("a8845a"))
+
+
 func _process(dt: float) -> void:
 	t += dt
+	st += dt
+	if tick.is_valid():
+		tick.call()
+	fx.queue_redraw()
 	for c in chars:  # spokojny oddech, każde w swoim rytmie
 		c[0].frame = 1 if fmod(t + c[1], 2.6) > 1.5 else 0
 	obs.queue_redraw()

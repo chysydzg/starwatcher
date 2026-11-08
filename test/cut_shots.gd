@@ -42,4 +42,8 @@ func _ready() -> void:
 	await space()
 	await wait(1.6)
 	await shot("7_kolacja")
+	await wait(3.6 + 2.85)  # napis, czerń, pierwsza scena montażu w połowie
+	for k in 7:
+		await shot("m%d" % (k + 1))
+		await wait(4.9)
 	Game.quit()

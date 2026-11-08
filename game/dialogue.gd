@@ -82,7 +82,11 @@ func _draw_box() -> void:
 	var inner := PORT.grow(-6)
 	_box.draw_rect(inner, Color("1c2440"))
 	_box.draw_rect(Rect2(inner.position.x, inner.end.y - 30, inner.size.x, 30), Color("232c4c"))  # ciemniejsze tło portretu u dołu
-	_box.draw_texture(Game.tex(who[1]), (inner.position + (inner.size - Vector2(88, 88)) / 2).floor() + Vector2(0, 2))
+	# portret żyje: oddech (cały biust 1 px w dół, dół przycięty ramką) i mrugnięcie co ok. 3,4 s
+	var d := 1 if fmod(_t, 2.6) > 1.5 else 0
+	var blink := 88 if fmod(_t + 0.7, 3.4) < 0.14 else 0
+	var pos := (inner.position + (inner.size - Vector2(88, 88)) / 2).floor() + Vector2(0, 2 + d)
+	_box.draw_texture_rect_region(Game.tex(who[1]), Rect2(pos, Vector2(88, 88 - d)), Rect2(blink, 0, 88, 88 - d))
 	var plate := Rect2(PORT.position.x, PORT.end.y - 2, PORT.size.x, 24)
 	var cap := Game.keycap(_box, plate, false)
 	_box.draw_string(Game.font, Vector2(cap.position.x, cap.position.y + 13).floor(), who[0], HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, Game.FS, Color("1a1626"))

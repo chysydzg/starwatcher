@@ -65,7 +65,12 @@ const and = (...f) => (x, y) => f.every((g) => g(x, y));
 const ramp = (n, o) => P.hueRamp(n, o);
 
 // oko: ciemny owal z białym odblaskiem (lustrzane pary rysuje wywołujący)
-function eye(c, ex, ey, w, h, dark, iris) {
+function eye(c, ex, ey, w, h, dark, iris, closed = null) {
+  if (closed) {  // mrugnięcie: powieka w kolorze sierści i kreska rzęs
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) c.set(ex + x, ey + y, closed);
+    for (let x = 0; x < w; x++) c.set(ex + x, ey + h - 2, dark);
+    return;
+  }
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const corner = (x === 0 || x === w - 1) && (y === 0 || y === h - 1);
     if (!corner) c.set(ex + x, ey + y, iris && y > 0 && y < h - 1 && x > 0 && x < w - 1 && y >= h / 2 - 1 ? iris : dark);
@@ -82,7 +87,7 @@ function ring(c, cx, cy, r, col) {
   }
 }
 
-function maciej() {
+function maciej(blink = false) {
   const c = new Canvas();
   const fur = ramp(3, { hue: 224, shift: 22, sat: 0.1, light: [0.5, 0.78] });
   const furD = ramp(3, { hue: 228, shift: 20, sat: 0.1, light: [0.4, 0.64] });
@@ -99,7 +104,7 @@ function maciej() {
   c.add("muzzle", or(ell(40, 63, 6.5, 5.2), ell(48, 63, 6.5, 5.2)), light, { group: "head", flat: true });
   c.add("lop", or(cap(52, 37, 56, 23, 5), cap(56, 23, 66, 27, 5), cap(66, 27, 69, 41, 4.6)), furD, { group: "lop" }); // drugie ucho złamane: wstaje i opada na bok
   // oczy (brązowe), okulary okrągłe, nos, pyszczek, wąsy
-  for (const ex of [31, 53]) eye(c, ex, 48, 5, 6, [44, 24, 18], [124, 74, 40]);  // środek oka = środek szkła
+  for (const ex of [31, 53]) eye(c, ex, 48, 5, 6, [44, 24, 18], [124, 74, 40], blink ? fur[1] : null);  // środek oka = środek szkła
   for (const ocx of [33, 55]) ring(c, ocx, 51, 6, INK);                     // okrągłe okulary, obręcz 1 px
   for (let x = 41; x <= 46; x++) c.set(x, 50, INK);                          // mostek
   for (let x = 20; x < 26; x++) c.set(x, 49 - Math.floor((26 - x) / 3), INK); // zauszniki
@@ -117,7 +122,7 @@ function maciej() {
   return c.render();
 }
 
-function jania() {
+function jania(blink = false) {
   const c = new Canvas();
   const fur = ramp(3, { hue: 24, shift: 26, sat: 0.72, light: [0.44, 0.66] });
   const cream = ramp(2, { hue: 34, shift: 14, sat: 0.5, light: [0.78, 0.9] });
@@ -131,7 +136,7 @@ function jania() {
   c.add("earsi", cap(37, 42, 34.8, 24, 2), pink, { group: "ears", flat: true, mirror: true });
   c.add("head", or(sup(CX, 59, 19, 15, 2.4), ell(33, 66, 9, 7), ell(55, 66, 9, 7)), fur, { group: "head" });
   c.add("muzzle", or(ell(40, 68, 5.5, 4.4)), cream, { group: "head", flat: true, mirror: true });
-  for (const ex of [33, 51]) eye(c, ex, 56, 5, 7, [34, 20, 18], null);
+  for (const ex of [33, 51]) eye(c, ex, 56, 5, 7, [34, 20, 18], null, blink ? fur[1] : null);
   for (const [x, y] of [[29, 64], [30, 64], [31, 64]]) { c.set(x, y, pink[0]); c.set(mir(x), y, pink[0]); } // rumieńce
   for (const [x, y] of [[42, 64], [43, 64], [42, 65], [43, 65]]) { c.set(x, y, pink[0]); c.set(mir(x), y, pink[0]); } // nosek
   for (const [x, y] of [[43, 66], [42, 67], [41, 67]]) { c.set(x, y, fur[0]); c.set(mir(x), y, fur[0]); } // pyszczek
@@ -141,7 +146,9 @@ function jania() {
   return c.render();
 }
 
+// arkusz 2 klatek: otwarte oczy, mrugnięcie (oddech robi okienko dialogu przesunięciem o 1 px)
 const M = maciej(), J = jania();
-P.save(J, OUT + "/portrait_jania.png"); P.save(M, OUT + "/portrait_maciej.png");
+P.save(P.pack([J, jania(true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania.png");
+P.save(P.pack([M, maciej(true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej.png");
 P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");
 console.log("edge J", JSON.stringify(P.edgeCheck(J)).slice(0, 120), "M", JSON.stringify(P.edgeCheck(M)).slice(0, 120));
