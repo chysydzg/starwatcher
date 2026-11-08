@@ -37,10 +37,8 @@ function observatory() {
   P.solid(dome, [P.ell(40, 35, 17, 16)], white, { light: [-0.5, -0.7, 0.5] });                               // kopuła: tylko półkula nad dachem
   for (let y = 0; y < 35; y++) for (let x = 0; x < 80; x++) { const u = dome.get(x, y); if (u >>> 24) b.px[y * 80 + x] = u; }
   for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
-  P.solid(b, [P.cap(40, 32, 60, 6, 4.2, 3.6)], steel, { light: [-0.5, -0.7, 0.5] });                         // gruby tubus
-  P.solid(b, [P.cap(57, 10, 62, 3, 4.6, 4.6)], white, { light: [-0.5, -0.7, 0.5] });                         // osłona obiektywu
-  P.solid(b, [P.cap(46, 24, 48, 21, 4.6, 4.6)], steel, { dark: 0.8 });                                        // obejma
-  for (let x = 4; x < 77; x++) b.pset(x, 33, white[1]);                                                      // pierścień bębna
+  P.solid(b, [P.cap(40, 31, 55, 11, 2.4, 5.2)], steel, { light: [-0.5, -0.7, 0.5] });                        // teleskop: stożek rozszerza się ku obiektywowi
+  P.solid(b, [P.cap(55, 11, 56.5, 9, 5.4, 5.4)], white, { light: [-0.5, -0.7, 0.5] });                       // pierścień obiektywu
   for (const wx of [10, 20, 52, 62]) {                                                                       // okna: świeci się
     for (let y = 43; y < 50; y++) for (let x = wx; x < wx + 7; x++) b.pset(x, y, steel[1]);
     for (let y = 44; y < 49; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, y > 46 ? warmD : warm);
@@ -51,19 +49,20 @@ function observatory() {
   for (let x = 32; x < 49; x++) b.pset(x, 63, white[1]);                                                    // schodek
   return ink(b);
 }
-// drzwi balkonowe zamknięte: białe skrzydło, szyba z ciepłym światłem i firanką, płycina na dole
+// drzwi balkonowe zamknięte, takie same jak w pokoju (jasne drewno, 4 szybki, ceglasta płycina);
+// od strony balkonu szybki świecą ciepło, bo w mieszkaniu pali się światło
 function door() {
   const b = new P.Buf(36, 83);
-  const wood = P.hueRamp(4, { hue: 36, shift: 18, sat: 0.14, light: [0.5, 0.88] });
-  const glow = P.hueRamp(3, { hue: 40, shift: 16, sat: 0.7, light: [0.62, 0.86] });
-  for (let y = 0; y < 83; y++) for (let x = 0; x < 36; x++) b.pset(x, y, wood[x < 2 ? 3 : x > 33 ? 1 : 2]);
-  for (let y = 5; y < 48; y++) for (let x = 5; x < 31; x++) b.pset(x, y, glow[(x - 5) % 6 < 3 ? 2 : 1]);  // firanka w fałdach
-  for (let y = 5; y < 48; y++) { b.pset(17, y, wood[2]); b.pset(18, y, wood[1]); }                      // szczeblina pionowa
-  for (let x = 5; x < 31; x++) { b.pset(x, 26, wood[2]); b.pset(x, 27, wood[1]); }                      // pozioma
-  for (let x = 4; x < 32; x++) { b.pset(x, 4, wood[0]); b.pset(x, 48, wood[3]); }
-  for (let y = 4; y < 49; y++) { b.pset(4, y, wood[0]); b.pset(31, y, wood[3]); }
-  for (let y = 54; y < 78; y++) for (let x = 6; x < 30; x++) b.pset(x, y, y === 54 || x === 6 ? wood[1] : y === 77 || x === 29 ? wood[3] : wood[2]); // płycina
-  for (const [x, y] of [[29, 50], [30, 50], [29, 51], [30, 51], [29, 52]]) b.pset(x, y, [232, 196, 96]); // klamka
+  const FRAME = [192, 166, 107], FRAME_D = [163, 121, 75], PANEL = [170, 102, 72], PANEL_D = [127, 65, 49];
+  const glow = [[236, 196, 120], [250, 222, 150]], HANDLE = [236, 200, 90];
+  for (let y = 0; y < 83; y++) for (let x = 0; x < 36; x++) b.pset(x, y, x > 33 || y > 80 ? FRAME_D : FRAME);
+  for (const [px, py] of [[5, 6], [19, 6], [5, 29], [19, 29]])                                   // 4 szybki jak w pokoju
+    for (let y = py; y < py + 20; y++) for (let x = px; x < px + 12; x++)
+      b.pset(x, y, y > py + 16 && (x + y) % 2 ? glow[0] : glow[1]);
+  for (const [px, py] of [[5, 6], [19, 6], [5, 29], [19, 29]]) for (let k = 0; k < 5; k++) b.pset(px + 4 + k, py + 9 - k, [255, 240, 196]); // odblask
+  for (let y = 55; y < 77; y++) for (let x = 5; x < 31; x++) b.pset(x, y, y === 55 ? [201, 201, 156] : PANEL);               // płycina
+  for (let x = 5; x < 31; x++) b.pset(x, 76, PANEL_D);
+  for (const [x, y] of [[30, 48], [31, 48], [31, 49], [31, 50]]) b.pset(x, y, HANDLE);           // klamka
   return b;
 }
 const out = process.argv[2];

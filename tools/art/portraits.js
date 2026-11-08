@@ -28,13 +28,13 @@ function maciej() {
   const shirt = ramp(3, { hue: 208, shift: 18, sat: 0.4, light: [0.4, 0.64] });
   const inner = ramp(3, { hue: 350, shift: 16, sat: 0.18, light: [0.5, 0.7] });
   const iris = [[46, 24, 16], [118, 70, 38], [170, 112, 64]];
-  S(b, [E(44, 72, 10, 8)], fur);                                              // szyja
-  S(b, [E(44, 104, 42, 28)], coat);                                           // kitel
-  for (let y = 76; y < 88; y++) { const d = (y - 76) >> 1; for (let x = 44 - d - 2; x <= 44 + d + 2; x++) b.pset(x, y, shirt[1]); }
-  for (let y = 76; y < 88; y++) { const d = (y - 76) >> 1; b.pset(42 - d - 2, y, coat[1]); b.pset(46 + d + 2, y, coat[1]); } // klapy
-  for (let y = 80; y < 88; y++) b.pset(44, y, shirt[0]);                        // guziki koszuli w linii
-  for (let x = 60; x < 68; x++) b.pset(x, 82, coat[1]);                         // kieszeń na piersi
-  for (let y = 77; y < 82; y++) { b.pset(63, y, [70, 110, 200]); b.pset(65, y, [210, 70, 60]); } // długopisy
+  S(b, [E(44, 66, 7, 5)], fur);                                               // krótka szyja
+  S(b, [E(44, 98, 42, 28)], coat);                                            // kitel: szerokie ramiona tuż pod głową
+  for (let y = 70; y < 88; y++) { const d = (y - 70) >> 1; for (let x = 44 - d - 2; x <= 44 + d + 2; x++) b.pset(x, y, shirt[1]); }
+  for (let y = 70; y < 88; y++) { const d = (y - 70) >> 1; b.pset(42 - d - 2, y, coat[1]); b.pset(46 + d + 2, y, coat[1]); } // klapy
+  for (let y = 74; y < 88; y++) b.pset(44, y, shirt[0]);                        // guziki koszuli w linii
+  for (let x = 60; x < 68; x++) b.pset(x, 80, coat[1]);                         // kieszeń na piersi
+  for (let y = 75; y < 80; y++) { b.pset(63, y, [70, 110, 200]); b.pset(65, y, [210, 70, 60]); } // długopisy
   S(b, [C(33, 30, 26, 2, 5.6, 4.4)], fur);                                    // ucho stoi
   S(b, [C(32.6, 28, 26.6, 6, 2.6, 2)], inner);
   S(b, [E(44, 46, 22, 19), E(29, 56, 10, 8.5), E(59, 56, 10, 8.5)], fur);     // głowa z puszystymi policzkami
@@ -61,11 +61,11 @@ function jania() {
   const denim = ramp(4, { hue: 214, shift: 26, sat: 0.5, light: [0.28, 0.6] });
   const pink = ramp(3, { hue: 350, shift: 12, sat: 0.55, light: [0.58, 0.82] });
   const iris = [[30, 18, 16], [64, 36, 28], [120, 80, 60]];
-  S(b, [E(44, 104, 30, 26), E(44, 74, 10, 9)], fur);                          // ramiona i szyja
-  S(b, [E(44, 82, 10, 6)], cream);                                            // kremowa pierś
+  S(b, [E(44, 100, 32, 26), E(44, 69, 6, 4)], fur);                           // ramiona tuż pod głową, krótka szyja
+  S(b, [E(44, 79, 8, 5)], cream);                                             // kremowa pierś
   for (let y = 80; y < 88; y++) for (let x = 31; x <= 57; x++) b.pset(x, y, y === 80 ? denim[3] : denim[2]); // śliniak
   for (let y = 83; y < 88; y++) for (let x = 39; x <= 49; x++) b.pset(x, y, denim[1]);                   // kieszonka
-  for (const x of [31, 32, 56, 57]) for (let y = 78; y < 81; y++) b.pset(x, y, denim[1]);                // szelki
+  for (const x of [31, 32, 56, 57]) for (let y = 76; y < 81; y++) b.pset(x, y, denim[1]);                // szelki
   for (const x of [32, 56]) { b.pset(x, 82, [255, 214, 92]); b.pset(x - 1 + (x > 44 ? 1 : 0), 82, [255, 214, 92]); }
   S(b, [C(36, 34, 31, 10, 4.6, 3.8), C(52, 34, 57, 10, 4.6, 3.8)], fur);      // uszy (mniejsza głowa: dziecko)
   S(b, [C(35.6, 32, 31.6, 13, 2.2, 1.6), C(52.4, 32, 56.4, 13, 2.2, 1.6)], pink);
