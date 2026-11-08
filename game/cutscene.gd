@@ -328,8 +328,7 @@ func _sc_board() -> void:
 func _draw_site() -> void:
 	var tx := lerpf(186.0, 245.0, smoothstep(0.5, 2.5, st))
 	var hy := lerpf(135.0, 167.0, smoothstep(2.6, 3.8, st)) - 40.0 * smoothstep(3.9, 4.6, st)
-	var td := maxf(0.0, st - CLOSE)  # wielki diesel: rusza powoli (12 px/s²), potem jedzie 30 px/s
-	var drive := 6.0 * td * td if td < 2.5 else 37.5 + 30.0 * (td - 2.5)
+	var drive := _drive(st)
 	var shake := 1.0 if st > 3.9 and fmod(st, 0.11) < 0.05 else 0.0  # silnik pracuje: wywrotka lekko drży
 	var dim := Color(0.78, 0.78, 0.9)
 	var dark := Color(0.12, 0.12, 0.16)
@@ -341,7 +340,21 @@ func _draw_site() -> void:
 		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)
 		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
 	fx.draw_texture(Game.tex("cut_scope"), at, dim)
+	for k in 14:  # dym z rury wydechowej z tyłu: kłęby rosną, unoszą się, zostają za autem i znikają
+		var age := fmod(st * 0.9 + k / 14.0, 1.0) * 1.6
+		var born := st - age
+		if born < 3.9:
+			continue
+		var o := Vector2(226 + floorf(_drive(born)) + 2, 196)
+		var p := o + Vector2(-5.0 * age - 2.0, -9.0 * age)
+		fx.draw_circle(p.floor(), 1.5 + 3.0 * age, Color(0.6, 0.6, 0.66, 0.75 * (1.0 - age / 1.6)))
 	fx.draw_texture(Game.tex("cut_truck"), Vector2(226 + floorf(drive), 176 + shake), dim)  # skrzynia zasłania dół teleskopu
+
+
+## wielki diesel: rusza powoli (12 px/s²), potem jedzie 30 px/s
+func _drive(t: float) -> float:
+	var td := maxf(0.0, t - CLOSE)
+	return 6.0 * td * td if td < 2.5 else 37.5 + 30.0 * (td - 2.5)
 
 
 ## sprite stojący stopami na y (x = lewa krawędź)
