@@ -94,12 +94,14 @@ const HOLD := 4.2                     # ile trwa jedna scena
 const QUICK := 0.35                   # szybkie przejście przez czerń
 const CLOSE := 4.6                     # finał: zbliżenie, żuraw wkłada teleskop do wywrotki; potem rusza i kamera się cofa
 const PULL := 3.2                      # finał: odjazd kamery na balkon razem z odjeżdżającą wywrotką
+const ENGINE_ON := 4.58                # finał: silnik łapie (koniec kręcenia rozrusznikiem)
 const FINAL_CAM := Vector2(262, 250)   # finał: całe obserwatorium w lewym górnym rogu, tata i Jania, wywrotka
 const BALCONY_CAM := Vector2(275, 255)  # zoom 2: obserwatorium i balkon w kadrze
 var sc: Node2D                         # bieżąca scena montażu
 var fx := Node2D.new()                 # efekty bieżącej sceny (para, deski, chmury)
 var fx_draw := Callable()
 var hold := HOLD                       # bieżąca scena może trwać dłużej (finał)
+var _cues := {}                        # dźwięki sceny, które już zagrały
 var tick := Callable()                 # animacja bieżącej sceny: tick(t_sceny)
 var st := 0.0
 
@@ -119,6 +121,7 @@ func _montage() -> void:
 		add_child(sc)
 		st = 0.0
 		hold = HOLD
+		_cues.clear()
 		build.call()
 		add_child(fx)
 		await create_tween().tween_property(fade, "color:a", 0.0, QUICK).finished
@@ -223,7 +226,11 @@ func _sc_stars() -> void:  # balkon nocą: tata z profilu patrzy na Janię, kube
 	_spr("balcony_telescope", Vector2(372, 293))
 	var m := _spr("cut_maciej_mug", Vector2(304, 275), null, 2)
 	var j := _spr("cut_jania_sit", Vector2(262, 298), null, 2)
-	tick = func(): _breathe(m, 0.0); j.frame = int(st * 3.0) % 2  # łapka z ołówkiem skrobie w miejscu
+	tick = func():
+		_breathe(m, 0.0)
+		j.frame = int(st * 3.0) % 2  # łapka z długopisem skrobie w miejscu
+		if _cue("p%d" % int(st / 0.55), 0.3):
+			Game.sfx("pencil", randf_range(0.9, 1.1), -14.0)
 	fx_draw = func(): _steam(m.position + Vector2(3, 34 - m.frame))
 
 
@@ -297,6 +304,9 @@ func _sc_coffee() -> void:  # pokój: tata o balkoniku, starsza Jania niesie mu 
 		var x := minf(250.0 + st * 40.0, 404.0)  # podchodzi i staje przed balkonikiem
 		j.position.x = x
 		j.frame = 0 if x >= 404.0 else 1 + int(st * 8.0) % 4
+		var foot := int(st * 4.0)  # cicho tupta: łapka co drugą klatkę chodu
+		if x < 404.0 and _cue("s%d" % foot, 0.0):
+			Game.sfx("step%d" % (foot % 4), randf_range(1.15, 1.3), -16.0)
 	fx_draw = func(): _steam(j.position + Vector2(16, -j.texture.get_height() + 29 - (1 if j.frame % 2 == 0 and j.frame > 0 else 0)))
 
 
@@ -320,6 +330,12 @@ func _sc_board() -> void:
 		var u := smoothstep(CLOSE, CLOSE + PULL, st)
 		cam.zoom = Vector2.ONE * 3.0 * pow(2.0 / 3.0, u)
 		cam.position = Vector2(207, 151).lerp(FINAL_CAM, u)
+		if _cue("clank", 3.78):  # teleskop ląduje w skrzyni
+			Game.sfx("clank", 1.0, -6.0)
+		if _cue("start", 3.88):  # rozrusznik, silnik łapie ok. 0,7 s później
+			Game.sfx("engine_start", 1.0, -8.0)
+		if _cue("drive", CLOSE):
+			Game.sfx("truck_drive", 1.0, -8.0)
 	fx_draw = _draw_site
 
 
@@ -329,7 +345,7 @@ func _draw_site() -> void:
 	var tx := lerpf(186.0, 245.0, smoothstep(0.5, 2.5, st))
 	var hy := lerpf(135.0, 167.0, smoothstep(2.6, 3.8, st)) - 40.0 * smoothstep(3.9, 4.6, st)
 	var drive := _drive(st)
-	var shake := 1.0 if st > 3.9 and fmod(st, 0.11) < 0.05 else 0.0  # silnik pracuje: wywrotka lekko drży
+	var shake := 1.0 if st > ENGINE_ON and fmod(st, 0.11) < 0.05 else 0.0  # silnik pracuje: wywrotka lekko drży
 	var dim := Color(0.78, 0.78, 0.9)
 	var dark := Color(0.12, 0.12, 0.16)
 	var at := Vector2(tx - 17, (hy if st < 3.9 else 167.0 + shake) + 5).floor() + Vector2(drive, 0).floor()
@@ -340,15 +356,43 @@ func _draw_site() -> void:
 		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)
 		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
 	fx.draw_texture(Game.tex("cut_scope"), at, dim)
-	for k in 14:  # dym z rury wydechowej z tyłu: kłęby rosną, unoszą się, zostają za autem i znikają
-		var age := fmod(st * 0.9 + k / 14.0, 1.0) * 1.6
-		var born := st - age
-		if born < 3.9:
+	var truck := Vector2(226 + floorf(drive), 176 + shake)
+	fx.draw_texture(Game.tex("cut_truck"), truck, dim)  # skrzynia zasłania dół teleskopu
+	var wf := int(drive / 2.43) % 4  # koło r 6,2 px: klatka co 22,5° obrotu
+	for wx in [7, 41]:
+		fx.draw_texture_rect_region(Game.tex("cut_wheel"), Rect2(truck + Vector2(wx, 18), Vector2(15, 15)), Rect2(wf * 15, 0, 15, 15), dim)
+	_draw_exhaust()
+
+
+## dym z rury wydechowej za kabiną: pikselowe kłęby (bez półprzezroczystości) rosną, jaśnieją i rozpadają się w kratkę
+func _draw_exhaust() -> void:
+	if st < ENGINE_ON:
+		return
+	var every := 0.12
+	for k in range(maxi(0, int((st - ENGINE_ON - 1.4) / every)), int((st - ENGINE_ON) / every) + 1):
+		var born := ENGINE_ON + k * every
+		var age := st - born
+		if age < 0.0 or age > 1.4:
 			continue
-		var o := Vector2(226 + floorf(_drive(born)) + 2, 196)
-		var p := o + Vector2(-5.0 * age - 2.0, -9.0 * age)
-		fx.draw_circle(p.floor(), 1.5 + 3.0 * age, Color(0.6, 0.6, 0.66, 0.75 * (1.0 - age / 1.6)))
-	fx.draw_texture(Game.tex("cut_truck"), Vector2(226 + floorf(drive), 176 + shake), dim)  # skrzynia zasłania dół teleskopu
+		var pipe := Vector2(226 + floorf(_drive(born)) + 38, 176)  # wylot rury (od momentu wydmuchu kłąb zostaje w powietrzu)
+		var p := (pipe + Vector2(-6.0 * age - (k % 3), -12.0 * age)).floor()
+		var r := 1 if age < 0.2 else 2 if age < 0.6 else 3
+		var c := Color8(70, 70, 80) if age < 0.25 else Color8(104, 104, 114) if age < 0.7 else Color8(136, 136, 146)
+		for dy in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if absi(dx) + absi(dy) > r + (1 if r > 1 else 0):
+					continue  # zaokrąglone rogi kłębu
+				if age > 1.0 and (dx + dy) % 2 != 0:
+					continue  # rozpada się w kratkę
+				fx.draw_rect(Rect2(p + Vector2(dx, dy), Vector2.ONE), c)
+
+
+## dźwięk/zdarzenie sceny: raz, gdy czas sceny minie `at`
+func _cue(key: String, at: float) -> bool:
+	if st < at or _cues.has(key):
+		return false
+	_cues[key] = true
+	return true
 
 
 ## wielki diesel: rusza powoli (12 px/s²), potem jedzie 30 px/s

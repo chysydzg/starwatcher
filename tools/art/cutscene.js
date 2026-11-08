@@ -203,11 +203,26 @@ function truck() {
   for (let y = 6; y < 23; y++) for (let x = 39; x < 57; x++) { const nose = x > 52 && y < 12 + (x - 52); if (!nose) b.pset(x, y, y > 18 ? YEL[1] : YEL[0]); } // kabina
   for (let y = 8; y < 14; y++) for (let x = 43; x < 52; x++) b.pset(x, y, x > 48 ? [96, 150, 170] : [60, 84, 110]); // szyba
   for (let y = 17; y < 24; y++) for (let x = 56; x < 60; x++) b.pset(x, y, YEL[1]);                       // zderzak
-  for (const wx of [13, 47]) for (let y = 18; y < 31; y++) for (let x = wx - 6; x <= wx + 6; x++) {   // koła
-    const d = Math.hypot(x - wx, y - 24.5);
-    if (d <= 6.2) b.pset(x, y, d < 2.6 ? YEL[0] : d < 3.4 ? YEL[2] : BLK);
+  for (const wx of [13, 47]) for (let y = 18; y < 31; y++) for (let x = wx - 7; x <= wx + 7; x++) {  // nadkola (koła rysuje gra)
+    if (Math.hypot(x - wx, y - 24.5) <= 7.2 && y < 25) b.pset(x, y, BLK);
   }
+  for (let y = 1; y < 22; y++) { b.pset(37, y, y < 3 ? [150, 152, 160] : [70, 72, 80]); b.pset(38, y, y < 3 ? [190, 192, 200] : [120, 122, 132]); } // rura wydechowa za kabiną
   return ink(b);
+}
+// koło wywrotki: opona z bieżnikiem, żółta felga, 4 śruby; 4 klatki obrotu co 22,5° (wzór powtarza się co 90°)
+function wheel(f) {
+  const b = new P.Buf(13, 13), a0 = f * Math.PI / 8;
+  for (let y = 0; y < 13; y++) for (let x = 0; x < 13; x++) {
+    const dx = x - 6, dy = y - 6, d = Math.hypot(dx, dy);
+    if (d > 6.4) continue;
+    let c = d < 2.6 ? YEL[0] : d < 3.5 ? YEL[2] : BLK;
+    const a = Math.atan2(dy, dx) - a0, m = ((a % (Math.PI / 4)) + Math.PI / 4) % (Math.PI / 4);
+    if (d >= 4.6 && m < 0.24) c = [74, 72, 82];                                           // bieżnik
+    b.pset(x, y, c);
+  }
+  for (let k = 0; k < 4; k++) { const a = a0 + k * Math.PI / 2; b.pset(Math.round(6 + Math.cos(a) * 1.8), Math.round(6 + Math.sin(a) * 1.8), YEL[2]); } // śruby
+  b.pset(6, 6, [90, 60, 20]);
+  return P.outline(b, [18, 12, 22]);
 }
 // teleskop wyjęty z kopuły: leżący stożek z pierścieniem obiektywu (wisi na linie żurawia)
 function scope() {
@@ -250,6 +265,7 @@ P.save(observatory(), out + "/cut_observatory.png");
 P.save(observatory(true), out + "/cut_observatory_closed.png");
 P.save(crane(), out + "/cut_crane.png");
 P.save(truck(), out + "/cut_truck.png");
+P.save(P.pack([0, 1, 2, 3].map(wheel), { cols: 4, pad: 0 }), out + "/cut_wheel.png");
 P.save(scope(), out + "/cut_scope.png");
 P.save(door(), out + "/cut_door.png");
 const pk = (fr) => P.pack(fr, { cols: fr.length, pad: 0 });

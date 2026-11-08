@@ -2,7 +2,8 @@
 
 One-shots come from earshot's shipped bank (sounds made in code, checked by measurement); the rest is written here
 with earshot.forge.dsp (modal resonators, filtered noise, rooms). No recorded audio anywhere.
-Run: python tools/sfx/make_sfx.py <earshot src folder>   (needs numpy, scipy, ffmpeg on PATH)
+Run: python tools/sfx/make_sfx.py <earshot src folder> [names...]   (needs numpy, scipy, ffmpeg on PATH)
+Names limit which files are written (e.g. `clank engine_start`); without them every file is rebuilt.
 """
 import os, subprocess, sys, tempfile, wave
 
@@ -15,7 +16,12 @@ SR = dsp.SR
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'game', 'sfx')
 
 
+ONLY = set(sys.argv[2:])
+
+
 def save(name, y, peak_db=-3.0, loop=False):
+    if ONLY and name not in ONLY:
+        return
     y = np.asarray(y, np.float64)
     if y.ndim == 1:
         y = np.stack([y, y], 1)
@@ -292,6 +298,81 @@ def frost(r, seconds=12.0):  # winter: almost silence, a cold breeze and a rare 
     return seamless(dsp.stereo(y, r, width=0.8), 1.0)
 
 
+# ------------------------------------------------------------------ intro: wywrotka zabiera teleskop
+def clank(r):  # stalowy tubus teleskopu opada do stalowej skrzyni: tępy, metaliczny łomot, brzęk blachy, grzechot
+    def hit(g, seed):
+        q = dsp.rng(seed)
+        t = dsp.t_of(dsp.n_of(0.9))
+        ring = sum(a * np.sin(2 * np.pi * f * q.uniform(0.97, 1.03) * t + q.uniform(0, 6.28)) * np.exp(-t / d)  # blacha: gęste, nieharmoniczne
+                   for f, a, d in [(173, 0.5, 0.12), (412, 0.6, 0.1), (689, 0.5, 0.08), (1123, 0.5, 0.06), (1587, 0.4, 0.05),
+                                   (2211, 0.35, 0.04), (2960, 0.3, 0.03), (3870, 0.2, 0.02)])
+        thump = dsp.butter(dsp.noise(0.9, q, 'pink'), 'low', 180) * np.exp(-t / 0.06) * 2.5
+        crash = dsp.butter(dsp.noise(0.9, q), 'high', 900) * np.exp(-t / 0.05) * 0.6
+        return (ring * 0.5 + thump + crash) * g
+    y = np.zeros(dsp.n_of(1.3))
+    dsp.place(y, hit(1.0, 31), 0.0)
+    dsp.place(y, hit(0.35, 32), 0.1)  # tubus podskakuje raz
+    for k in range(6):  # grzechot luźnych części
+        q = dsp.rng(40 + k)
+        tk = dsp.svf(dsp.noise(0.03, q), q.uniform(1800, 4200), q=1.5, mode='band') * dsp.env_exp(0.03, 0.004, 0.0003)
+        dsp.place(y, tk * q.uniform(0.15, 0.35), 0.13 + k * q.uniform(0.025, 0.045))
+    return dsp.room(y, r, rt60=0.5, wet=0.12)
+
+
+def diesel(rate, r, clatter=0.35):
+    """silnik wysokoprężny: zapłony w rytmie `rate` (Hz na próbkę) – niskie pchnięcie wydechu, szum, klekot wtrysku"""
+    n = len(rate)
+    phase = np.cumsum(rate) / SR
+    fires = np.nonzero(np.diff(np.floor(phase)) > 0)[0]
+    shots = []
+    for k in range(4):
+        q = dsp.rng(50 + k)
+        t = dsp.t_of(dsp.n_of(0.09))
+        thump = np.sin(2 * np.pi * q.uniform(48, 62) * t) * np.exp(-t / 0.035)
+        puff = dsp.butter(dsp.noise(0.09, q, 'pink'), 'low', 420) * np.exp(-t / 0.025) * 0.8
+        tick = dsp.svf(dsp.noise(0.09, q), q.uniform(2500, 3600), q=1.2, mode='band') * np.exp(-t / 0.004) * clatter
+        shots.append(thump + puff + tick)
+    y = np.zeros(n + dsp.n_of(0.1))
+    for i in fires:
+        dsp.place(y, shots[int(r.uniform(0, 3.999))] * r.uniform(0.8, 1.1), i / SR)
+    y = y[:n]
+    return y + dsp.butter(dsp.noise(n / SR, r, 'pink'), 'low', 160) * 0.25  # dudnienie rury
+
+
+def engine_start(r, seconds=1.5):  # rozrusznik obraca wał (ciężkie "czug-czug" sprężania i cichy warkot), diesel łapie
+    n = dsp.n_of(seconds)
+    t = dsp.t_of(n)
+    crank = 0.75
+    rate = np.interp(t, [0, crank, crank + 0.25, crank + 0.6, seconds], [5.5, 6.5, 28, 15, 13])
+    lit = np.clip((t - crank) / 0.05, 0, 1)
+    y = diesel(rate, r, clatter=0.0) * (0.45 + 0.55 * lit)  # przed zapłonem te same pchnięcia, tylko słabsze
+    body = dsp.svf(dsp.noise(seconds, r, 'pink'), 240, q=0.7, mode='band')
+    y += body * (0.5 + 0.5 * np.sin(2 * np.pi * np.cumsum(rate) / SR) ** 2) * 0.6 * lit
+    ph = 2 * np.pi * np.cumsum(110 * (1 - 0.2 * np.clip(np.sin(2 * np.pi * 6.0 * t), 0, 1) ** 3)) / SR
+    whirr = dsp.butter(sum(np.sin(k * ph) / k for k in range(1, 6)), "low", 900) * 0.3 * (1 - lit)
+    y = (y + whirr) * np.interp(t, [0, seconds - 0.2, seconds], [1, 1, 0])  # przechodzi w truck_drive
+    return dsp.room(y, r, rt60=0.5, wet=0.1)
+
+
+def truck_drive(r, seconds=7.5):  # wywrotka rusza, zmienia bieg, jedzie w prawo i cichnie w oddali
+    n = dsp.n_of(seconds)
+    t = dsp.t_of(n)
+    rate = np.interp(t, [0, 1.5, 1.7, 2.6, seconds], [13, 30, 21, 27, 27]) * (1 + 0.03 * dsp.wander(seconds, r, rate=1.5, octaves=2))
+    y = diesel(rate, r, clatter=0.5)
+    body = dsp.svf(dsp.noise(seconds, r, 'pink'), 240, q=0.7, mode='band')  # szum silnika pod zapłonami, nie same "tyk-tyk"
+    y += body * (0.5 + 0.5 * np.sin(2 * np.pi * np.cumsum(rate) / SR) ** 2) * 0.6
+    y += dsp.svf(dsp.noise(seconds, r, 'pink'), 700, q=0.6, mode='band') * 0.12 * np.clip(t / 2.5, 0, 1)  # opony po żwirze
+    far = np.clip((t - 2.5) / (seconds - 2.5), 0, 1)
+    y = y * (1 - far) + dsp.butter(y, 'low', 450) * far  # w oddali giną wysokie
+    y *= np.interp(t, [0, 2.5, seconds - 0.4, seconds], [1, 1, 0.16, 0])
+    y = dsp.room(y, r, rt60=0.6, wet=0.1)
+    m = y.mean(1) if y.ndim == 2 else y
+    m = m[:n] if len(m) >= n else np.pad(m, (0, n - len(m)))
+    pan = np.interp(t, [0, 2.5, seconds], [0.0, 0.25, 0.85])  # od środka w prawo, tam gdzie odjeżdża
+    a = (pan + 1) * np.pi / 4
+    return np.stack([m * np.cos(a), m * np.sin(a)], 1)
+
+
 def main():
     r = dsp.rng(7)
     save('ding', b('mallet/celesta', pitch='G6'))
@@ -329,6 +410,9 @@ def main():
     save('lake', lake(r), -12, loop=True)
     for name, fn in [('spring', frogs), ('summer', crickets), ('autumn', leaves), ('winter', frost)]:
         save('season_' + name, fn(r), -16, loop=True)
+    save('clank', clank(r), -4)
+    save('engine_start', engine_start(r), -4)
+    save('truck_drive', truck_drive(r), -4)
 
 
 if __name__ == '__main__':
