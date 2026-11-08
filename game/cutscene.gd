@@ -20,7 +20,8 @@ var top := Node2D.new()    # napis na drzwiach nad wszystkim
 func _ready() -> void:
 	_sprite("balcony_cut", Vector2.ZERO)
 	add_child(preload("res://game/sky_fx.gd").new())  # gwiazdy i spadające gwiazdy
-	_sprite("cut_observatory", Vector2(146, 143))      # białe obserwatorium z otwartą kopułą
+	var o := _sprite("cut_observatory", Vector2(146, 143))  # białe obserwatorium z otwartą kopułą
+	_mirror(self, func(): return [[o.texture, Rect2(), o.position, o.modulate]])
 	_sprite("cut_door", Vector2(19, 219))              # drzwi balkonowe zamknięte
 	obs.draw.connect(_draw_obs)
 	add_child(obs)
@@ -102,6 +103,9 @@ var fx := Node2D.new()                 # efekty bieżącej sceny (para, deski, c
 var fx_draw := Callable()
 var hold := HOLD                       # bieżąca scena może trwać dłużej (finał)
 var _cues := {}                        # dźwięki sceny, które już zagrały
+var mirrors := []                      # węzły odbić w jeziorze (odświeżane co klatkę)
+var mirror_extra := []                 # ruchome obiekty sceny do odbicia: [tekstura, wycinek, lewy górny róg]
+const AXIS := 212.0                    # oś odbić: linia brzegu jeziora
 var tick := Callable()                 # animacja bieżącej sceny: tick(t_sceny)
 var st := 0.0
 
@@ -122,6 +126,7 @@ func _montage() -> void:
 		st = 0.0
 		hold = HOLD
 		_cues.clear()
+		mirror_extra = []
 		build.call()
 		add_child(fx)
 		await create_tween().tween_property(fade, "color:a", 0.0, QUICK).finished
@@ -162,7 +167,8 @@ func _balcony_night(rain := false) -> void:
 	var sky = preload("res://game/sky_fx.gd").new()
 	sky.raining = rain
 	sc.add_child(sky)
-	_spr("cut_observatory", Vector2(146, 143))
+	var o := _spr("cut_observatory", Vector2(146, 143))
+	_mirror(sc, func(): return [[o.texture, Rect2(), o.position, o.modulate]] + mirror_extra)
 	_spr("cut_door", Vector2(19, 219))
 	_cam(BALCONY_CAM)
 
@@ -187,7 +193,9 @@ func _balcony_day() -> void:
 		s.region_enabled = true
 		s.region_rect = r
 		s.modulate = Color(1.5, 1.5, 1.4)
-	_spr("cut_observatory", Vector2(146, 143)).modulate = Color(1.25, 1.25, 1.2)
+	var o := _spr("cut_observatory", Vector2(146, 143))
+	o.modulate = Color(1.25, 1.25, 1.2)
+	_mirror(sc, func(): return [[o.texture, Rect2(), o.position, o.modulate]], Vector3(0.45, 0.62, 0.8))
 	_spr("cut_door", Vector2(19, 219)).modulate = Color(1.2, 1.2, 1.15)
 	_cam(BALCONY_CAM)
 
@@ -229,8 +237,8 @@ func _sc_stars() -> void:  # balkon nocą: tata z profilu patrzy na Janię, kube
 	tick = func():
 		_breathe(m, 0.0)
 		j.frame = int(st * 3.0) % 2  # łapka z długopisem skrobie w miejscu
-		if _cue("p%d" % int(st / 0.55), 0.3):
-			Game.sfx("pencil", randf_range(0.9, 1.1), -14.0)
+		if _cue("p%d" % int(st / 0.95), 0.3):  # spokojne skrobanie, z przerwami
+			Game.sfx("pencil", randf_range(0.8, 0.9), -20.0)
 	fx_draw = func(): _steam(m.position + Vector2(3, 34 - m.frame))
 
 
@@ -359,8 +367,11 @@ func _draw_site() -> void:
 	var truck := Vector2(226 + floorf(drive), 176 + shake)
 	fx.draw_texture(Game.tex("cut_truck"), truck, dim)  # skrzynia zasłania dół teleskopu
 	var wf := int(drive / 2.43) % 4  # koło r 6,2 px: klatka co 22,5° obrotu
+	mirror_extra = [[Game.tex("cut_crane"), Rect2(), Vector2(88, 80), dim], [Game.tex("cut_scope"), Rect2(), at, dim], [Game.tex("cut_truck"), Rect2(), truck, dim]]
 	for wx in [7, 41]:
-		fx.draw_texture_rect_region(Game.tex("cut_wheel"), Rect2(truck + Vector2(wx, 18), Vector2(15, 15)), Rect2(wf * 15, 0, 15, 15), dim)
+		var src := Rect2(wf * 15, 0, 15, 15)
+		fx.draw_texture_rect_region(Game.tex("cut_wheel"), Rect2(truck + Vector2(wx, 18), Vector2(15, 15)), src, dim)
+		mirror_extra.append([Game.tex("cut_wheel"), src, truck + Vector2(wx, 18), dim])
 	_draw_exhaust()
 
 
@@ -401,6 +412,25 @@ func _drive(when: float) -> float:
 	return 6.0 * td * td if td < 2.5 else 37.5 + 30.0 * (td - 2.5)
 
 
+## odbicie w jeziorze: obiekty z `items` rysowane do góry nogami pod linią brzegu, z falującym shaderem wody
+func _mirror(parent: Node, items: Callable, tint := Vector3(0.11, 0.15, 0.3)) -> void:
+	var m := Node2D.new()
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://game/water_reflect.gdshader")
+	mat.set_shader_parameter("tint", tint)
+	m.material = mat
+	m.draw.connect(func():
+		for it in items.call():
+			var tex: Texture2D = it[0]
+			var src: Rect2 = it[1] if it[1] != Rect2() else Rect2(Vector2.ZERO, tex.get_size())
+			var pos: Vector2 = it[2]
+			var mod: Color = it[3] if it.size() > 3 else Color.WHITE
+			# ujemna wysokość = odwrócone w pionie; dół obiektu ląduje tuż pod osią
+			m.draw_texture_rect_region(tex, Rect2(pos.x, 2.0 * AXIS - pos.y - src.size.y, src.size.x, -src.size.y), src, mod))
+	parent.add_child(m)
+	mirrors.append(m)
+
+
 ## sprite stojący stopami na y (x = lewa krawędź)
 func _feet(tex: String, x: float, bottom: float, frames := 2) -> Sprite2D:
 	var s := _spr(tex, Vector2.ZERO, null, frames)
@@ -414,6 +444,9 @@ func _process(dt: float) -> void:
 	if tick.is_valid():
 		tick.call()
 	fx.queue_redraw()
+	mirrors = mirrors.filter(func(m): return is_instance_valid(m))
+	for m in mirrors:
+		m.queue_redraw()
 	for c in chars:  # spokojny oddech, każde w swoim rytmie
 		c[0].frame = 1 if fmod(t + c[1], 2.6) > 1.5 else 0
 	obs.queue_redraw()

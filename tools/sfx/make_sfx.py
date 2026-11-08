@@ -299,24 +299,24 @@ def frost(r, seconds=12.0):  # winter: almost silence, a cold breeze and a rare 
 
 
 # ------------------------------------------------------------------ intro: wywrotka zabiera teleskop
-def clank(r):  # stalowy tubus teleskopu opada do stalowej skrzyni: tępy, metaliczny łomot, brzęk blachy, grzechot
+def clank(r):  # stalowy tubus opada na stalową skrzynię: metal o metal – dźwięczny brzęk, krótkie odbicie, grzechot
     def hit(g, seed):
         q = dsp.rng(seed)
-        t = dsp.t_of(dsp.n_of(0.9))
-        ring = sum(a * np.sin(2 * np.pi * f * q.uniform(0.97, 1.03) * t + q.uniform(0, 6.28)) * np.exp(-t / d)  # blacha: gęste, nieharmoniczne
-                   for f, a, d in [(173, 0.5, 0.12), (412, 0.6, 0.1), (689, 0.5, 0.08), (1123, 0.5, 0.06), (1587, 0.4, 0.05),
-                                   (2211, 0.35, 0.04), (2960, 0.3, 0.03), (3870, 0.2, 0.02)])
-        thump = dsp.butter(dsp.noise(0.9, q, 'pink'), 'low', 180) * np.exp(-t / 0.06) * 2.5
-        crash = dsp.butter(dsp.noise(0.9, q), 'high', 900) * np.exp(-t / 0.05) * 0.6
-        return (ring * 0.5 + thump + crash) * g
-    y = np.zeros(dsp.n_of(1.3))
+        t = dsp.t_of(dsp.n_of(1.4))
+        ring = sum(a * np.sin(2 * np.pi * f * q.uniform(0.98, 1.02) * t + q.uniform(0, 6.28)) * np.exp(-t / d)  # dzwoniąca blacha i rura
+                   for f, a, d in [(263, 0.5, 0.35), (611, 0.8, 0.5), (1047, 0.9, 0.42), (1534, 0.7, 0.33), (2219, 0.6, 0.26),
+                                   (2871, 0.5, 0.2), (3593, 0.4, 0.16), (4410, 0.3, 0.12), (5312, 0.2, 0.08)])
+        thump = dsp.butter(dsp.noise(1.4, q, 'pink'), 'low', 200) * np.exp(-t / 0.05) * 0.9
+        crash = dsp.butter(dsp.noise(1.4, q), 'high', 1500) * np.exp(-t / 0.03) * 0.7
+        return (ring * 0.7 + thump + crash) * g
+    y = np.zeros(dsp.n_of(1.8))
     dsp.place(y, hit(1.0, 31), 0.0)
-    dsp.place(y, hit(0.35, 32), 0.1)  # tubus podskakuje raz
-    for k in range(6):  # grzechot luźnych części
+    dsp.place(y, hit(0.4, 32), 0.1)  # tubus podskakuje raz
+    for k in range(6):  # grzechot
         q = dsp.rng(40 + k)
-        tk = dsp.svf(dsp.noise(0.03, q), q.uniform(1800, 4200), q=1.5, mode='band') * dsp.env_exp(0.03, 0.004, 0.0003)
-        dsp.place(y, tk * q.uniform(0.15, 0.35), 0.13 + k * q.uniform(0.025, 0.045))
-    return dsp.room(y, r, rt60=0.5, wet=0.12)
+        tk = dsp.svf(dsp.noise(0.04, q), q.uniform(2500, 5000), q=3.0, mode='band') * dsp.env_exp(0.04, 0.008, 0.0003)
+        dsp.place(y, tk * q.uniform(0.2, 0.4), 0.14 + k * q.uniform(0.025, 0.045))
+    return dsp.room(y, r, rt60=0.6, wet=0.12)
 
 
 def diesel(rate, r, clatter=0.35):
