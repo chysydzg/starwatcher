@@ -100,14 +100,16 @@ function maciej(blink = false) {
   c.add("collar", (x, y) => y > 67 && y < 76 && Math.abs(x - CX) < 21, coat, { group: "body", raw: true }); // ramiona tuż pod policzkami
   c.add("shirt", (x, y) => y > 70 && Math.abs(x - CX) < (y - 70) * 0.45 + 2.5, shirt, { group: "body", flat: true, raw: true });
   // krawat: wąski węzeł, klinga lekko się rozszerza, szpiczasty koniec
-  const tw = (y) => (y < 74 ? 2 : y < 79 ? 1.5 : y < 84 ? 2.5 : 2.5 - (y - 84) * 0.9);
+  const tw = (y) => (y < 74 ? 2 : y < 77 ? 1.5 : y < 84 ? 1.5 + (y - 77) * 0.32 : 3.7 - (y - 84) * 1.2);
   c.add("tie", (x, y) => y > 70.5 && y < 87 && Math.abs(x - CX) < tw(y), ramp(2, { hue: 322, shift: 12, sat: 0.55, light: [0.3, 0.42] }), { group: "body", raw: true });
   for (let x = 42; x < 46; x++) c.set(x, 73, [96, 28, 70]);                 // dół węzła
   c.add("earL", cap(35, 36, 31, 8, 5.5), fur, { group: "ears" });
   c.add("earLi", cap(34.6, 33, 31.6, 13, 2.4), pinkE, { group: "ears", flat: true });
   c.add("head", or(sup(CX, 52, 23, 18, 2.4), ell(31, 62, 11, 9), ell(57, 62, 11, 9)), fur, { group: "head" });
   c.add("muzzle", or(ell(40, 63, 6.5, 5.2), ell(48, 63, 6.5, 5.2)), light, { group: "head", flat: true });
-  c.add("lop", or(cap(53, 37, 55.5, 22, 5), cap(55.5, 22, 63.5, 24, 5), cap(63.5, 24, 66.5, 30, 4.6)), furD, { group: "ears" }); // drugie ucho: nasada za głową jak pierwsze, zgina się wysoko, krótki płat opada
+  c.add("earR", cap(53, 36, 55.6, 21, 5.5), fur, { group: "ears" });      // drugie ucho: nasada lustrzana do lewego, za głową
+  c.add("earRi", cap(53.4, 33, 55.4, 22, 2.4), pinkE, { group: "ears", flat: true });
+  c.add("lop", or(cap(55.6, 20, 63, 23, 5), cap(63, 23, 66, 29.5, 4.6)), furD, { group: "ears" }); // zgina się wysoko, krótki płat opada
   // oczy (brązowe), okulary okrągłe, nos, pyszczek, wąsy
   for (const ex of [31, 53]) eye(c, ex, 48, 5, 6, [44, 24, 18], [124, 74, 40], blink ? fur[1] : null);  // środek oka = środek szkła
   for (const ocx of [33, 55]) ring(c, ocx, 51, 6, INK);                     // okrągłe okulary, obręcz 1 px

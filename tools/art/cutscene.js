@@ -113,19 +113,20 @@ function sitting(fr, f) {
     b.pset(x, y, edge ? INKC : spine ? [196, 200, 214] : y % 2 ? [236, 240, 248] : [210, 218, 236]);
   }
   for (let x = 19; x < 19 + f; x++) b.pset(x, 34, [120, 130, 160]);                       // świeża linijka pisma
-  const px = 20 + f, py = 33;                                                               // łapka z ołówkiem w jednym miejscu
-  for (let k = 1; k < 5; k++) b.pset(px + k, py - k, k === 4 ? [236, 140, 150] : [240, 200, 80]);
-  b.pset(px, py + 1, [60, 52, 60]);
-  for (let y = py - 2; y <= py + 2; y++) for (let x = px - 3; x <= px + 2; x++) {
-    const e = ((x - px + 0.5) / 2.6) ** 2 + ((y - py) / 2.1) ** 2;
-    if (e <= 1) b.pset(x, y, e > 0.5 ? INKC : [244, 222, 190]);
-  }
+  const px = 20 + f, py = 33, JR = require("./jania.js").R;                               // cała ręka od ramienia do zeszytu
+  const arm = new P.Buf(b.w, b.h);
+  P.solid(arm, [P.cap(23.8, 26, px + 0.5, py - 0.5, 2, 1.7)], JR.fur, TOP);
+  P.solid(arm, [P.ell(px, py, 2.2, 1.9)], JR.cream, TOP);
+  const ai = ink(arm);
+  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const c = ai.get(x + 1, y + 1); if (c >>> 24) b.px[y * b.w + x] = c; }
+  for (let k = 1; k < 5; k++) b.pset(px - 1 + k, py - 1 - k, k === 4 ? [236, 140, 150] : [240, 200, 80]); // ołówek w łapce
+  b.pset(px - 1, py + 1, [60, 52, 60]);
   return b;
 }
 const jbb = P.bounds(jania.frames[16]);
 const jb = (f) => P.crop(jania.frames[16 + (f ? 7 : 0)], jbb.x, jbb.y - 1, jbb.w, jbb.h + 1);  // rząd 2 = tył; 7. kolumna = oddech
 // obserwatorium po drugiej stronie jeziora: białe, odnowione, kopuła otwarta, gruby teleskop wystaje przez szczelinę
-function observatory() {
+function observatory(closed = false) {  // closed: teleskop wyjęty, okna i drzwi zabite deskami
   const b = new P.Buf(80, 64);
   const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
   const steel = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.14, light: [0.3, 0.78] });
@@ -136,17 +137,75 @@ function observatory() {
   P.solid(dome, [P.ell(40, 35, 17, 16)], white, { light: [-0.5, -0.7, 0.5] });                               // kopuła: tylko półkula nad dachem
   for (let y = 0; y < 35; y++) for (let x = 0; x < 80; x++) { const u = dome.get(x, y); if (u >>> 24) b.px[y * 80 + x] = u; }
   for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
-  P.solid(b, [P.cap(40, 31, 55, 11, 2.4, 5.2)], steel, { light: [-0.5, -0.7, 0.5] });                        // teleskop: stożek rozszerza się ku obiektywowi
-  P.solid(b, [P.cap(55, 11, 56.5, 9, 5.4, 5.4)], white, { light: [-0.5, -0.7, 0.5] });                       // pierścień obiektywu
-  for (const wx of [10, 20, 52, 62]) {                                                                       // okna: świeci się
+  if (!closed) {
+    P.solid(b, [P.cap(40, 31, 55, 11, 2.4, 5.2)], steel, { light: [-0.5, -0.7, 0.5] });                      // teleskop: stożek rozszerza się ku obiektywowi
+    P.solid(b, [P.cap(55, 11, 56.5, 9, 5.4, 5.4)], white, { light: [-0.5, -0.7, 0.5] });                     // pierścień obiektywu
+  }
+  for (const wx of [10, 20, 52, 62]) {                                                                       // okna: świecą się albo są ciemne
     for (let y = 43; y < 50; y++) for (let x = wx; x < wx + 7; x++) b.pset(x, y, steel[1]);
-    for (let y = 44; y < 49; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, y > 46 ? warmD : warm);
+    for (let y = 44; y < 49; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, closed ? night : y > 46 ? warmD : warm);
     for (let y = 44; y < 49; y++) b.pset(wx + 3, y, steel[1]);
   }
   for (let y = 50; y < 64; y++) for (let x = 35; x < 46; x++) b.pset(x, y, x === 35 || x === 45 || y === 50 ? steel[1] : steel[2]); // drzwi
-  b.pset(43, 57, warm); for (let x = 38; x < 43; x++) b.pset(x, 48, warm);                                   // klamka, lampka nad drzwiami
+  if (!closed) { b.pset(43, 57, warm); for (let x = 38; x < 43; x++) b.pset(x, 48, warm); }                  // klamka, lampka nad drzwiami
+  const WOOD = [[138, 106, 72], [168, 132, 90], [70, 50, 38]];
+  const plank = (x0, y0, x1, y1) => {  // deska 2 px: jasny wierzch, ciemny spód
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); b.pset(x, y, WOOD[1]); b.pset(x, y + 1, WOOD[0]); b.pset(x, y + 2, WOOD[2]); }
+  };
+  if (closed) {
+    for (const wx of [10, 20, 52, 62]) { plank(wx - 1, 43, wx + 7, 43); plank(wx - 1, 47, wx + 7, 47); }
+    plank(34, 51, 46, 61); plank(34, 59, 46, 51); plank(34, 55, 46, 55);
+  }
   for (let x = 32; x < 49; x++) b.pset(x, 63, white[1]);                                                    // schodek
   return ink(P.smoothEdge(b));  // gładka sylwetka przed obrysem: bez ząbków na kopule i tubusie
+}
+// żurawie i auta: żółte z czarnym (referencje autora), skala: drzwi obserwatorium 14 px = ok. 2 m
+const YEL = [[250, 196, 44], [222, 156, 26], [156, 100, 22]], BLK = [32, 30, 36], GRY = [96, 98, 108];
+// żuraw wieżowy: kratownicowa wieża na czarnej podstawie, kabina, wysięgnik w prawo, przeciwwysięgnik z balastem,
+// iglica z odciągami. Wózek, lina i hak rysuje gra. Podstawa wieży w (40, 128), wysięgnik na y 18–22.
+function crane() {
+  const W = 190, G = 128, b = new P.Buf(W, G + 2);
+  const line = (x0, y0, x1, y1, c) => { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) b.pset(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), c); };
+  line(40, 2, 12, 18, GRY); line(40, 2, 120, 18, GRY);                                   // odciągi
+  for (let y = 30; y < G - 8; y += 8) { line(37, y, 44, y + 4, YEL[0]); line(44, y + 4, 37, y + 8, YEL[0]); } // wieża: kratownica
+  for (let y = 26; y < G - 8; y++) { b.pset(36, y, YEL[1]); b.pset(37, y, YEL[2]); b.pset(44, y, YEL[1]); b.pset(45, y, YEL[2]); }
+  line(32, G, 36, G - 8, BLK); line(49, G, 45, G - 8, BLK); line(32, G, 49, G - 8, BLK); line(49, G, 32, G - 8, BLK); // podstawa
+  for (let x = 30; x <= 51; x++) { b.pset(x, G, BLK); b.pset(x, G + 1, BLK); }
+  for (let x = 34; x <= 47; x++) b.pset(x, G - 8, BLK);
+  line(36, 18, 40, 2, YEL[1]); line(45, 18, 41, 2, YEL[1]); line(37, 12, 44, 12, YEL[1]); line(38, 7, 43, 7, YEL[1]); // iglica
+  for (const [x0, x1] of [[4, 34], [46, 186]]) {                                           // wysięgniki: pasy i krzyżulce
+    for (let x = x0; x <= x1; x++) { b.pset(x, 18, YEL[0]); b.pset(x, 22, YEL[2]); }
+    for (let x = x0; x < x1; x += 6) { line(x, 22, x + 3, 18, YEL[1]); line(x + 3, 18, x + 6, 22, YEL[1]); }
+  }
+  line(186, 18, 186, 22, YEL[1]);
+  for (let y = 23; y < 30; y++) for (let x = 4; x < 16; x++) b.pset(x, y, y === 23 ? [120, 122, 132] : GRY); // balast
+  for (let y = 16; y < 28; y++) for (let x = 33; x < 48; x++) b.pset(x, y, y < 18 ? YEL[0] : YEL[1]);       // kabina
+  for (let y = 19; y < 23; y++) for (let x = 41; x < 46; x++) b.pset(x, y, [60, 84, 110]);
+  for (let x = 34; x < 47; x++) { b.pset(x, 28, BLK); b.pset(x, 29, BLK); }                            // obrotnica
+  return b;
+}
+// wywrotka z boku (w prawo): żółta skrzynia w pasy, kabina z szybą, czarne koła z żółtymi felgami; 60x30
+function truck() {
+  const b = new P.Buf(62, 31);
+  for (let y = 20; y < 25; y++) for (let x = 4; x < 60; x++) b.pset(x, y, y < 22 ? [84, 82, 90] : [60, 58, 66]); // podwozie
+  for (let y = 4; y < 21; y++) { const x0 = 2 + Math.floor((y - 4) / 4), x1 = 37 - Math.floor((y - 4) / 8); for (let x = x0; x < x1; x++) b.pset(x, y, y === 4 ? YEL[0] : (x - y) % 8 < 4 ? YEL[0] : YEL[1]); } // skrzynia
+  for (let y = 6; y < 23; y++) for (let x = 39; x < 57; x++) { const nose = x > 52 && y < 12 + (x - 52); if (!nose) b.pset(x, y, y > 18 ? YEL[1] : YEL[0]); } // kabina
+  for (let y = 8; y < 14; y++) for (let x = 43; x < 52; x++) b.pset(x, y, x > 48 ? [96, 150, 170] : [60, 84, 110]); // szyba
+  for (let y = 17; y < 24; y++) for (let x = 56; x < 60; x++) b.pset(x, y, YEL[1]);                       // zderzak
+  for (const wx of [13, 47]) for (let y = 18; y < 31; y++) for (let x = wx - 6; x <= wx + 6; x++) {   // koła
+    const d = Math.hypot(x - wx, y - 24.5);
+    if (d <= 6.2) b.pset(x, y, d < 2.6 ? YEL[0] : d < 3.4 ? YEL[2] : BLK);
+  }
+  return ink(b);
+}
+// teleskop wyjęty z kopuły: leżący stożek z pierścieniem obiektywu (wisi na linie żurawia)
+function scope() {
+  const b = new P.Buf(34, 14), steel = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.14, light: [0.3, 0.78] });
+  const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
+  P.solid(b, [P.cap(3, 7, 26, 7, 2.4, 5)], steel, TOP);
+  P.solid(b, [P.cap(27, 7, 29, 7, 5.3, 5.3)], white, TOP);
+  return ink(P.smoothEdge(b));
 }
 // drzwi balkonowe zamknięte, takie same jak w pokoju (jasne drewno, 4 szybki, ceglasta płycina);
 // od strony balkonu szybki świecą ciepło, bo w mieszkaniu pali się światło
@@ -178,6 +237,10 @@ P.save(strip([teen[16], teen[23]]), out + "/cut_teen_back.png");
 const T = (janiaAt(0.95), require("./jania.js"));
 P.save(strip([0, 1, 2, 3, 4].map((f) => T.frame(1, f, { carry: true }))), out + "/cut_teen_walk.png");
 P.save(observatory(), out + "/cut_observatory.png");
+P.save(observatory(true), out + "/cut_observatory_closed.png");
+P.save(crane(), out + "/cut_crane.png");
+P.save(truck(), out + "/cut_truck.png");
+P.save(scope(), out + "/cut_scope.png");
 P.save(door(), out + "/cut_door.png");
 const pk = (fr) => P.pack(fr, { cols: fr.length, pad: 0 });
 P.save(pk([jb(0), jb(1)]), out + "/cut_jania_back.png");

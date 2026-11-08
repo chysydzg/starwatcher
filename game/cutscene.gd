@@ -20,7 +20,7 @@ var top := Node2D.new()    # napis na drzwiach nad wszystkim
 func _ready() -> void:
 	_sprite("balcony", Vector2.ZERO)
 	add_child(preload("res://game/sky_fx.gd").new())  # gwiazdy i spadające gwiazdy
-	_sprite("cut_observatory", Vector2(147, 144))      # białe obserwatorium z otwartą kopułą
+	_sprite("cut_observatory", Vector2(146, 143))      # białe obserwatorium z otwartą kopułą
 	_sprite("cut_door", Vector2(19, 219))              # drzwi balkonowe zamknięte
 	obs.draw.connect(_draw_obs)
 	add_child(obs)
@@ -92,12 +92,8 @@ func _end() -> void:
 # ---------------------------------------------------------------- montaż: lata mijają w krótkich scenach
 const HOLD := 4.2                     # ile trwa jedna scena
 const QUICK := 0.35                   # szybkie przejście przez czerń
-const PLANKS := [Rect2(156, 188, 11, 3), Rect2(166, 188, 11, 3), Rect2(198, 188, 11, 3), Rect2(208, 188, 11, 3),
-	Rect2(156, 192, 11, 3), Rect2(166, 192, 11, 3), Rect2(198, 192, 11, 3), Rect2(208, 192, 11, 3),
-	Rect2(181, 197, 15, 3), Rect2(181, 203, 15, 3)]  # okna i drzwi obserwatorium (sprite od 147,144)
-const CLOSE := 3.0                     # finał: zbliżenie na zabijanie okien
+const CLOSE := 3.8                     # finał: zbliżenie, żuraw przenosi teleskop na wywrotkę
 const PULL := 2.6                      # finał: odjazd kamery na balkon
-const WORKERS := [[Vector2(166, 201), [0, 1, 4, 5], 1], [Vector2(209, 201), [2, 3, 6, 7], -1], [Vector2(178, 208), [8, 9], 1]]  # stopy, deski, strona młotka
 const BALCONY_CAM := Vector2(275, 255)  # zoom 2: obserwatorium i balkon w kadrze
 var sc: Node2D                         # bieżąca scena montażu
 var fx := Node2D.new()                 # efekty bieżącej sceny (para, deski, chmury)
@@ -162,7 +158,7 @@ func _balcony_night(rain := false) -> void:
 	var sky = preload("res://game/sky_fx.gd").new()
 	sky.raining = rain
 	sc.add_child(sky)
-	_spr("cut_observatory", Vector2(147, 144))
+	_spr("cut_observatory", Vector2(146, 143))
 	_spr("cut_door", Vector2(19, 219))
 	_cam(BALCONY_CAM)
 
@@ -187,7 +183,7 @@ func _balcony_day() -> void:
 		s.region_enabled = true
 		s.region_rect = r
 		s.modulate = Color(1.5, 1.5, 1.4)
-	_spr("cut_observatory", Vector2(147, 144)).modulate = Color(1.25, 1.25, 1.2)
+	_spr("cut_observatory", Vector2(146, 143)).modulate = Color(1.25, 1.25, 1.2)
 	_spr("cut_door", Vector2(19, 219)).modulate = Color(1.2, 1.2, 1.15)
 	_cam(BALCONY_CAM)
 
@@ -303,80 +299,42 @@ func _sc_coffee() -> void:  # pokój: tata o balkoniku, starsza Jania niesie mu 
 	fx_draw = func(): _steam(j.position + Vector2(16, -j.texture.get_height() + 29 - (1 if j.frame % 2 == 0 and j.frame > 0 else 0)))
 
 
-## finał: zbliżenie na obserwatorium (dźwig, ciężarówka, ciemne sylwetki robotników przybijają deski),
+## finał: zbliżenie na zabite deskami obserwatorium, żuraw przenosi wyjęty teleskop na wywrotkę;
 ## kamera cofa się na balkon i zatrzymuje na tacie na wózku
 func _sc_board() -> void:
 	_balcony_night()
+	for c in sc.get_children():  # zamiast działającego obserwatorium: zamknięte, bez teleskopu
+		if c is Sprite2D and c.texture == Game.tex("cut_observatory"):
+			c.texture = Game.tex("cut_observatory_closed")
+	var dim := Color(0.78, 0.78, 0.9)  # noc: żółć przygaszona
+	_spr("cut_crane", Vector2(88, 80)).modulate = dim
+	_spr("cut_truck", Vector2(226, 176)).modulate = dim
 	var m := _feet("cut_maciej_sit", 300, 334)
 	var j := _feet("jania", 342, 338, 8)
 	j.vframes = 3
 	j.frame = 16
 	hold = CLOSE + PULL + 4.0
-	var placed := [0]
 	tick = func():
 		_breathe(m, 0.0)
 		j.frame = 23 if fmod(st + 1.2, 2.6) > 1.5 else 16
 		var u := smoothstep(CLOSE, CLOSE + PULL, st)
-		cam.zoom = Vector2.ONE * 4.0 * pow(0.5, u)
-		cam.position = Vector2(188, 184).lerp(BALCONY_CAM, u)
-		var n := _nailed()
-		if n > placed[0]:  # deska przybita: stuknięcie, coraz cichsze, gdy kamera się cofa
-			placed[0] = n
-			Game.sfx("knock", randf_range(1.6, 1.9), -14.0 - 10.0 * u)
+		cam.zoom = Vector2.ONE * 3.0 * pow(2.0 / 3.0, u)
+		cam.position = Vector2(207, 151).lerp(BALCONY_CAM, u)
 	fx_draw = _draw_site
 
 
-## ile desek już przybito (pierwsza po 0,6 s, potem co 0,35 s)
-func _nailed() -> int:
-	return clampi(int((st - 0.6) / 0.35) + 1, 0, PLANKS.size())
-
-
+## wózek żurawia jedzie znad kopuły nad skrzynię wywrotki, potem hak opuszcza teleskop
 func _draw_site() -> void:
-	var sil := Color(0.08, 0.08, 0.15, 0.92)
-	# dźwig po lewej: kratownica, wysięgnik nad kopułą, lina z deską
-	for k in 7:
-		fx.draw_line(Vector2(118, 208 - k * 10), Vector2(124, 198 - k * 10), sil, 1.0)
-		fx.draw_line(Vector2(124, 208 - k * 10), Vector2(118, 198 - k * 10), sil, 1.0)
-	fx.draw_rect(Rect2(117, 136, 1, 72), sil)
-	fx.draw_rect(Rect2(124, 136, 1, 72), sil)
-	fx.draw_rect(Rect2(104, 134, 96, 2), sil)
-	fx.draw_rect(Rect2(104, 131, 8, 6), sil)  # przeciwwaga
-	var sw := sin(st * 1.3) * 1.5
-	fx.draw_line(Vector2(186, 136), Vector2(186 + sw, 168), sil, 1.0)
-	fx.draw_rect(Rect2(181 + sw, 168, 11, 2), Color("6a5038"))
-	# ciężarówka po prawej: kabina, skrzynia, światła, migający kogut
-	fx.draw_rect(Rect2(234, 196, 22, 11), sil)
-	fx.draw_rect(Rect2(256, 199, 9, 8), sil)
-	fx.draw_circle(Vector2(240, 207), 2.0, sil)
-	fx.draw_circle(Vector2(259, 207), 2.0, sil)
-	fx.draw_rect(Rect2(264, 202, 1, 2), Color(1, 0.86, 0.5))
-	if fmod(st, 0.8) < 0.4:
-		fx.draw_rect(Rect2(259, 197, 2, 2), Color(1, 0.6, 0.15))
-	# drabiny pod oknami
-	for lx in [165, 208]:
-		fx.draw_line(Vector2(lx - 3, 208), Vector2(lx - 1, 192), sil, 1.0)
-		fx.draw_line(Vector2(lx + 3, 208), Vector2(lx + 5, 192), sil, 1.0)
-	# deski
-	var n := _nailed()
-	for i in n:
-		fx.draw_rect(PLANKS[i].grow(1), Color("2a1c18"))
-		fx.draw_rect(PLANKS[i], Color("8a6a48"))
-		fx.draw_rect(Rect2(PLANKS[i].position, Vector2(PLANKS[i].size.x, 1)), Color("a8845a"))
-	# robotnicy: ciemne, niewyraźne sylwetki; młotek w górze tuż przed swoim uderzeniem
-	for w in WORKERS:
-		var p: Vector2 = w[0]
-		var up := false
-		for i in w[1]:
-			var hit: float = 0.6 + i * 0.35
-			if st > hit - 0.2 and st < hit:
-				up = true
-		fx.draw_circle(p + Vector2(0, -9), 1.6, sil)
-		fx.draw_rect(Rect2(p + Vector2(-1.5, -7), Vector2(3, 5)), sil)
-		fx.draw_rect(Rect2(p + Vector2(-1.5, -2), Vector2(1, 2)), sil)
-		fx.draw_rect(Rect2(p + Vector2(0.5, -2), Vector2(1, 2)), sil)
-		var hand := p + (Vector2(w[2] * 3, -11) if up else Vector2(w[2] * 4, -6))
-		fx.draw_line(p + Vector2(0, -6), hand, sil, 1.0)
-		fx.draw_rect(Rect2(hand - Vector2(1, 1), Vector2(2, 2)), sil)
+	var tx := lerpf(186.0, 245.0, smoothstep(0.5, 2.5, st))
+	var hy := lerpf(135.0, 161.0, smoothstep(2.6, 3.6, st))
+	var dark := Color(0.12, 0.12, 0.16)
+	fx.draw_rect(Rect2(tx - 3, 102, 7, 2), dark)                      # wózek pod wysięgnikiem
+	fx.draw_line(Vector2(tx, 104), Vector2(tx, hy), dark, 1.0)        # lina
+	fx.draw_rect(Rect2(tx - 2, hy, 5, 3), Color(0.66, 0.5, 0.16))     # zblocze haka
+	var at := Vector2(tx - 17, hy + 5).floor()
+	fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)  # zawiesia
+	fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
+	fx.draw_texture(Game.tex("cut_scope"), at)
 
 
 ## sprite stojący stopami na y (x = lewa krawędź)
@@ -407,13 +365,13 @@ func _draw_obs() -> void:
 			if k < 3 or (int(q.x) + int(q.y)) % 2 == 0:
 				obs.draw_rect(Rect2(q, Vector2.ONE), Color(0.85, 0.92, 1.0, 0.75 - k * 0.045))
 		obs.draw_rect(Rect2(h - Vector2.ONE, Vector2(2, 2)), Color(1, 1, 0.96))
-	obs.draw_line(Vector2(218, 179), Vector2(218, 171), Color("aab4c8"), 1.0)  # maszt anteny na dachu
+	obs.draw_line(Vector2(217, 178), Vector2(217, 170), Color("aab4c8"), 1.0)  # maszt anteny na dachu
 	var w := roundf(4.0 * cos(t * 0.7))  # czasza obraca się wokół masztu
 	for k in range(-absi(int(w)), absi(int(w)) + 1):
-		obs.draw_rect(Rect2(218 + k, 169 + floori(absi(k) / 2.0), 1, 1), Color("e8ecf4"))
-	obs.draw_rect(Rect2(218 + signf(w) * 2, 167, 1, 2), Color("c8d0e0"))
+		obs.draw_rect(Rect2(217 + k, 168 + floori(absi(k) / 2.0), 1, 1), Color("e8ecf4"))
+	obs.draw_rect(Rect2(217 + signf(w) * 2, 166, 1, 2), Color("c8d0e0"))
 	if fmod(t, 1.6) < 0.25:
-		obs.draw_rect(Rect2(218, 166, 1, 1), Color("ff5a4a"))
+		obs.draw_rect(Rect2(217, 165, 1, 1), Color("ff5a4a"))
 
 
 func _draw_door() -> void:
