@@ -4,7 +4,8 @@ extends CanvasLayer
 
 signal finished
 
-const WHO := {"jania": ["Jania", "portrait_jania"], "maciej": ["Maciej", "portrait_maciej"]}
+const WHO := {"jania": ["Jania", "portrait_jania"], "jania_adult": ["Jania", "portrait_jania_adult"], "maciej": ["Maciej", "portrait_maciej"], "maciej_old": ["Maciej", "portrait_maciej_old"]}
+## linia z "cry": true bierze portret ze łzami (portrait_<kto>_cry)
 const CPS := 30.0              # liter na sekundę
 const PORT := Rect2(12, 228, 104, 104)
 const TEXT := Rect2(122, 228, 506, 124)
@@ -86,7 +87,8 @@ func _draw_box() -> void:
 	var d := 1 if fmod(_t, 2.6) > 1.5 else 0
 	var blink := 88 if fmod(_t + 0.7, 3.4) < 0.14 else 0
 	var pos := (inner.position + (inner.size - Vector2(88, 88)) / 2).floor() + Vector2(0, 2 + d)
-	_box.draw_texture_rect_region(Game.tex(who[1]), Rect2(pos, Vector2(88, 88 - d)), Rect2(blink, 0, 88, 88 - d))
+	var tex: String = who[1] + ("_cry" if lines[_i].get("cry", false) else "")
+	_box.draw_texture_rect_region(Game.tex(tex), Rect2(pos, Vector2(88, 88 - d)), Rect2(blink, 0, 88, 88 - d))
 	var plate := Rect2(PORT.position.x, PORT.end.y - 2, PORT.size.x, 24)
 	var cap := Game.keycap(_box, plate, false)
 	_box.draw_string(Game.font, Vector2(cap.position.x, cap.position.y + 13).floor(), who[0], HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, Game.FS, Color("1a1626"))

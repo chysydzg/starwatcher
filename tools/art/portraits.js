@@ -79,6 +79,17 @@ function eye(c, ex, ey, w, h, dark, iris, closed = null) {
   c.set(ex + 1, ey + 1, [255, 252, 244]); c.set(ex + 1, ey + 2, [255, 252, 244]);
 }
 const mir = (x) => 2 * CX - 1 - x;
+// płacz: łza spływa spod zewnętrznego kącika oka, smutne brwi (wewnętrzny koniec wyżej)
+function tears(c, eyes, ey, h, len, brow) {
+  const T = [[156, 210, 255], [96, 158, 236]];
+  for (const [ex, w] of eyes) {
+    const outer = ex < CX ? ex : ex + w - 1;
+    for (let k = 0; k < len; k++) { c.set(outer, ey + h + k, T[k % 3 === 2 ? 1 : 0]); }
+    c.set(outer, ey + h + len, T[1]); c.set(outer + (ex < CX ? -1 : 1), ey + h + len - 1, T[0]);   // kropla
+    const inner = ex < CX ? ex + w - 1 : ex, dir = ex < CX ? -1 : 1;
+    for (let k = 0; k < 4; k++) c.set(inner + dir * k, brow - 2 + Math.floor(k / 2), [40, 26, 30]);
+  }
+}
 // okrąg 1 px (algorytm punktu środkowego): czysta obręcz bez podwójnych pikseli
 function ring(c, cx, cy, r, col) {
   let x = r, y = 0, e = 1 - r;
@@ -88,12 +99,13 @@ function ring(c, cx, cy, r, col) {
   }
 }
 
-function maciej(blink = false) {
+function maciej(blink = false, cry = false, old = false) {
   const c = new Canvas();
-  const fur = ramp(3, { hue: 224, shift: 22, sat: 0.1, light: [0.5, 0.78] });
-  const furD = ramp(3, { hue: 228, shift: 20, sat: 0.1, light: [0.4, 0.64] });
-  const light = ramp(2, { hue: 220, shift: 12, sat: 0.08, light: [0.8, 0.9] });
-  const coat = ramp(3, { hue: 212, shift: 16, sat: 0.1, light: [0.74, 0.96] });
+  // old: lata później (szpital) – siwe, prawie białe futro
+  const fur = ramp(3, old ? { hue: 220, shift: 10, sat: 0.03, light: [0.58, 0.82] } : { hue: 224, shift: 22, sat: 0.1, light: [0.5, 0.78] });
+  const furD = ramp(3, old ? { hue: 224, shift: 10, sat: 0.03, light: [0.48, 0.7] } : { hue: 228, shift: 20, sat: 0.1, light: [0.4, 0.64] });
+  const light = ramp(2, { hue: 220, shift: 12, sat: 0.08, light: old ? [0.9, 0.97] : [0.8, 0.9] });
+  const coat = ramp(3, old ? { hue: 204, shift: 14, sat: 0.32, light: [0.56, 0.76] } : { hue: 212, shift: 16, sat: 0.1, light: [0.74, 0.96] }); // old: koszula szpitalna
   const shirt = ramp(2, { hue: 210, shift: 10, sat: 0.4, light: [0.8, 0.88] });
   const pinkE = ramp(2, { hue: 352, shift: 10, sat: 0.22, light: [0.62, 0.74] });
   c.add("coat", sup(CX, 97, 38, 28, 2.2), coat, { group: "body" });
@@ -101,8 +113,8 @@ function maciej(blink = false) {
   c.add("shirt", (x, y) => y > 70 && Math.abs(x - CX) < (y - 70) * 0.45 + 2.5, shirt, { group: "body", flat: true, raw: true });
   // krawat: wąski węzeł, klinga lekko się rozszerza, szpiczasty koniec
   const tw = (y) => (y < 74 ? 2 : y < 77 ? 1.5 : y < 84 ? 1.5 + (y - 77) * 0.32 : 3.7 - (y - 84) * 1.2);
-  c.add("tie", (x, y) => y > 70.5 && y < 87 && Math.abs(x - CX) < tw(y), ramp(2, { hue: 322, shift: 12, sat: 0.55, light: [0.3, 0.42] }), { group: "body", raw: true });
-  for (let x = 42; x < 46; x++) c.set(x, 73, [96, 28, 70]);                 // dół węzła
+  if (!old) c.add("tie", (x, y) => y > 70.5 && y < 87 && Math.abs(x - CX) < tw(y), ramp(2, { hue: 322, shift: 12, sat: 0.55, light: [0.3, 0.42] }), { group: "body", raw: true });
+  if (!old) for (let x = 42; x < 46; x++) c.set(x, 73, [96, 28, 70]);                 // dół węzła
   c.add("earL", cap(35, 36, 31, 8, 5.5), fur, { group: "ears" });
   c.add("earLi", cap(34.6, 33, 31.6, 13, 2.4), pinkE, { group: "ears", flat: true });
   c.add("earR", cap(53, 36, 55.6, 21, 5.5), fur, { group: "ears" });      // drugie ucho: nasada lustrzana do lewego, za głową
@@ -124,12 +136,22 @@ function maciej(blink = false) {
     c.set(s ? mir(x) : x, y1, light[1]); c.set(s ? mir(x) : x, y2, light[1]);
   }
   for (let y = 71; y < 88; y++) { const d = Math.floor((y - 71) * 0.45) + 3; c.set(CX - 1 - d, y, coat[0]); c.set(CX + d, y, coat[0]); } // brzegi klap
-  for (let x = 58; x < 66; x++) c.set(x, 80, coat[0]);                      // kieszeń i długopisy
-  for (let y = 75; y < 80; y++) { c.set(60, y, [70, 110, 200]); c.set(62, y, [210, 70, 60]); }
+  if (!old) for (let x = 58; x < 66; x++) c.set(x, 80, coat[0]);                      // kieszeń i długopisy
+  if (!old) for (let y = 75; y < 80; y++) { c.set(60, y, [70, 110, 200]); c.set(62, y, [210, 70, 60]); }
+  if (old) {
+    const W = [104, 108, 122];                                                 // zmarszczki: krótkie łuki, lustrzanie
+    const wr = [[39, 38], [40, 37], [41, 37], [42, 37], [43, 37],                                           // czoło
+      [23, 52], [24, 53], [23, 55], [24, 55], [36, 66], [37, 67], [37, 68]];                                  // kurze łapki, bruzda przy pyszczku
+    for (const [x, y] of wr) { c.set(x, y, W); c.set(mir(x), y, W); }
+    // przy oczach: szkła mają środki 33 i 55, więc druga strona to przesunięcie o 22, nie lustro względem CX
+    for (const [x, y] of [[29, 59], [30, 60], [31, 60], [32, 60], [33, 60], [34, 60], [35, 60], [36, 59]]) { c.set(x, y, W); c.set(x + 22, y, W); } // worki pod oczami
+    for (const [x, y] of [[28, 43], [29, 42], [30, 42], [31, 41], [32, 41], [33, 41], [34, 41], [35, 41], [36, 42], [37, 42], [38, 43], [30, 43], [32, 42], [34, 42]]) { c.set(x, y, [246, 248, 252]); c.set(x + 22, y, [246, 248, 252]); } // krzaczaste białe brwi
+  }
+  if (cry) tears(c, [[31, 5], [53, 5]], 48, 6, 8, 43);
   return c.render();
 }
 
-function jania(blink = false) {
+function jania(blink = false, cry = false, adult = false) {
   const c = new Canvas();
   const fur = ramp(3, { hue: 24, shift: 26, sat: 0.72, light: [0.44, 0.66] });
   const cream = ramp(2, { hue: 34, shift: 14, sat: 0.5, light: [0.78, 0.9] });
@@ -139,11 +161,15 @@ function jania(blink = false) {
   c.add("chest", ell(CX, 80, 9, 7), cream, { group: "body", flat: true });
   c.add("bib", (x, y) => y >= 79 && Math.abs(x - CX) <= 13, denim, { group: "body", raw: true });
   c.add("straps", (x, y) => y >= 72 && y < 80 && Math.abs(Math.abs(x - CX) - 12) <= 1, denim, { group: "body", flat: true, raw: true });
-  c.add("ears", cap(37.5, 46, 34.5, 18, 6), fur, { group: "ears", mirror: true });
-  c.add("earsi", cap(37, 42, 34.8, 24, 2), pink, { group: "ears", flat: true, mirror: true });
-  c.add("head", or(sup(CX, 59, 19, 15, 2.4), ell(33, 66, 9, 7), ell(55, 66, 9, 7)), fur, { group: "head" });
+  const top = adult ? 9 : 18;  // dorosła: dłuższe uszy, smuklejsza głowa, mniejsze policzki
+  c.add("ears", cap(37.5, 46, 34.5, top, 6), fur, { group: "ears", mirror: true });
+  c.add("earsi", cap(37, 42, 34.8, top + 6, 2), pink, { group: "ears", flat: true, mirror: true });
+  c.add("head", adult ? or(sup(CX, 59, 17, 16, 2.4), ell(34, 67, 7, 6), ell(54, 67, 7, 6)) : or(sup(CX, 59, 19, 15, 2.4), ell(33, 66, 9, 7), ell(55, 66, 9, 7)), fur, { group: "head" });
   c.add("muzzle", or(ell(40, 68, 5.5, 4.4)), cream, { group: "head", flat: true, mirror: true });
-  for (const ex of [33, 51]) eye(c, ex, 56, 5, 7, [34, 20, 18], null, blink ? fur[1] : null);
+  const eh = adult ? 6 : 7;
+  for (const ex of [33, 51]) eye(c, ex, 56, 5, eh, [34, 20, 18], null, blink ? fur[1] : null);
+  if (adult && !blink) for (const [x, y] of [[32, 56], [31, 55]]) { c.set(x, y, [34, 20, 18]); c.set(mir(x), y, [34, 20, 18]); } // rzęsy
+  if (cry) tears(c, [[33, 5], [51, 5]], 56, eh, 7, 53);
   for (const [x, y] of [[29, 64], [30, 64], [31, 64]]) { c.set(x, y, pink[0]); c.set(mir(x), y, pink[0]); } // rumieńce
   for (const [x, y] of [[42, 64], [43, 64], [42, 65], [43, 65]]) { c.set(x, y, pink[0]); c.set(mir(x), y, pink[0]); } // nosek
   for (const [x, y] of [[43, 66], [42, 67], [41, 67]]) { c.set(x, y, fur[0]); c.set(mir(x), y, fur[0]); } // pyszczek
@@ -154,8 +180,13 @@ function jania(blink = false) {
 }
 
 // arkusz 2 klatek: otwarte oczy, mrugnięcie (oddech robi okienko dialogu przesunięciem o 1 px)
-const M = maciej(), J = jania();
+const M = maciej(), J = jania(), A = jania(false, false, true);
 P.save(P.pack([J, jania(true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania.png");
 P.save(P.pack([M, maciej(true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej.png");
+P.save(P.pack([maciej(false, true), maciej(true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej_cry.png");
+P.save(P.pack([maciej(false, false, true), maciej(true, false, true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej_old.png");
+P.save(P.pack([maciej(false, true, true), maciej(true, true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej_old_cry.png");
+P.save(P.pack([A, jania(true, false, true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania_adult.png");
+P.save(P.pack([jania(false, true, true), jania(true, true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania_adult_cry.png");
 P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");
 console.log("edge J", JSON.stringify(P.edgeCheck(J)).slice(0, 120), "M", JSON.stringify(P.edgeCheck(M)).slice(0, 120));

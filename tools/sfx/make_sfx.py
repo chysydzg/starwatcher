@@ -373,6 +373,18 @@ def truck_drive(r, seconds=7.5):  # wywrotka rusza, zmienia bieg, jedzie w prawo
     return np.stack([m * np.cos(a), m * np.sin(a)], 1)
 
 
+# ------------------------------------------------------------------ intro: szpital
+def beep(seconds=0.14):  # monitor serca: krótki, czysty pisk ok. 960 Hz z miękkim wejściem
+    t = dsp.t_of(dsp.n_of(seconds))
+    tone = np.sin(2 * np.pi * 960 * t) + 0.18 * np.sin(2 * np.pi * 1920 * t)
+    return tone * np.clip(t / 0.004, 0, 1) * np.clip((seconds - t) / 0.03, 0, 1)
+
+
+def flatline(seconds=3.6):  # zatrzymanie: ten sam ton, ciągły, gaśnie na końcu
+    t = dsp.t_of(dsp.n_of(seconds))
+    return beep(seconds) * np.clip((seconds - t) / 0.6, 0, 1)
+
+
 def main():
     r = dsp.rng(7)
     save('ding', b('mallet/celesta', pitch='G6'))
@@ -413,6 +425,8 @@ def main():
     save('clank', clank(r), -4)
     save('engine_start', engine_start(r), -4)
     save('truck_drive', truck_drive(r), -4)
+    save('beep', beep(), -6)
+    save('flatline', flatline(), -6)
 
 
 if __name__ == '__main__':

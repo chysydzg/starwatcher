@@ -17,6 +17,12 @@ func space() -> void:
 	Input.parse_input_event(e)
 
 
+func presses(n: int) -> void:  # spacja co 0,4 s: dopisuje tekst, potem następne okno
+	for i in n:
+		await space()
+		await wait(0.4)
+
+
 func wait(s: float) -> void:
 	await get_tree().create_timer(s).timeout
 
@@ -49,4 +55,18 @@ func _ready() -> void:
 	await shot("m8")  # finał: wywrotka z teleskopem odjeżdża
 	await wait(4.0)
 	await shot("m9")  # finał: tata na wózku
+	await wait(9.6)
+	await shot("h1")  # szpital: Jania wchodzi
+	await wait(11.6)
+	await shot("h2")  # pierwsza kwestia taty
+	await presses(4)
+	await wait(1.2)
+	await shot("h3")  # płacz
+	await presses(4)
+	await wait(2.0)
+	await shot("h4")  # prosta linia
+	await wait(10.0)
+	await shot("h5")  # przy oknie
+	await presses(2)
+	await wait(1.0)  # przed końcem wygaszania: _end() podmienia bieżącą scenę (ten test)
 	Game.quit()

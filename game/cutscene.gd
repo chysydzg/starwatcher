@@ -137,8 +137,130 @@ func _montage() -> void:
 		tick = Callable()
 		fx_draw = Callable()
 		Game.loop("rain_balcony", -INF)
-	await get_tree().create_timer(1.2).timeout  # dalej: szpital (następna scena)
+	await get_tree().create_timer(1.2).timeout
+	await _hospital()
 	_end()
+
+
+# ---------------------------------------------------------------- szpital: ostatnia rozmowa
+# sala w tej samej perspektywie co pokój (640x360, meble sortowane po podstawie, hospital_layout.json)
+const GLASS := Rect2(300, 22, 84, 52)   # szyba okna (przezroczysta w tle)
+const ECG := Rect2(562, 66, 28, 18)     # ekran monitora serca
+const BEAT := 0.86                      # ok. 70 uderzeń na minutę
+const NIGHT := Color(0.72, 0.78, 0.95)  # Jania w nocnym, niebieskim świetle sali
+var alive := true
+var flat_at := 0.0
+
+
+func _hospital() -> void:
+	sc = Node2D.new()
+	add_child(sc)
+	st = 0.0
+	_cues.clear()
+	var night := Node2D.new()  # za oknem: noc, gwiazdy, deszcz
+	night.draw.connect(func(): _draw_window(night))
+	sc.add_child(night)
+	var sorter := _room("hospital")
+	var bed: Sprite2D
+	for s in sorter.get_children():
+		if s.texture == Game.tex("hospital_bed"):
+			bed = s
+	var mc := _spr("hospital_maciej", Vector2(6, -120), bed, 2)  # leży w łóżku: rysowany zaraz po nim
+	var j := _spr("jania", Vector2(70, 118), sorter, 8)
+	j.vframes = 3
+	j.offset = Vector2(0, -54)  # pozycja = stopy (sortowanie)
+	j.modulate = NIGHT
+	cam.zoom = Vector2.ONE
+	cam.position = Vector2(320, 180)
+	fx_draw = _draw_ecg
+	add_child(fx)
+	tick = func():
+		if alive:
+			mc.frame = 1 if fmod(st, 3.2) > 1.8 else 0
+			if _cue("b%d" % int(st / BEAT), 0.0):
+				Game.sfx("beep", 1.0, -20.0)
+	Game.loop("rain_room", -18.0)
+	await create_tween().tween_property(fade, "color:a", 0.0, 0.8).finished
+	await _go(j, Vector2(70, 160))  # wchodzi drzwiami
+	var zoom := create_tween().set_parallel().set_trans(Tween.TRANS_SINE)
+	zoom.tween_property(cam, "zoom", Vector2(2, 2), 7.0)
+	zoom.tween_property(cam, "position", Vector2(450, 140), 7.0)  # monitor, łóżko i Jania nad okienkiem dialogu
+	await _go(j, Vector2(394, 160))  # podchodzi do łóżka
+	await get_tree().create_timer(0.6).timeout
+	var dlg = preload("res://game/dialogue.gd").new().play([
+		{"who": "maciej_old", "text": "Córko, gdy odejdę proszę kontynuuj moje badania. Odbuduj obserwatorium, i znajdź ich... Byłem tak blisko."},
+		{"who": "jania_adult", "text": "Tato ale Ty się nigdzie nie wybierasz!"},
+		{"who": "maciej_old", "text": "Kocham Cie córeczko", "cry": true},
+		{"who": "jania_adult", "text": "Ja Cie też tato.", "cry": true},
+	])
+	add_child(dlg)
+	await dlg.finished
+	await get_tree().create_timer(1.0).timeout
+	alive = false  # monitor: długi pisk i prosta linia
+	flat_at = st
+	mc.frame = 0
+	Game.sfx("flatline", 1.0, -16.0)
+	await get_tree().create_timer(3.0).timeout
+	await get_tree().create_timer(1.2).timeout
+	create_tween().set_trans(Tween.TRANS_SINE).tween_property(cam, "position", Vector2(360, 110), 3.0)  # kadr na okno
+	await _go(j, Vector2(342, 160))  # płacze, podchodzi do okna
+	await _go(j, Vector2(342, 128))
+	await get_tree().create_timer(1.0).timeout
+	var last = preload("res://game/dialogue.gd").new().play([{"who": "jania_adult", "text": "Znajdę ich ojcze", "cry": true}])
+	add_child(last)
+	await last.finished
+	await get_tree().create_timer(0.8).timeout
+	await create_tween().tween_property(fade, "color:a", 1.0, 1.8).finished
+	Game.loop("rain_room", -INF)
+	remove_child(fx)
+	sc.queue_free()
+	tick = Callable()
+	fx_draw = Callable()
+
+
+## Jania idzie prosto do `to` (40 px/s) jak w grze: bokiem 4 klatki, przodem i tyłem 2; cicho tupta
+func _go(j: Sprite2D, to: Vector2) -> void:
+	var d := to - j.position
+	var face := 1 if absf(d.x) > absf(d.y) else (0 if d.y > 0 else 2)
+	j.flip_h = face == 1 and d.x < 0
+	while j.position.distance_to(to) > 0.5:
+		j.position = j.position.move_toward(to, 40.0 * get_process_delta_time())
+		var f := 1 + int(st * 14.0) % 4 if face == 1 else 1 + int(st * 10.0) % 2
+		if f != j.frame % 8 and (face != 1 or f in [1, 3]):
+			Game.sfx("step%d" % (randi() % 4), randf_range(1.0, 1.1), -18.0)
+		j.frame = face * 8 + f
+		await get_tree().process_frame
+	j.position = to
+	j.frame = face * 8
+
+
+## noc za oknem: granat, gwiazdy, ukośne smugi deszczu (przycięte do szyby)
+func _draw_window(n: Node2D) -> void:
+	var g := GLASS
+	for i in 13:
+		n.draw_rect(Rect2(g.position.x, g.position.y + i * 4, g.size.x, 4), Color("0c1430").lerp(Color("1c2a52"), i / 12.0))
+	for s in [Vector2(4, 5), Vector2(15, 12), Vector2(30, 4), Vector2(37, 18), Vector2(9, 30), Vector2(24, 22), Vector2(33, 40), Vector2(52, 8), Vector2(61, 20), Vector2(70, 5), Vector2(78, 34), Vector2(57, 42)]:
+		n.draw_rect(Rect2(g.position + s, Vector2.ONE), Color(1, 1, 0.9, 0.5 + 0.5 * absf(sin(t * 1.3 + s.x))))
+	for k in 34:  # deszcz: kreski 1x4 lecą skosem, zawijają się w obrębie szyby
+		var x := fposmod(k * 7.3 + t * 30.0, g.size.x)
+		var y := fposmod(k * 13.1 + t * 140.0, g.size.y)
+		for d in 4:
+			var p := (g.position + Vector2(fposmod(x - d * 0.5, g.size.x), y - d)).floor()
+			if g.has_point(p):
+				n.draw_rect(Rect2(p, Vector2.ONE), Color(0.6, 0.72, 0.9, 0.55))
+
+
+## monitor serca: przesuwający się zapis EKG (zielony), po śmierci prosta linia
+func _draw_ecg() -> void:
+	var green := Color("5ae68a")
+	for x in int(ECG.size.x):
+		var at := st - (ECG.size.x - 1 - x) * 0.05  # 20 px na sekundę
+		var y := 9.0
+		if alive or at < flat_at:
+			var ph := fmod(at, BEAT) / BEAT
+			y = 9.0 - (2.0 if ph > 0.10 and ph < 0.14 else 0.0) + (2.0 if ph > 0.2 and ph < 0.23 else 0.0) \
+				- (8.0 if ph >= 0.23 and ph < 0.26 else 0.0) + (4.0 if ph >= 0.26 and ph < 0.29 else 0.0) - (3.0 if ph > 0.45 and ph < 0.55 else 0.0)
+		fx.draw_rect(Rect2(ECG.position + Vector2(x, y), Vector2.ONE), green.darkened(0.5 if x < ECG.size.x - 3 else 0.0))
 
 
 func _spr(tex: String, pos: Vector2, parent: Node = null, frames := 1) -> Sprite2D:
@@ -201,12 +323,12 @@ func _balcony_day() -> void:
 
 
 ## pokój jak w grze: tło i meble według layoutu, sortowane po podstawie
-func _room() -> Node2D:
-	_spr("room", Vector2.ZERO)
+func _room(prefix := "room") -> Node2D:
+	_spr(prefix, Vector2.ZERO)
 	var sorter := Node2D.new()
 	sorter.y_sort_enabled = true
 	sc.add_child(sorter)
-	for p in Game.layout("room"):
+	for p in Game.layout(prefix):
 		var s := _spr(p.name, Vector2(p.x, p.base), sorter)
 		s.offset = Vector2(0, p.y - p.base)
 	return sorter

@@ -1,0 +1,98 @@
+[
+ {
+  "name": "hospital_plant",
+  "x": 21,
+  "y": 77,
+  "base": 128,
+  "foot": [
+   16,
+   112,
+   54,
+   132
+  ]
+ },
+ {
+  "name": "hospital_sofa",
+  "x": 123,
+  "y": 91,
+  "base": 136,
+  "foot": [
+   122,
+   112,
+   222,
+   138
+  ]
+ },
+ {
+  "name": "hospital_table",
+  "x": 143,
+  "y": 175,
+  "base": 198,
+  "foot": [
+   140,
+   180,
+   204,
+   200
+  ]
+ },
+ {
+  "name": "hospital_tv",
+  "x": 229,
+  "y": 67,
+  "base": 132,
+  "foot": [
+   228,
+   114,
+   284,
+   134
+  ]
+ },
+ {
+  "name": "hospital_nightstand",
+  "x": 429,
+  "y": 87,
+  "base": 142,
+  "foot": [
+   426,
+   120,
+   466,
+   144
+  ]
+ },
+ {
+  "name": "hospital_bed",
+  "x": 467,
+  "y": 81,
+  "base": 212,
+  "foot": [
+   466,
+   104,
+   560,
+   214
+  ]
+ },
+ {
+  "name": "hospital_monitor",
+  "x": 557,
+  "y": 61,
+  "base": 160,
+  "foot": [
+   558,
+   140,
+   594,
+   162
+  ]
+ },
+ {
+  "name": "hospital_wheelchair",
+  "x": 567,
+  "y": 171,
+  "base": 226,
+  "foot": [
+   566,
+   186,
+   616,
+   228
+  ]
+ }
+]
