@@ -1,68 +1,87 @@
-// Portrety do okienek dialogu (88x88, przezroczyste tło). Z referencji autora: Maciej (zdjęcie z profilu,
-// srebrzysty), Jania (zdjęcie rudej królicy z półki). Zdjęcie → mediana 3x3 → 9 kolorów → przemalowana paleta,
-// potem kodem: ubranie, okulary, oko, opadnięte ucho Macieja, siekacze Jani.
+// Portrety do okienek dialogu (88x88, przezroczyste tło), rysowane od zera pixel artem.
+// Zdjęcia autora służą tylko za wzór: kolory, proporcje (duża okrągła głowa, puszyste policzki, jasna obwódka oka).
+// Maciej: srebrzysty, lewe ucho stoi, prawe opada wzdłuż policzka, brązowe oczy, okrągłe okulary, biały kitel.
+// Jania (dziecko, mniejsza w kadrze): ruda, kremowy pyszczek, oba uszy w górę, dwa siekacze, dżinsowe ogrodniczki.
 const P = require(process.env.CODIXEL);
 const OUT = process.argv[2] || ".";
-function pix(file, w, n) {
-  const b = P.resize(P.trim(P.load(file), 0), w), o = new P.Buf(b.w, b.h);
-  const md = (a) => a.sort((p, q) => p - q)[a.length >> 1];
-  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
-    const u = b.get(x, y); if ((u >>> 24) < 128) continue;
-    const ch = [[], [], []];
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const q = b.get(x + dx, y + dy); if ((q >>> 24) < 128) continue; ch[0].push(q & 255); ch[1].push((q >> 8) & 255); ch[2].push((q >> 16) & 255); }
-    o.pset(x, y, [md(ch[0]), md(ch[1]), md(ch[2])]);
-  }
-  return P.smoothEdge(P.cleanup(P.quantize(o, n, { dither: false }).buf, { tol: 20 }));
-}
-function recolor(b, fn) {
-  const o = new P.Buf(b.w, b.h);
-  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const u = b.get(x, y); if ((u >>> 24) < 128) continue; o.pset(x, y, fn(...P.toHsl([u & 255, (u >> 8) & 255, (u >> 16) & 255]))); }
-  return o;
-}
-const blit = (dst, src, x0, y0) => { for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) { const u = src.get(x, y); if ((u >>> 24) >= 128) dst.pset(x0 + x, y0 + y, u); } };
-const INK = [26, 22, 34];
-const denim = P.hueRamp(4, { hue: 214, shift: 26, sat: 0.5, light: [0.26, 0.6] });
-const coat = P.hueRamp(4, { hue: 210, shift: 20, sat: 0.12, light: [0.62, 0.95] });
-const shirt = P.hueRamp(3, { hue: 205, shift: 16, sat: 0.45, light: [0.42, 0.66] });
+const L = { light: [-0.5, -0.62, 0.6] };  // jedno światło z lewej u góry
+const INK = [24, 20, 32];
+const ramp = (n, o) => P.hueRamp(n, o);
+const S = (b, prims, r, o = {}) => P.solid(b, prims, r, { ...L, ...o });
+const E = P.ell, C = P.cap;
+const fillEll = (b, cx, cy, rx, ry, c) => { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) b.pset(x, y, c); };
+const line = (b, ax, ay, bx, by, c) => { const n = Math.max(Math.abs(bx - ax), Math.abs(by - ay)); for (let i = 0; i <= n; i++) b.pset(Math.round(ax + (bx - ax) * i / n), Math.round(ay + (by - ay) * i / n), c); };
 
-// --- Jania (mała): głowa 34 px szer., ogrodniczki
-const jh = recolor(pix(__dirname + "/ref/jania_head.png", 34, 9), (h, s, l) => P.hsl(26 + (l - 0.5) * 20, Math.min(0.85, s * 1.9 + 0.25), l));
-const J = new P.Buf(88, 88);
-const jx = 30, jy = 88 - jh.h - 12;
-P.solid(J, [P.ell(46, 92, 22, 16)], P.hueRamp(4, { hue: 25, shift: 26, sat: 0.72, light: [0.42, 0.74] }));  // ramiona
-for (let y = 78; y < 88; y++) for (let x = 32; x < 60; x++) J.pset(x, y, y === 78 ? denim[3] : denim[2]); // śliniak ogrodniczek
-for (const sx of [33, 57]) for (let y = 74; y < 88; y++) { J.pset(sx, y, denim[1]); J.pset(sx + 1, y, denim[1]); }  // szelki
-for (const sx of [33, 57]) { J.pset(sx, 80, [255, 214, 92]); J.pset(sx + 1, 80, [255, 214, 92]); }  // guziki
-blit(J, jh, jx, jy);
-// siekacze: dwa białe ząbki pod noskiem (nos ze zdjęcia: 57% szer., 93% wys. głowy)
-const nx = Math.round(jx + 0.57 * jh.w), ny = Math.round(jy + 0.9 * jh.h);
-J.pset(nx, ny - 2, [214, 120, 128]); J.pset(nx - 1, ny - 2, [190, 96, 106]); J.pset(nx + 1, ny - 2, [190, 96, 106]);  // nosek
-const jex = Math.round(jx + 0.375 * jh.w), jey = Math.round(jy + 0.61 * jh.h);  // oko
-for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 0; dx++) J.pset(jex + dx, jey + dy, [42, 24, 22]);
-J.pset(jex, jey - 1, [250, 244, 236]);
-for (const dx of [-1, 1]) for (let y = ny; y < ny + 3; y++) J.pset(nx + dx, y, y === ny + 2 ? [214, 206, 196] : [250, 246, 238]);
-for (let y = ny; y < ny + 3; y++) J.pset(nx, y, [190, 178, 168]);
-// --- Maciej: głowa z profilu 38 px, opadnięte drugie ucho, okulary, kitel
-const mh = recolor(pix(__dirname + "/ref/maciej_head.png", 38, 9), (h, s, l) => P.hsl(222 - (l - 0.4) * 30, 0.08, Math.min(0.86, l * 0.92)));
-const M = new P.Buf(88, 88);
-const mx = 26, my = 88 - mh.h - 10;
-const furM = P.hueRamp(4, { hue: 222, shift: 24, sat: 0.08, light: [0.3, 0.7] });
-P.solid(M, [P.ell(46, 102, 36, 32)], coat);                                   // kitel
-for (let y = 74; y < 88; y++) { const d = (y - 74) >> 1; for (let x = 44 - d; x <= 46 + d; x++) M.pset(x, y, shirt[1]); } // koszula w dekolcie
-for (let y = 74; y < 88; y++) { const d = (y - 74) >> 1; M.pset(43 - d, y, coat[0]); M.pset(47 + d, y, coat[0]); }      // klapy
-blit(M, mh, mx, my);
-// opadnięte ucho: leży wzdłuż boku głowy od czubka w dół (drugie stoi, jak na zdjęciu)
-P.solid(M, [P.cap(mx + 15, my + 20, mx + 9, my + 40, 4.2, 5.2), P.cap(mx + 9, my + 40, mx + 7, my + 58, 5.2, 4)], furM, { light: [-0.5, -0.6, 0.6] });
-for (let t = 0; t <= 1; t += 0.02) { const x = Math.round(mx + 13 - 6 * t), y = Math.round(my + 24 + 32 * t); M.pset(x, y, furM[0]); }  // fałda ucha
-// oko: brązowe tęczówki z odblaskiem, okrągłe okulary z zausznikiem
-const ex = Math.round(mx + 0.54 * mh.w), ey = Math.round(my + 0.64 * mh.h);
-for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) M.pset(ex + dx, ey + dy, [104, 62, 34]);
-M.pset(ex, ey, [44, 24, 16]); M.pset(ex + 1, ey, [44, 24, 16]); M.pset(ex - 1, ey - 1, [250, 244, 230]);
-for (let a = 0; a < 64; a++) M.pset(Math.round(ex + 0.5 + Math.cos(a / 64 * 6.283) * 4.5), Math.round(ey + Math.sin(a / 64 * 6.283) * 4.5), INK);
-for (let x = mx + 14; x < ex - 4; x++) M.pset(x, ey - 1 - Math.round((x - mx - 14) * 0.08), INK);  // zausznik do tyłu
-for (let x = ex + 5; x < ex + 8; x++) M.pset(x, ey - 1, INK);                                      // mostek
-M.pset(ex + 3, ey - 3, [236, 244, 255]);  // błysk na szkle
-const out = (b, r) => P.selout(b, r[1], INK);
-const Jo = out(J, P.hueRamp(4, { hue: 25, shift: 26, sat: 0.72, light: [0.3, 0.6] })), Mo = out(M, furM);
-P.save(Jo, OUT + "/portrait_jania.png"); P.save(Mo, OUT + "/portrait_maciej.png");
-P.save(P.sheet([{ buf: Jo, scale: 4, label: "JANIA" }, { buf: Mo, scale: 4, label: "MACIEJ" }, { buf: Jo, scale: 1 }, { buf: Mo, scale: 1 }]), __dirname + "/_portraits.png");
+// oko: obwódka (jasna sierść), tęczówka, źrenica, dwa odblaski
+function eye(b, x, y, iris, ring) {
+  fillEll(b, x, y, 4.2, 4.8, ring);
+  fillEll(b, x, y, 3, 3.6, iris[1]);
+  fillEll(b, x, y + 0.6, 2, 2.6, iris[0]);
+  b.pset(x - 1, y - 2, [250, 246, 238]); b.pset(x - 2, y - 2, [250, 246, 238]); b.pset(x - 1, y - 1, [250, 246, 238]);
+  b.pset(x + 1, y + 2, iris[2]);
+}
+
+function maciej() {
+  const b = new P.Buf(88, 88);
+  const fur = ramp(5, { hue: 224, shift: 26, sat: 0.1, light: [0.28, 0.8] });
+  const coat = ramp(4, { hue: 212, shift: 18, sat: 0.12, light: [0.66, 0.96] });
+  const shirt = ramp(3, { hue: 208, shift: 18, sat: 0.4, light: [0.4, 0.64] });
+  const inner = ramp(3, { hue: 350, shift: 16, sat: 0.18, light: [0.5, 0.7] });
+  const iris = [[46, 24, 16], [118, 70, 38], [170, 112, 64]];
+  S(b, [E(44, 72, 10, 8)], fur);                                              // szyja
+  S(b, [E(44, 104, 42, 28)], coat);                                           // kitel
+  for (let y = 76; y < 88; y++) { const d = (y - 76) >> 1; for (let x = 44 - d - 2; x <= 44 + d + 2; x++) b.pset(x, y, shirt[1]); }
+  for (let y = 76; y < 88; y++) { const d = (y - 76) >> 1; b.pset(42 - d - 2, y, coat[1]); b.pset(46 + d + 2, y, coat[1]); } // klapy
+  for (let y = 80; y < 88; y++) b.pset(44, y, shirt[0]);                        // guziki koszuli w linii
+  for (let x = 60; x < 68; x++) b.pset(x, 82, coat[1]);                         // kieszeń na piersi
+  for (let y = 77; y < 82; y++) { b.pset(63, y, [70, 110, 200]); b.pset(65, y, [210, 70, 60]); } // długopisy
+  S(b, [C(33, 30, 26, 2, 5.6, 4.4)], fur);                                    // ucho stoi
+  S(b, [C(32.6, 28, 26.6, 6, 2.6, 2)], inner);
+  S(b, [E(44, 46, 22, 19), E(29, 56, 10, 8.5), E(59, 56, 10, 8.5)], fur);     // głowa z puszystymi policzkami
+  S(b, [C(54, 29, 64, 31, 3.6, 4.6), C(64, 31, 70, 42, 4.6, 5.4), C(70, 42, 70, 58, 5.4, 4.6)], fur, { dark: 0.85 }); // ucho opada wzdłuż policzka
+  line(b, 59, 30, 66, 34, fur[1]); line(b, 66, 34, 68, 43, fur[1]); line(b, 68, 43, 68, 56, fur[1]); // fałda ucha
+  fillEll(b, 44, 60, 9, 6, fur[3]);                                           // jaśniejszy pyszczek
+  fillEll(b, 44, 63, 6, 3.4, fur[4]);
+  eye(b, 34, 46, iris, fur[3]); eye(b, 54, 46, iris, fur[3]);
+  for (const [x, y] of [[34, 46], [54, 46]])                                  // okrągłe okulary
+    for (let a = 0; a < 80; a++) b.pset(Math.round(x + Math.cos(a / 80 * 6.283) * 7), Math.round(y + Math.sin(a / 80 * 6.283) * 7), INK);
+  line(b, 41, 45, 47, 45, INK);                                               // mostek
+  line(b, 27, 45, 22, 43, INK); line(b, 61, 45, 65, 43, INK);                 // zauszniki
+  b.pset(31, 41, [236, 244, 255]); b.pset(51, 41, [236, 244, 255]);            // błysk na szkle
+  fillEll(b, 44, 56, 2.6, 1.6, [168, 120, 130]); b.pset(43, 55, [206, 160, 168]); // nos
+  line(b, 44, 58, 44, 60, fur[0]); line(b, 44, 60, 41, 62, fur[0]); line(b, 44, 60, 47, 62, fur[0]); // pyszczek Y
+  for (const s of [-1, 1]) { line(b, 44 + s * 8, 60, 44 + s * 20, 57, fur[4]); line(b, 44 + s * 8, 62, 44 + s * 20, 63, fur[4]); } // wąsy
+  return P.selout(b, fur[1], INK);
+}
+
+function jania() {
+  const b = new P.Buf(88, 88);
+  const fur = ramp(5, { hue: 24, shift: 28, sat: 0.72, light: [0.34, 0.74] });
+  const cream = ramp(3, { hue: 34, shift: 16, sat: 0.5, light: [0.7, 0.9] });
+  const denim = ramp(4, { hue: 214, shift: 26, sat: 0.5, light: [0.28, 0.6] });
+  const pink = ramp(3, { hue: 350, shift: 12, sat: 0.55, light: [0.58, 0.82] });
+  const iris = [[30, 18, 16], [64, 36, 28], [120, 80, 60]];
+  S(b, [E(44, 104, 30, 26), E(44, 74, 10, 9)], fur);                          // ramiona i szyja
+  S(b, [E(44, 82, 10, 6)], cream);                                            // kremowa pierś
+  for (let y = 80; y < 88; y++) for (let x = 31; x <= 57; x++) b.pset(x, y, y === 80 ? denim[3] : denim[2]); // śliniak
+  for (let y = 83; y < 88; y++) for (let x = 39; x <= 49; x++) b.pset(x, y, denim[1]);                   // kieszonka
+  for (const x of [31, 32, 56, 57]) for (let y = 78; y < 81; y++) b.pset(x, y, denim[1]);                // szelki
+  for (const x of [32, 56]) { b.pset(x, 82, [255, 214, 92]); b.pset(x - 1 + (x > 44 ? 1 : 0), 82, [255, 214, 92]); }
+  S(b, [C(36, 34, 31, 10, 4.6, 3.8), C(52, 34, 57, 10, 4.6, 3.8)], fur);      // uszy (mniejsza głowa: dziecko)
+  S(b, [C(35.6, 32, 31.6, 13, 2.2, 1.6), C(52.4, 32, 56.4, 13, 2.2, 1.6)], pink);
+  S(b, [E(44, 50, 18, 16), E(33, 58, 8, 6.5), E(55, 58, 8, 6.5)], fur);       // głowa, policzki
+  fillEll(b, 44, 61, 8, 5, cream[1]);                                         // pyszczek
+  fillEll(b, 44, 63, 5.5, 3, cream[2]);
+  eye(b, 36, 50, iris, cream[0]); eye(b, 52, 50, iris, cream[0]);
+  fillEll(b, 29, 57, 2.4, 1.4, pink[1]); fillEll(b, 59, 57, 2.4, 1.4, pink[1]); // rumieńce
+  fillEll(b, 44, 58, 2.2, 1.4, pink[0]); b.pset(43, 57, pink[2]);             // nosek
+  line(b, 44, 60, 44, 61, fur[0]); line(b, 44, 61, 42, 62, fur[0]); line(b, 44, 61, 46, 62, fur[0]);
+  for (const x of [42, 43, 45, 46]) for (let y = 63; y < 66; y++) b.pset(x, y, y === 65 ? [220, 212, 200] : [252, 248, 240]); // dwa siekacze
+  for (let y = 63; y < 66; y++) b.pset(44, y, [196, 186, 176]);
+  for (const s of [-1, 1]) line(b, 44 + s * 7, 61, 44 + s * 17, 59, cream[2]);  // wąsiki
+  return P.selout(b, fur[1], INK);
+}
+
+const M = maciej(), J = jania();
+P.save(J, OUT + "/portrait_jania.png"); P.save(M, OUT + "/portrait_maciej.png");
+P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");

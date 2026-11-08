@@ -87,7 +87,7 @@ func _draw_box() -> void:
 	var cap := Game.keycap(_box, plate, false)
 	_box.draw_string(Game.font, Vector2(cap.position.x, cap.position.y + 13).floor(), who[0], HORIZONTAL_ALIGNMENT_CENTER, cap.size.x, Game.FS, Color("1a1626"))
 	Game.metal(_box, TEXT)
-	if done() and fmod(_t, 1.0) < 0.7:  # podpowiedź miga, gdy tekst skończony
+	if done() and fmod(_t, 1.6) < 1.1:  # podpowiedź miga spokojnie, gdy tekst skończony
 		var k := Game.key("advance")
 		var w := Game.font.get_string_size(k, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 		_box.draw_string(Game.font, Vector2(TEXT.end.x - w - 12, TEXT.end.y - 10).floor(), k, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color("ffcf6b"))
