@@ -125,8 +125,12 @@ function sitting(fr, f) {
     if ((c >>> 0) === (INKP >>> 0) && y < 30 && (b.px[y * b.w + x] >>> 24)) continue;
     b.px[y * b.w + x] = c;
   }
-  for (let k = 1; k < 5; k++) b.pset(px - 1 + k, py - 1 - k, k === 4 ? [236, 140, 150] : [240, 200, 80]); // ołówek w łapce
-  b.pset(px - 1, py + 1, [60, 52, 60]);
+  for (let k = 0; k < 7; k++) {  // czerwony długopis w łapce: grot na kartce, trzon wystaje skośnie nad łapkę
+    const x = px - 1 + Math.floor(k * 0.5), y = py + 2 - k;
+    if (k > 0) { b.pset(x - 1, y, INKC); b.pset(x + 1, y, INKC); }
+    b.pset(x, y, k === 0 ? [40, 30, 40] : k > 4 ? [150, 24, 34] : [226, 60, 56]);
+  }
+  b.pset(px + 2, py - 5, INKC);
   return b;
 }
 const jbb = P.bounds(jania.frames[16]);

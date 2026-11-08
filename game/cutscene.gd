@@ -92,8 +92,9 @@ func _end() -> void:
 # ---------------------------------------------------------------- montaż: lata mijają w krótkich scenach
 const HOLD := 4.2                     # ile trwa jedna scena
 const QUICK := 0.35                   # szybkie przejście przez czerń
-const CLOSE := 5.2                     # finał: zbliżenie, żuraw wkłada teleskop do wywrotki, ta odjeżdża
-const PULL := 2.6                      # finał: odjazd kamery na balkon
+const CLOSE := 4.6                     # finał: zbliżenie, żuraw wkłada teleskop do wywrotki; potem rusza i kamera się cofa
+const PULL := 3.2                      # finał: odjazd kamery na balkon razem z odjeżdżającą wywrotką
+const FINAL_CAM := Vector2(262, 250)   # finał: całe obserwatorium w lewym górnym rogu, tata i Jania, wywrotka
 const BALCONY_CAM := Vector2(275, 255)  # zoom 2: obserwatorium i balkon w kadrze
 var sc: Node2D                         # bieżąca scena montażu
 var fx := Node2D.new()                 # efekty bieżącej sceny (para, deski, chmury)
@@ -318,7 +319,7 @@ func _sc_board() -> void:
 		j.frame = 23 if fmod(st + 1.2, 2.6) > 1.5 else 16
 		var u := smoothstep(CLOSE, CLOSE + PULL, st)
 		cam.zoom = Vector2.ONE * 3.0 * pow(2.0 / 3.0, u)
-		cam.position = Vector2(207, 151).lerp(BALCONY_CAM, u)
+		cam.position = Vector2(207, 151).lerp(FINAL_CAM, u)
 	fx_draw = _draw_site
 
 
@@ -327,10 +328,12 @@ func _sc_board() -> void:
 func _draw_site() -> void:
 	var tx := lerpf(186.0, 245.0, smoothstep(0.5, 2.5, st))
 	var hy := lerpf(135.0, 167.0, smoothstep(2.6, 3.8, st)) - 40.0 * smoothstep(3.9, 4.6, st)
-	var drive := 30.0 * pow(maxf(0.0, st - 4.4), 2.0)
+	var td := maxf(0.0, st - CLOSE)  # wielki diesel: rusza powoli (12 px/s²), potem jedzie 30 px/s
+	var drive := 6.0 * td * td if td < 2.5 else 37.5 + 30.0 * (td - 2.5)
+	var shake := 1.0 if st > 3.9 and fmod(st, 0.11) < 0.05 else 0.0  # silnik pracuje: wywrotka lekko drży
 	var dim := Color(0.78, 0.78, 0.9)
 	var dark := Color(0.12, 0.12, 0.16)
-	var at := Vector2(tx - 17, (hy if st < 3.9 else 167.0) + 5).floor() + Vector2(drive, 0).floor()
+	var at := Vector2(tx - 17, (hy if st < 3.9 else 167.0 + shake) + 5).floor() + Vector2(drive, 0).floor()
 	fx.draw_rect(Rect2(tx - 3, 102, 7, 2), dark)                      # wózek pod wysięgnikiem
 	fx.draw_line(Vector2(tx, 104), Vector2(tx, hy), dark, 1.0)        # lina
 	fx.draw_rect(Rect2(tx - 2, hy, 5, 3), Color(0.66, 0.5, 0.16))     # zblocze haka
@@ -338,7 +341,7 @@ func _draw_site() -> void:
 		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)
 		fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
 	fx.draw_texture(Game.tex("cut_scope"), at, dim)
-	fx.draw_texture(Game.tex("cut_truck"), Vector2(226 + floorf(drive), 176), dim)  # skrzynia zasłania dół teleskopu
+	fx.draw_texture(Game.tex("cut_truck"), Vector2(226 + floorf(drive), 176 + shake), dim)  # skrzynia zasłania dół teleskopu
 
 
 ## sprite stojący stopami na y (x = lewa krawędź)
