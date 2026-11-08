@@ -60,6 +60,7 @@ Canvas.prototype.front = function (a, b) { return ORDER.indexOf(a) > ORDER.index
 const ell = (cx, cy, rx, ry) => (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 const sup = (cx, cy, rx, ry, e = 2.6) => (x, y) => Math.abs((x - cx) / rx) ** e + Math.abs((y - cy) / ry) ** e <= 1; // zaokrąglony prostokąt
 const cap = (ax, ay, bx, by, r) => (x, y) => { const vx = bx - ax, vy = by - ay, t = Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / (vx * vx + vy * vy))); return (x - ax - t * vx) ** 2 + (y - ay - t * vy) ** 2 <= r * r; };
+const rell = (cx, cy, rx, ry, a) => (x, y) => { const c = Math.cos(a), s = Math.sin(a), u = (x - cx) * c + (y - cy) * s, v = -(x - cx) * s + (y - cy) * c; return (u / rx) ** 2 + (v / ry) ** 2 <= 1; };
 const or = (...f) => (x, y) => f.some((g) => g(x, y));
 const and = (...f) => (x, y) => f.every((g) => g(x, y));
 const ramp = (n, o) => P.hueRamp(n, o);
@@ -93,16 +94,20 @@ function maciej(blink = false) {
   const furD = ramp(3, { hue: 228, shift: 20, sat: 0.1, light: [0.4, 0.64] });
   const light = ramp(2, { hue: 220, shift: 12, sat: 0.08, light: [0.8, 0.9] });
   const coat = ramp(3, { hue: 212, shift: 16, sat: 0.1, light: [0.74, 0.96] });
-  const shirt = ramp(2, { hue: 208, shift: 14, sat: 0.42, light: [0.46, 0.62] });
+  const shirt = ramp(2, { hue: 210, shift: 10, sat: 0.4, light: [0.8, 0.88] });
   const pinkE = ramp(2, { hue: 352, shift: 10, sat: 0.22, light: [0.62, 0.74] });
   c.add("coat", sup(CX, 97, 38, 28, 2.2), coat, { group: "body" });
   c.add("collar", (x, y) => y > 67 && y < 76 && Math.abs(x - CX) < 21, coat, { group: "body", raw: true }); // ramiona tuż pod policzkami
   c.add("shirt", (x, y) => y > 70 && Math.abs(x - CX) < (y - 70) * 0.45 + 2.5, shirt, { group: "body", flat: true, raw: true });
+  // krawat: wąski węzeł, klinga lekko się rozszerza, szpiczasty koniec
+  const tw = (y) => (y < 74 ? 2 : y < 79 ? 1.5 : y < 84 ? 2.5 : 2.5 - (y - 84) * 0.9);
+  c.add("tie", (x, y) => y > 70.5 && y < 87 && Math.abs(x - CX) < tw(y), ramp(2, { hue: 322, shift: 12, sat: 0.55, light: [0.3, 0.42] }), { group: "body", raw: true });
+  for (let x = 42; x < 46; x++) c.set(x, 73, [96, 28, 70]);                 // dół węzła
   c.add("earL", cap(35, 36, 31, 8, 5.5), fur, { group: "ears" });
   c.add("earLi", cap(34.6, 33, 31.6, 13, 2.4), pinkE, { group: "ears", flat: true });
   c.add("head", or(sup(CX, 52, 23, 18, 2.4), ell(31, 62, 11, 9), ell(57, 62, 11, 9)), fur, { group: "head" });
   c.add("muzzle", or(ell(40, 63, 6.5, 5.2), ell(48, 63, 6.5, 5.2)), light, { group: "head", flat: true });
-  c.add("lop", or(cap(52, 37, 56, 23, 5), cap(56, 23, 66, 27, 5), cap(66, 27, 69, 41, 4.6)), furD, { group: "lop" }); // drugie ucho złamane: wstaje i opada na bok
+  c.add("lop", or(cap(53, 37, 55.5, 22, 5), cap(55.5, 22, 63.5, 24, 5), cap(63.5, 24, 66.5, 30, 4.6)), furD, { group: "ears" }); // drugie ucho: nasada za głową jak pierwsze, zgina się wysoko, krótki płat opada
   // oczy (brązowe), okulary okrągłe, nos, pyszczek, wąsy
   for (const ex of [31, 53]) eye(c, ex, 48, 5, 6, [44, 24, 18], [124, 74, 40], blink ? fur[1] : null);  // środek oka = środek szkła
   for (const ocx of [33, 55]) ring(c, ocx, 51, 6, INK);                     // okrągłe okulary, obręcz 1 px

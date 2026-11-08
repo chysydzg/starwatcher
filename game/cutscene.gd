@@ -95,10 +95,14 @@ const QUICK := 0.35                   # szybkie przejście przez czerń
 const PLANKS := [Rect2(156, 188, 11, 3), Rect2(166, 188, 11, 3), Rect2(198, 188, 11, 3), Rect2(208, 188, 11, 3),
 	Rect2(156, 192, 11, 3), Rect2(166, 192, 11, 3), Rect2(198, 192, 11, 3), Rect2(208, 192, 11, 3),
 	Rect2(181, 197, 15, 3), Rect2(181, 203, 15, 3)]  # okna i drzwi obserwatorium (sprite od 147,144)
+const CLOSE := 3.0                     # finał: zbliżenie na zabijanie okien
+const PULL := 2.6                      # finał: odjazd kamery na balkon
+const WORKERS := [[Vector2(166, 201), [0, 1, 4, 5], 1], [Vector2(209, 201), [2, 3, 6, 7], -1], [Vector2(178, 208), [8, 9], 1]]  # stopy, deski, strona młotka
 const BALCONY_CAM := Vector2(275, 255)  # zoom 2: obserwatorium i balkon w kadrze
 var sc: Node2D                         # bieżąca scena montażu
 var fx := Node2D.new()                 # efekty bieżącej sceny (para, deski, chmury)
 var fx_draw := Callable()
+var hold := HOLD                       # bieżąca scena może trwać dłużej (finał)
 var tick := Callable()                 # animacja bieżącej sceny: tick(t_sceny)
 var st := 0.0
 
@@ -117,10 +121,11 @@ func _montage() -> void:
 		sc = Node2D.new()
 		add_child(sc)
 		st = 0.0
+		hold = HOLD
 		build.call()
 		add_child(fx)
 		await create_tween().tween_property(fade, "color:a", 0.0, QUICK).finished
-		await get_tree().create_timer(HOLD).timeout
+		await get_tree().create_timer(hold).timeout
 		await create_tween().tween_property(fade, "color:a", 1.0, QUICK).finished
 		remove_child(fx)
 		sc.queue_free()
@@ -216,13 +221,13 @@ func _steam(at: Vector2) -> void:
 		fx.draw_rect(Rect2(p.floor(), Vector2(1, 2)), Color(1, 1, 1, 0.55 * (1.0 - u)))
 
 
-func _sc_stars() -> void:  # balkon nocą: tata z parującą kawą, mała Jania na podłodze z zeszytem
+func _sc_stars() -> void:  # balkon nocą: tata z profilu patrzy na Janię, kubek w obu łapach; Jania pisze w zeszycie
 	_balcony_night()
 	_spr("balcony_telescope", Vector2(372, 293))
-	var m := _spr("cut_maciej_mug", Vector2(312, 274), null, 2)
+	var m := _spr("cut_maciej_mug", Vector2(304, 275), null, 2)
 	var j := _spr("cut_jania_sit", Vector2(262, 298), null, 2)
-	tick = func(): _breathe(m, 0.0); j.frame = int(st * 3.0) % 2  # ołówek skrobie
-	fx_draw = func(): _steam(Vector2(345, 314))
+	tick = func(): _breathe(m, 0.0); j.frame = int(st * 3.0) % 2  # łapka z ołówkiem skrobie w miejscu
+	fx_draw = func(): _steam(m.position + Vector2(3, 34 - m.frame))
 
 
 func _sc_mobile() -> void:  # pokój: tata na krześle wiesza układ słoneczny, Jania patrzy
@@ -285,45 +290,100 @@ func _sc_pc() -> void:  # pokój: Jania przy komputerze, tata obok
 		fx.draw_rect(Rect2(350, 72, 24, 18), Color(0.55, 0.9, 1.0, 0.18 + 0.08 * sin(st * 9.0)))
 
 
-func _sc_coffee() -> void:  # pokój: tata o balkoniku, starsza Jania niesie mu kawę
+func _sc_coffee() -> void:  # pokój: tata o balkoniku, starsza Jania niesie mu kawę w obu łapkach
 	var so := _room()
 	var m := _actor(so, "cut_maciej_front", Vector2(430, 118))
-	_actor(so, "cut_walker", Vector2(428, 160), 1).position.y = 188
 	var j := _actor(so, "cut_teen_walk", Vector2(250, 140), 5)
 	_cam(Vector2(370, 160))
 	tick = func():
 		_breathe(m, 0.0)
-		var x := minf(250.0 + st * 40.0, 384.0)  # podchodzi i staje przed tatą
+		var x := minf(250.0 + st * 40.0, 404.0)  # podchodzi i staje przed balkonikiem
 		j.position.x = x
-		j.frame = 0 if x >= 384.0 else 1 + int(st * 8.0) % 4
-	fx_draw = func():
-		var p: Vector2 = j.position + Vector2(29, -22)  # kubek w wyciągniętej łapie
-		fx.draw_rect(Rect2(p, Vector2(4, 4)), Color("eef0f6"))
-		fx.draw_rect(Rect2(p + Vector2(4, 1), Vector2(1, 2)), Color("d6dce6"))
-		_steam(p + Vector2(1, -1))
+		j.frame = 0 if x >= 404.0 else 1 + int(st * 8.0) % 4
+	fx_draw = func(): _steam(j.position + Vector2(16, -j.texture.get_height() + 29 - (1 if j.frame % 2 == 0 and j.frame > 0 else 0)))
 
 
-func _sc_board() -> void:  # balkon: stare obserwatorium zabijają deskami, tata na wózku, dorosła Jania przy nim
+## finał: zbliżenie na obserwatorium (dźwig, ciężarówka, ciemne sylwetki robotników przybijają deski),
+## kamera cofa się na balkon i zatrzymuje na tacie na wózku
+func _sc_board() -> void:
 	_balcony_night()
-	var m := _spr("cut_maciej_sit", Vector2(300, 262), null, 2)
-	_spr("cut_wheelchair", Vector2(300, 290))
-	var j := _spr("jania", Vector2(334, 285), null, 8)
+	var m := _feet("cut_maciej_sit", 300, 334)
+	var j := _feet("jania", 342, 338, 8)
 	j.vframes = 3
 	j.frame = 16
+	hold = CLOSE + PULL + 4.0
 	var placed := [0]
 	tick = func():
 		_breathe(m, 0.0)
-		cam.position = Vector2(205, 205).lerp(Vector2(300, 262), smoothstep(1.0, HOLD, st))  # od desek do taty
 		j.frame = 23 if fmod(st + 1.2, 2.6) > 1.5 else 16
-		var n := mini(PLANKS.size(), int(st / 0.45))
-		if n > placed[0]:  # kolejna deska przybita: ciche, dalekie stuknięcie
+		var u := smoothstep(CLOSE, CLOSE + PULL, st)
+		cam.zoom = Vector2.ONE * 4.0 * pow(0.5, u)
+		cam.position = Vector2(188, 184).lerp(BALCONY_CAM, u)
+		var n := _nailed()
+		if n > placed[0]:  # deska przybita: stuknięcie, coraz cichsze, gdy kamera się cofa
 			placed[0] = n
-			Game.sfx("knock", randf_range(1.6, 1.9), -22.0)
-	fx_draw = func():
-		for i in mini(PLANKS.size(), int(st / 0.45)):
-			fx.draw_rect(PLANKS[i].grow(1), Color("2a1c18"))
-			fx.draw_rect(PLANKS[i], Color("8a6a48"))
-			fx.draw_rect(Rect2(PLANKS[i].position, Vector2(PLANKS[i].size.x, 1)), Color("a8845a"))
+			Game.sfx("knock", randf_range(1.6, 1.9), -14.0 - 10.0 * u)
+	fx_draw = _draw_site
+
+
+## ile desek już przybito (pierwsza po 0,6 s, potem co 0,35 s)
+func _nailed() -> int:
+	return clampi(int((st - 0.6) / 0.35) + 1, 0, PLANKS.size())
+
+
+func _draw_site() -> void:
+	var sil := Color(0.08, 0.08, 0.15, 0.92)
+	# dźwig po lewej: kratownica, wysięgnik nad kopułą, lina z deską
+	for k in 7:
+		fx.draw_line(Vector2(118, 208 - k * 10), Vector2(124, 198 - k * 10), sil, 1.0)
+		fx.draw_line(Vector2(124, 208 - k * 10), Vector2(118, 198 - k * 10), sil, 1.0)
+	fx.draw_rect(Rect2(117, 136, 1, 72), sil)
+	fx.draw_rect(Rect2(124, 136, 1, 72), sil)
+	fx.draw_rect(Rect2(104, 134, 96, 2), sil)
+	fx.draw_rect(Rect2(104, 131, 8, 6), sil)  # przeciwwaga
+	var sw := sin(st * 1.3) * 1.5
+	fx.draw_line(Vector2(186, 136), Vector2(186 + sw, 168), sil, 1.0)
+	fx.draw_rect(Rect2(181 + sw, 168, 11, 2), Color("6a5038"))
+	# ciężarówka po prawej: kabina, skrzynia, światła, migający kogut
+	fx.draw_rect(Rect2(234, 196, 22, 11), sil)
+	fx.draw_rect(Rect2(256, 199, 9, 8), sil)
+	fx.draw_circle(Vector2(240, 207), 2.0, sil)
+	fx.draw_circle(Vector2(259, 207), 2.0, sil)
+	fx.draw_rect(Rect2(264, 202, 1, 2), Color(1, 0.86, 0.5))
+	if fmod(st, 0.8) < 0.4:
+		fx.draw_rect(Rect2(259, 197, 2, 2), Color(1, 0.6, 0.15))
+	# drabiny pod oknami
+	for lx in [165, 208]:
+		fx.draw_line(Vector2(lx - 3, 208), Vector2(lx - 1, 192), sil, 1.0)
+		fx.draw_line(Vector2(lx + 3, 208), Vector2(lx + 5, 192), sil, 1.0)
+	# deski
+	var n := _nailed()
+	for i in n:
+		fx.draw_rect(PLANKS[i].grow(1), Color("2a1c18"))
+		fx.draw_rect(PLANKS[i], Color("8a6a48"))
+		fx.draw_rect(Rect2(PLANKS[i].position, Vector2(PLANKS[i].size.x, 1)), Color("a8845a"))
+	# robotnicy: ciemne, niewyraźne sylwetki; młotek w górze tuż przed swoim uderzeniem
+	for w in WORKERS:
+		var p: Vector2 = w[0]
+		var up := false
+		for i in w[1]:
+			var hit: float = 0.6 + i * 0.35
+			if st > hit - 0.2 and st < hit:
+				up = true
+		fx.draw_circle(p + Vector2(0, -9), 1.6, sil)
+		fx.draw_rect(Rect2(p + Vector2(-1.5, -7), Vector2(3, 5)), sil)
+		fx.draw_rect(Rect2(p + Vector2(-1.5, -2), Vector2(1, 2)), sil)
+		fx.draw_rect(Rect2(p + Vector2(0.5, -2), Vector2(1, 2)), sil)
+		var hand := p + (Vector2(w[2] * 3, -11) if up else Vector2(w[2] * 4, -6))
+		fx.draw_line(p + Vector2(0, -6), hand, sil, 1.0)
+		fx.draw_rect(Rect2(hand - Vector2(1, 1), Vector2(2, 2)), sil)
+
+
+## sprite stojący stopami na y (x = lewa krawędź)
+func _feet(tex: String, x: float, bottom: float, frames := 2) -> Sprite2D:
+	var s := _spr(tex, Vector2.ZERO, null, frames)
+	s.position = Vector2(x, bottom - s.texture.get_height() / (3.0 if tex == "jania" else 1.0))
+	return s
 
 
 func _process(dt: float) -> void:

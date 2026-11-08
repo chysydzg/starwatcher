@@ -45,5 +45,8 @@ func _ready() -> void:
 	await wait(3.6 + 2.85)  # napis, czerń, pierwsza scena montażu w połowie
 	for k in 7:
 		await shot("m%d" % (k + 1))
-		await wait(4.9)
+		await wait(4.9 if k < 6 else 1.6)
+	await shot("m8")  # finał: odjazd kamery
+	await wait(3.0)
+	await shot("m9")  # finał: tata na wózku
 	Game.quit()

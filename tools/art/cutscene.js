@@ -11,7 +11,8 @@ const TOP = { light: [0, -0.62, 0.78] };
 // Maciej: o.mug (kubek w prawej łapie), o.armUp (prawa łapa w górze, zawiesza model), o.sit (siedzi: wózek),
 // o.front (przodem: twarz, okulary, rozpięty kitel, łapy na balkoniku)
 function maciej(f, o = {}) {  // proporcje jak Jania od tyłu (duża głowa, małe ciało), x1.15, w kitlu
-  const b = new P.Buf(40, 64), bob = f ? -1 : 0, S = (prims, r, opt) => P.solid(b, prims, r, { ...TOP, ...opt });
+  let b = new P.Buf(40, 64);
+  const bob = f ? -1 : 0, S = (prims, r, opt) => P.solid(b, prims, r, { ...TOP, ...opt });
   const INKC = [26, 22, 34];
   if (!o.sit) S([P.ell(15, 60, 3.6, 1.8), P.ell(25, 60, 3.6, 1.8)], FUR, { dark: 0.85 });     // stopy
   const right = o.armUp ? P.cap(28, 33 + bob, 32, 15, 2.6, 2.4) : o.front ? P.cap(28, 33 + bob, 32, 43, 2.6, 2.4) : P.cap(28, 33 + bob, 30, o.sit ? 41 : 47, 2.6, 2.4);
@@ -21,14 +22,18 @@ function maciej(f, o = {}) {  // proporcje jak Jania od tyłu (duża głowa, ma�
   S([P.ell(pl[0], pl[1], 2.2, 2), P.ell(pr[0], pr[1], 2.2, 2)], FUR);                        // łapki
   S([P.cap(20, 32 + bob, 20, o.sit ? 46 : 55, 7.5, 9.5)], COAT);                             // kitel
   if (o.front) {  // rozpięty kitel: niebieska koszula w dekolcie, guziki
-    for (let y = 31; y < 46; y++) { const d = Math.min(3, (y - 31) >> 2); for (let x = 20 - d; x <= 20 + d; x++) b.pset(x, y + bob, [92, 138, 190]); }
-    for (let y = 47; y < 56; y += 3) b.pset(20, y, COAT[0]);
+    for (let y = 31; y < 47; y++) { const d = Math.min(3, (y - 31) >> 2); for (let x = 20 - d; x <= 20 + d; x++) b.pset(x, y + bob, [196, 214, 236]); }
+    const TIE = [[146, 44, 104], [104, 28, 74]];
+    for (const [x, y, c] of [[19, 31, 1], [20, 31, 1], [21, 31, 1], [19, 32, 0], [20, 32, 0], [21, 32, 1]]) b.pset(x, y + bob, TIE[c]); // węzeł
+    for (let y = 33; y < 44; y++) { const w = y < 37 ? 0 : 1; for (let x = 20 - w; x <= 20 + w; x++) b.pset(x, y + bob, TIE[x > 20 ? 1 : 0]); } // klinga
+    b.pset(19, 44 + bob, TIE[1]); b.pset(20, 44 + bob, TIE[0]); b.pset(21, 44 + bob, TIE[1]); b.pset(20, 45 + bob, TIE[1]); // szpic
+    for (let y = 48; y < 56; y += 3) b.pset(20, y, COAT[0]);
   } else if (!o.sit) for (let y = 48; y < 58; y++) b.pset(20, y, COAT[0]);                   // rozcięcie z tyłu
   if (!o.front) for (let x = 13; x <= 27; x++) b.pset(x, 44, COAT[1]);                       // pasek
   S([P.ell(20, 30.5 + bob, 6, 2.4)], COAT, { dark: 0.9 });                                   // kołnierz
-  S([P.cap(16, 16 + bob, 15.2, 6 + bob, 2.5, 2.8)], FUR);                                    // ucho stoi
+  S([P.cap(16, 16 + bob, 15.2, 6 + bob, 2.5, 2.8), P.cap(24, 16 + bob, 24.6, 9.5 + bob, 2.5, 2.6)], FUR); // ucho stoi; drugie ma lustrzaną nasadę
   S([P.ell(20, 22 + bob, 9.5, 7.5), P.ell(13.5, 24.5 + bob, 3.6, 3), P.ell(26.5, 24.5 + bob, 3.6, 3)], FUR, { ambient: 0.5 });
-  S([P.cap(24, 16 + bob, 26, 7 + bob, 2.4, 2.5), P.cap(26, 7 + bob, 31, 9 + bob, 2.5, 2.4), P.cap(31, 9 + bob, 32, 15 + bob, 2.4, 2.1)], FUR, { dark: 0.9 }); // ucho złamane
+  S([P.ell(28, 9.6 + bob, 4.2, 2.4, 0.42)], FUR, { dark: 0.9 });                             // ...zgina się wysoko, płat opada na bok
   if (o.front) {  // twarz: jasny pyszczek, oczy w okularach, nosek
     S([P.ell(20, 27 + bob, 4.5, 2.6)], LIGHT);
     for (const ex of [15, 23]) {
@@ -38,32 +43,51 @@ function maciej(f, o = {}) {  // proporcje jak Jania od tyłu (duża głowa, ma�
     b.pset(18, 22 + bob, INKC); b.pset(19, 22 + bob, INKC); b.pset(20, 22 + bob, INKC); b.pset(21, 22 + bob, INKC); // mostek
     b.pset(19, 26 + bob, [176, 118, 128]); b.pset(20, 26 + bob, [176, 118, 128]);           // nos
   } else { b.pset(11, 23 + bob, INKC); b.pset(29, 23 + bob, INKC); }                        // zauszniki od tyłu
-  if (o.mug) {  // kubek w łapie (para rysowana w grze)
-    for (let y = 43; y < 48; y++) for (let x = 31; x < 35; x++) b.pset(x, y, y === 43 ? [214, 220, 230] : [236, 240, 246]);
-    b.pset(35, 44, [214, 220, 230]); b.pset(35, 45, [214, 220, 230]); b.pset(31, 46, [190, 90, 70]); b.pset(32, 46, [190, 90, 70]);
+  b = P.smoothEdge(b);  // sprzęt dorysowany po wygładzeniu: cienkie rurki zostają
+  if (o.walker) {  // balkonik na szerokość Macieja: rączki pod łapkami, poprzeczka, cztery nogi
+    const M = [196, 202, 214], D = [132, 140, 158], T = [40, 38, 48];
+    for (let x = 7; x <= 33; x++) { b.pset(x, 45, M); b.pset(x, 46, D); b.pset(x, 54, D); }
+    for (const lx of [7, 32]) for (let y = 45; y < 63; y++) { b.pset(lx, y, M); b.pset(lx + 1, y, D); }
+    for (const lx of [7, 32]) { for (let y = 43; y < 46; y++) { b.pset(lx, y, T); b.pset(lx + 1, y, T); } b.pset(lx, 63, T); b.pset(lx + 1, 63, T); }
+    S([P.ell(8, 44, 2.2, 2), P.ell(32, 44, 2.2, 2)], FUR);                                    // łapki na rączkach
   }
-  return ink(P.smoothEdge(b));
-}
-const LIGHT = P.hueRamp(3, { hue: 220, shift: 12, sat: 0.08, light: [0.7, 0.9] });
-// wózek inwalidzki od tyłu: oparcie, rączki, duże koła (z tyłu widać je wąsko)
-function wheelchair() {
-  const b = new P.Buf(40, 44), M = P.hueRamp(3, { hue: 220, shift: 16, sat: 0.12, light: [0.42, 0.78] }), T = [40, 38, 48];
-  for (const wx of [4, 35]) { P.solid(b, [P.ell(wx, 30, 3, 12)], [T, [64, 62, 74], [84, 82, 94]], TOP); for (let y = 20; y < 41; y++) b.pset(wx, y, M[1]); }
-  for (let y = 10; y < 32; y++) for (let x = 9; x < 31; x++) b.pset(x, y, y < 12 ? [70, 84, 120] : [52, 62, 96]);  // oparcie
-  for (const hx of [8, 31]) { for (let y = 4; y < 34; y++) b.pset(hx, y, M[2]); for (let y = 2; y < 6; y++) b.pset(hx, y, T); } // rurki i rączki
-  for (let x = 8; x < 32; x++) b.pset(x, 34, M[1]);
+  if (o.chair) {  // wózek od tyłu: oparcie zasłania plecy, rączki, wąskie duże koła po bokach
+    const M = P.hueRamp(3, { hue: 220, shift: 16, sat: 0.12, light: [0.42, 0.78] }), T = [40, 38, 48];
+    for (let y = 35; y < 52; y++) for (let x = 13; x <= 27; x++) b.pset(x, y, y < 37 ? [70, 84, 120] : [52, 62, 96]);
+    for (const hx of [12, 28]) { for (let y = 31; y < 53; y++) b.pset(hx, y, M[2]); for (let y = 29; y < 32; y++) b.pset(hx, y, T); }
+    for (const wx of [6, 34]) S([P.ell(wx, 48, 2.6, 11)], [T, [64, 62, 74], [84, 82, 94]]);
+    for (const wx of [6, 34]) for (let y = 39; y < 58; y++) b.pset(wx, y, M[1]);
+    for (let x = 6; x <= 34; x++) b.pset(x, 53, M[1]);
+  }
   return ink(b);
 }
-// balkonik (chodzik) przodem: rama z rączkami i cztery nogi z gumowymi stopkami
-function walker() {
-  const b = new P.Buf(46, 26), M = [196, 202, 214], D = [132, 140, 158], T = [40, 38, 48];
-  for (let x = 2; x < 44; x++) { b.pset(x, 2, M); b.pset(x, 3, D); }
-  for (const lx of [2, 42]) for (let y = 2; y < 25; y++) { b.pset(lx, y, M); b.pset(lx + 1, y, D); }
-  for (const lx of [9, 35]) for (let y = 4; y < 25; y++) b.pset(lx, y, D);
-  for (let x = 2; x < 44; x++) b.pset(x, 14, D);
-  for (const lx of [2, 42]) { for (let y = 1; y < 5; y++) { b.pset(lx, y, T); b.pset(lx + 1, y, T); } b.pset(lx, 25, T); b.pset(lx + 1, 25, T); }
-  return b;
+// Maciej z profilu (patrzy w prawo), kubek trzymany oburącz przed sobą; para rysowana w grze
+function maciejSide(f) {
+  const b = new P.Buf(40, 64), bob = f ? -1 : 0, S = (prims, r, opt) => P.solid(b, prims, r, { ...TOP, ...opt });
+  const INKC = [26, 22, 34];
+  S([P.ell(17, 60, 4.5, 1.8), P.ell(22, 60, 4.5, 1.8)], FUR, { dark: 0.85 });                // stopy
+  S([P.cap(18, 34 + bob, 25, 41 + bob, 2.4, 2.2)], COAT, { dark: 0.8 });                     // dalsza ręka
+  S([P.ell(26.5, 40.5 + bob, 2, 1.8)], FUR, { dark: 0.85 });
+  S([P.cap(18, 32 + bob, 18, 55, 7, 8.5)], COAT);                                            // kitel
+  for (let y = 48; y < 58; y++) b.pset(13, y, COAT[1]);                                       // rozcięcie z tyłu
+  S([P.ell(18.5, 30.5 + bob, 5.5, 2.4)], COAT, { dark: 0.9 });                               // kołnierz
+  S([P.cap(15.5, 16 + bob, 14, 6 + bob, 2.5, 2.8)], FUR, { dark: 0.85 });                    // ucho stoi (dalsze)
+  S([P.cap(18.5, 16 + bob, 19.2, 9.5 + bob, 2.4, 2.5)], FUR);                                // ucho złamane: nasada za głową
+  S([P.ell(18.5, 22 + bob, 8.2, 7.4), P.ell(24.5, 24.5 + bob, 4.2, 3.2)], FUR, { ambient: 0.5 }); // głowa i pyszczek
+  S([P.ell(26, 25.2 + bob, 3, 2)], LIGHT);
+  S([P.ell(22.4, 9.6 + bob, 4.2, 2.4, 0.38)], FUR, { dark: 0.9 });                          // ...wysoko zgięte, płat opada do przodu
+  for (const [dx, dy] of [[0, -1], [1, -1], [-1, 0], [2, 0], [-1, 1], [2, 1], [0, 2], [1, 2]]) b.pset(23 + dx, 22 + dy + bob, INKC); // szkło
+  b.pset(23, 22 + bob, [92, 54, 30]); b.pset(24, 22 + bob, [92, 54, 30]); b.pset(23, 23 + bob, [40, 24, 18]); b.pset(24, 23 + bob, [40, 24, 18]);
+  for (let x = 18; x < 22; x++) b.pset(x, 21 + bob, INKC);                                   // zausznik
+  b.pset(29, 24 + bob, [176, 118, 128]); b.pset(28, 27 + bob, [120, 80, 90]); b.pset(27, 27 + bob, [120, 80, 90]); // nos, pyszczek
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 4; x++) b.pset(26 + x, 36 + y + bob, y === 0 ? [206, 212, 224] : [240, 242, 248]); // kubek
+  b.pset(30, 37 + bob, [206, 212, 224]); b.pset(30, 38 + bob, [206, 212, 224]); b.pset(26, 39 + bob, [190, 90, 70]); b.pset(27, 39 + bob, [190, 90, 70]);
+  S([P.cap(19, 34 + bob, 24, 41 + bob, 2.6, 2.4)], COAT);                                    // bliższa ręka
+  S([P.ell(25.5, 40.5 + bob, 2.2, 2)], FUR);
+  return ink(P.smoothEdge(b));
 }
+const flip = (src) => { const o = new P.Buf(src.w, src.h); for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) o.px[y * src.w + x] = src.px[y * src.w + src.w - 1 - x]; return o; };
+const LIGHT = P.hueRamp(3, { hue: 220, shift: 12, sat: 0.08, light: [0.7, 0.9] });
 // Jania w różnym wieku: jania.js z inną skalą (dziecko 0.82, nastolatka 0.95)
 function janiaAt(k) {
   process.env.JANIA_K = String(k);
@@ -88,9 +112,14 @@ function sitting(fr, f) {
     const edge = y === 30 || y === 37 || x === 10 || x === 25, spine = x === 17 || x === 18;
     b.pset(x, y, edge ? INKC : spine ? [196, 200, 214] : y % 2 ? [236, 240, 248] : [210, 218, 236]);
   }
-  const px = 22 + f, py = 31;                                                               // ołówek pisze
-  for (let k = 0; k < 4; k++) b.pset(px + k, py - k, k === 3 ? [236, 140, 150] : [240, 200, 80]);
-  b.pset(px - 1, py + 1, [60, 52, 60]);
+  for (let x = 19; x < 19 + f; x++) b.pset(x, 34, [120, 130, 160]);                       // świeża linijka pisma
+  const px = 20 + f, py = 33;                                                               // łapka z ołówkiem w jednym miejscu
+  for (let k = 1; k < 5; k++) b.pset(px + k, py - k, k === 4 ? [236, 140, 150] : [240, 200, 80]);
+  b.pset(px, py + 1, [60, 52, 60]);
+  for (let y = py - 2; y <= py + 2; y++) for (let x = px - 3; x <= px + 2; x++) {
+    const e = ((x - px + 0.5) / 2.6) ** 2 + ((y - py) / 2.1) ** 2;
+    if (e <= 1) b.pset(x, y, e > 0.5 ? INKC : [244, 222, 190]);
+  }
   return b;
 }
 const jbb = P.bounds(jania.frames[16]);
@@ -101,7 +130,7 @@ function observatory() {
   const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
   const steel = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.14, light: [0.3, 0.78] });
   const night = [26, 30, 52], warm = [255, 214, 128], warmD = [214, 150, 80];
-  for (let y = 38; y < 64; y++) for (let x = 6; x < 75; x++) b.pset(x, y, white[x < 12 ? 3 : x > 68 ? 1 : 2]);  // ściany
+  for (let y = 38; y < 64; y++) for (let x = 6; x < 75; x++) b.pset(x, y, white[x < 8 || x > 72 ? 1 : 2]);  // ściany: symetrycznie, ciemniejsze narożniki
   for (let x = 4; x < 77; x++) { b.pset(x, 35, white[3]); b.pset(x, 36, white[2]); b.pset(x, 37, white[1]); }  // gzyms
   const dome = new P.Buf(80, 64);
   P.solid(dome, [P.ell(40, 35, 17, 16)], white, { light: [-0.5, -0.7, 0.5] });                               // kopuła: tylko półkula nad dachem
@@ -138,16 +167,16 @@ function door() {
 const out = process.argv[2];
 // --- montaż: postacie w kolejnych scenach
 const kid = janiaAt(0.82), teen = janiaAt(0.95);
-P.save(strip([maciej(0, { mug: true }), maciej(1, { mug: true })]), out + "/cut_maciej_mug.png");
+P.save(strip([flip(maciejSide(0)), flip(maciejSide(1))]), out + "/cut_maciej_mug.png");
 P.save(strip([maciej(0, { armUp: true }), maciej(1, { armUp: true })]), out + "/cut_maciej_hang.png");
-P.save(strip([maciej(0, { front: true }), maciej(1, { front: true })]), out + "/cut_maciej_front.png");
-P.save(strip([maciej(0, { sit: true }), maciej(1, { sit: true })]), out + "/cut_maciej_sit.png");
-P.save(wheelchair(), out + "/cut_wheelchair.png");
-P.save(walker(), out + "/cut_walker.png");
-P.save(strip([sitting(kid[0], 0), sitting(kid[0], 1)]), out + "/cut_jania_sit.png");
+P.save(strip([maciej(0, { front: true, walker: true }), maciej(1, { front: true, walker: true })]), out + "/cut_maciej_front.png");
+P.save(strip([maciej(0, { sit: true, chair: true }), maciej(1, { sit: true, chair: true })]), out + "/cut_maciej_sit.png");
+const kidPaw = janiaAt(0.82) && require("./jania.js").frame(0, 0, { paw: [20, 36] });
+P.save(strip([sitting(kidPaw, 0), sitting(kidPaw, 1)]), out + "/cut_jania_sit.png");
 P.save(strip([kid[6], kid[7]]), out + "/cut_jania_joy.png");
 P.save(strip([teen[16], teen[23]]), out + "/cut_teen_back.png");
-P.save(strip([teen[8], teen[9], teen[10], teen[11], teen[12]]), out + "/cut_teen_walk.png");
+const T = (janiaAt(0.95), require("./jania.js"));
+P.save(strip([0, 1, 2, 3, 4].map((f) => T.frame(1, f, { carry: true }))), out + "/cut_teen_walk.png");
 P.save(observatory(), out + "/cut_observatory.png");
 P.save(door(), out + "/cut_door.png");
 const pk = (fr) => P.pack(fr, { cols: fr.length, pad: 0 });
