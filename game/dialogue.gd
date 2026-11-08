@@ -3,6 +3,7 @@ extends CanvasLayer
 ## z cichym stukaniem, w prawym dolnym rogu [Spacja] / [A]. Spacja: najpierw pokazuje cały tekst, potem dalej.
 
 signal finished
+signal line_shown(line: Dictionary)  # przy każdym następnym oknie (pierwsze pokazuje play())
 
 const WHO := {"jania": ["Jania", "portrait_jania"], "jania_adult": ["Jania", "portrait_jania_adult"], "maciej": ["Maciej", "portrait_maciej"], "maciej_old": ["Maciej", "portrait_maciej_old"]}
 ## linia z "cry": true bierze portret ze łzami (portrait_<kto>_cry)
@@ -50,6 +51,7 @@ func _next() -> void:
 	_label.text = lines[_i].text
 	_shown = 0.0
 	_label.visible_characters = 0
+	line_shown.emit(lines[_i])
 
 
 func _process(dt: float) -> void:

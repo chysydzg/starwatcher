@@ -194,6 +194,7 @@ func _hospital() -> void:
 		{"who": "maciej_old", "text": "Kocham Cie córeczko", "cry": true},
 		{"who": "jania_adult", "text": "Ja Cie też tato.", "cry": true},
 	])
+	dlg.line_shown.connect(func(l): j.texture = Game.tex("jania_cry" if l.get("cry", false) else "jania_sad"))  # płacze razem z portretem
 	add_child(dlg)
 	await dlg.finished
 	await get_tree().create_timer(1.0).timeout
@@ -211,7 +212,7 @@ func _hospital() -> void:
 	add_child(last)
 	await last.finished
 	await get_tree().create_timer(0.8).timeout
-	await create_tween().tween_property(fade, "color:a", 1.0, 1.8).finished
+	await create_tween().tween_property(fade, "color:a", 1.0, 3.5).finished  # długie wygaszenie przed grą
 	Game.loop("rain_room", -INF)
 	remove_child(fx)
 	sc.queue_free()
@@ -242,13 +243,17 @@ func _draw_window(n: Node2D) -> void:
 		n.draw_rect(Rect2(g.position.x, g.position.y + i * 4, g.size.x, 4), Color("0c1430").lerp(Color("1c2a52"), i / 12.0))
 	for s in [Vector2(4, 5), Vector2(15, 12), Vector2(30, 4), Vector2(37, 18), Vector2(9, 30), Vector2(24, 22), Vector2(33, 40), Vector2(52, 8), Vector2(61, 20), Vector2(70, 5), Vector2(78, 34), Vector2(57, 42)]:
 		n.draw_rect(Rect2(g.position + s, Vector2.ONE), Color(1, 1, 0.9, 0.5 + 0.5 * absf(sin(t * 1.3 + s.x))))
-	for k in 34:  # deszcz: kreski 1x4 lecą skosem, zawijają się w obrębie szyby
-		var x := fposmod(k * 7.3 + t * 30.0, g.size.x)
-		var y := fposmod(k * 13.1 + t * 140.0, g.size.y)
-		for d in 4:
-			var p := (g.position + Vector2(fposmod(x - d * 0.5, g.size.x), y - d)).floor()
+	var wind := 0.25 + 0.15 * sin(t * 0.6)  # skos deszczu zmienia się z porywami
+	for k in 40:  # deszcz nieregularny: każda kropla ma swoją prędkość, a po każdym spadku nowe miejsce, długość i jasność
+		var fall := (t * (110.0 + fmod(k * 37.7, 90.0)) + k * 53.0) / g.size.y
+		var h := absi(hash(Vector2i(k, floori(fall))))
+		var y := (fall - floorf(fall)) * g.size.y
+		var x := float(h % int(g.size.x))
+		var col := Color(0.6, 0.72, 0.9, 0.3 + (h / 7 % 5) * 0.1)
+		for d in 3 + h / 3 % 4:
+			var p := (g.position + Vector2(fposmod(x + (y - d) * wind, g.size.x), y - d)).floor()
 			if g.has_point(p):
-				n.draw_rect(Rect2(p, Vector2.ONE), Color(0.6, 0.72, 0.9, 0.55))
+				n.draw_rect(Rect2(p, Vector2.ONE), col)
 
 
 ## monitor serca: przesuwający się zapis EKG (zielony), po śmierci prosta linia

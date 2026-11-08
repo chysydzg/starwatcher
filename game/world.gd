@@ -100,8 +100,9 @@ func _ready() -> void:
 	Game.toast.connect(_toast)
 	Game.changed.connect(_refresh)
 	_enter(Game.location, true)
-	create_tween().tween_property(fade, "color:a", 0.0, 0.6)
-	if Game.day == 1 and Game.night and not Game.tips.has("start"):
+	var first: bool = Game.day == 1 and Game.night and not Game.tips.has("start")  # zaraz po intro
+	create_tween().tween_property(fade, "color:a", 0.0, 2.5 if first else 0.6)
+	if first:
 		Game.tips.start = true
 		_tip("Pierwsza noc. Podejdź do teleskopu od strony okularu i naciśnij " + Game.key("interact") + ".")
 

@@ -62,10 +62,10 @@ function frame(dir, f, o = {}) {
       if (f === 6) { // radość: oczy ^ ^, otwarty uśmiech
         for (const [d, dy] of [[3, 2], [4, 1], [5, 1], [6, 2]]) sym(d, ey + dy, EYE);
         sym(0, ny + 1, MOUTH); sym(1, ny + 1, MOUTH); sym(0, ny + 2, R.pink[0]); sym(2, ny, MOUTH);
-      } else if (o.sad) { // smutek (szpital): brwi uniesione do środka, oczy w dół, usta w podkówkę, łza
+      } else if (o.sad) { // smutek (szpital): brwi uniesione do środka, oczy w dół, usta w podkówkę; o.cry: łza
         for (const [d, dy] of [[3, -3], [4, -2], [5, -2], [6, -1]]) sym(d, ey + dy, R.fur[0]);
         for (const d of [4, 5]) for (let y = ey + 1; y < ey + 3; y++) sym(d, y, EYE);
-        sym(4, ey + 3, TEAR);
+        if (o.cry) sym(4, ey + 3, TEAR);
         sym(0, ny + 1, MOUTH); sym(1, ny + 1, MOUTH); sym(2, ny + 2, MOUTH);
       } else {
         sym(4, ey + 3, R.cream[2]); sym(5, ey + 3, R.cream[2]);
@@ -98,10 +98,10 @@ function frame(dir, f, o = {}) {
     fill(X(21.6), Y(25 + hb), 3.4, 2.4, R.cream[1]);
     const ey = Math.round(Y(19.5 + hb)), ex = Math.round(X(18.5));
     const nx = Math.round(X(24)), ny = Math.round(Y(23 + hb));
-    if (o.sad) { // smutek: powieka w dół, brew uniesiona z przodu, kącik ust w dół, łza
+    if (o.sad) { // smutek: powieka w dół, brew uniesiona z przodu, kącik ust w dół; o.cry: łza
       for (let y = ey + 1; y < ey + 3; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
       b.pset(ex - 1, ey - 1, R.fur[0]); b.pset(ex, ey - 2, R.fur[0]); b.pset(ex + 1, ey - 2, R.fur[0]);
-      b.pset(ex, ey + 3, TEAR); b.pset(ex, ey + 4, TEAR);
+      if (o.cry) { b.pset(ex, ey + 3, TEAR); b.pset(ex, ey + 4, TEAR); }
       b.pset(nx, ny, R.pink[0]); b.pset(nx - 1, ny + 2, MOUTH); b.pset(nx - 2, ny + 2, MOUTH); b.pset(nx - 3, ny + 3, MOUTH);
     } else {
       for (let y = ey; y < ey + 3; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
@@ -140,9 +140,11 @@ module.exports = { frames, frame, breath, FW, FH, COLS, R };
 
 if (require.main === module) {
   P.save(P.pack(frames, { cols: COLS, pad: 0 }), process.argv[2] + "/jania.png");
-  // smutna Jania (szpital): ten sam arkusz z miną smutku
-  const sad = [];
-  for (const [dir, n] of ROWS) for (let f = 0; f < COLS; f++) sad.push(f === 7 ? breath(frame(dir, 0, { sad: true })) : f < n ? frame(dir, f, { sad: true }) : new P.Buf(FW, FH));
-  P.save(P.pack(sad, { cols: COLS, pad: 0 }), process.argv[2] + "/jania_sad.png");
+  // szpital: ten sam arkusz ze smutną miną, bez łez (jania_sad) i z łzami, gdy płacze razem z portretem (jania_cry)
+  for (const [name, o] of [["jania_sad", { sad: true }], ["jania_cry", { sad: true, cry: true }]]) {
+    const sh = [];
+    for (const [dir, n] of ROWS) for (let f = 0; f < COLS; f++) sh.push(f === 7 ? breath(frame(dir, 0, o)) : f < n ? frame(dir, f, o) : new P.Buf(FW, FH));
+    P.save(P.pack(sh, { cols: COLS, pad: 0 }), process.argv[2] + "/" + name + ".png");
+  }
   console.log("jania.png", FW, FH, COLS);
 }
