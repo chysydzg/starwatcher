@@ -19,9 +19,9 @@ function maciej(f) {  // proporcje jak Jania od tyłu (duża głowa, małe ciał
   S([P.ell(20, 30.5 + bob, 6, 2.4)], COAT, { dark: 0.9 });                                   // kołnierz
   S([P.cap(16, 16 + bob, 15.2, 6 + bob, 2.5, 2.8)], FUR);                                  // ucho stoi
   S([P.ell(20, 22 + bob, 9.5, 7.5), P.ell(13.5, 24.5 + bob, 3.6, 3), P.ell(26.5, 24.5 + bob, 3.6, 3)], FUR, { ambient: 0.5 });
-  S([P.cap(24, 16 + bob, 29, 19 + bob, 2.4, 2.7), P.cap(29, 19 + bob, 30.5, 29 + bob, 2.7, 2.2)], FUR, { dark: 0.9 }); // ucho opada
+  S([P.cap(24, 16 + bob, 26, 7 + bob, 2.4, 2.5), P.cap(26, 7 + bob, 31, 9 + bob, 2.5, 2.4), P.cap(31, 9 + bob, 32, 15 + bob, 2.4, 2.1)], FUR, { dark: 0.9 }); // ucho złamane: wstaje i opada na bok
   b.pset(11, 23 + bob, [26, 22, 34]); b.pset(29, 23 + bob, [26, 22, 34]);                    // zauszniki okularów
-  return ink(b);
+  return ink(P.smoothEdge(b));
 }
 const jbb = P.bounds(jania.frames[16]);
 const jb = (f) => P.crop(jania.frames[16 + (f ? 7 : 0)], jbb.x, jbb.y - 1, jbb.w, jbb.h + 1);  // rząd 2 = tył; 7. kolumna = oddech
@@ -47,7 +47,7 @@ function observatory() {
   for (let y = 50; y < 64; y++) for (let x = 35; x < 46; x++) b.pset(x, y, x === 35 || x === 45 || y === 50 ? steel[1] : steel[2]); // drzwi
   b.pset(43, 57, warm); for (let x = 38; x < 43; x++) b.pset(x, 48, warm);                                   // klamka, lampka nad drzwiami
   for (let x = 32; x < 49; x++) b.pset(x, 63, white[1]);                                                    // schodek
-  return ink(b);
+  return ink(P.smoothEdge(b));  // gładka sylwetka przed obrysem: bez ząbków na kopule i tubusie
 }
 // drzwi balkonowe zamknięte, takie same jak w pokoju (jasne drewno, 4 szybki, ceglasta płycina);
 // od strony balkonu szybki świecą ciepło, bo w mieszkaniu pali się światło
