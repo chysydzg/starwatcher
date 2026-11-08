@@ -85,8 +85,8 @@ piece("sofa", 136, [122, 112, 222, 138], (T) => obj(T, 124, 92, 96, 44, (s) => {
   s.rect(4, 41, 8, 44, C.dark[1]); s.rect(88, 41, 92, 44, C.dark[1]);
   slab(s, 14, 8, 30, 22, C.white, 0.9, 0.6);                      // poduszka
 }));
-shadow(b, 172, 198, 30, 5);
-piece("table", 198, [140, 180, 204, 200], (T) => obj(T, 144, 176, 56, 22, (s) => {
+shadow(b, 78, 272, 30, 5);  // stolik w lewym dolnym rogu, z dala od drogi Jani
+piece("table", 272, [46, 254, 110, 274], (T) => obj(T, 50, 250, 56, 22, (s) => {
   slab(s, 0, 0, 56, 12, C.white, 0.95, 0.8); slab(s, 0, 12, 56, 15, C.white, 0.5, 0.4);
   s.rect(3, 15, 6, 22, C.steel[1]); s.rect(50, 15, 53, 22, C.steel[1]);
   slab(s, 34, 3, 42, 9, C.sheet, 0.8, 0.5);                       // gazeta
@@ -122,17 +122,15 @@ piece("monitor", 160, [558, 140, 594, 162], (T) => {
     s.rect(5, 26, 9, 29, [90, 200, 120]); s.rect(12, 26, 16, 29, [220, 90, 80]); s.rect(20, 26, 31, 29, C.dark[1]);
   });
 });
-shadow(b, 590, 226, 22, 5);
-piece("wheelchair", 226, [566, 186, 616, 228], (T) => obj(T, 568, 172, 46, 54, (s) => {
-  for (const wx of [3, 41]) for (let y = 14; y < 52; y++) for (let x = wx - 3; x <= wx + 3; x++) { // duże koła z boku (z góry: wąskie owale)
-    const d = ((x - wx) / 3.4) ** 2 + ((y - 33) / 18.5) ** 2;
-    if (d <= 1) s.pset(x, y, d > 0.55 ? C.dark[1] : C.steel[2]);
-  }
-  slab(s, 8, 0, 38, 18, C.blue, 0.55, 0.35); s.rect(8, 0, 38, 2, C.blue[3]);                 // oparcie
-  s.rect(6, 0, 9, 4, C.dark[1]); s.rect(37, 0, 40, 4, C.dark[1]);                             // rączki
-  slab(s, 8, 18, 38, 36, C.blue, 0.85, 0.65);                                                   // siedzisko
-  s.rect(8, 22, 10, 36, C.steel[2]); s.rect(36, 22, 38, 36, C.steel[2]);                      // podłokietniki
-  s.rect(12, 36, 16, 50, C.steel[1]); s.rect(30, 36, 34, 50, C.steel[1]); s.rect(10, 48, 36, 51, C.steel[2]); // podnóżki
+// wózek tyłem, jak na balkonie: oparcie, rączki, wąskie duże koła po bokach
+shadow(b, 584, 282, 22, 4);
+piece("wheelchair", 282, [562, 268, 606, 284], (T) => obj(T, 564, 250, 42, 32, (s) => {
+  const M = P.hueRamp(3, { hue: 220, shift: 16, sat: 0.12, light: [0.42, 0.78] }), Tc = [40, 38, 48];
+  for (const wx of [5, 36]) P.solid(s, [P.ell(wx, 20, 2.6, 11)], [Tc, [64, 62, 74], [84, 82, 94]], { light: [0, -0.62, 0.78] });
+  for (const wx of [5, 36]) for (let y = 11; y < 30; y++) s.pset(wx, y, M[1]);
+  for (let y = 7; y < 24; y++) for (let x = 12; x <= 29; x++) s.pset(x, y, y < 9 ? C.blue[3] : C.blue[1]);
+  for (const hx of [11, 30]) { for (let y = 3; y < 25; y++) s.pset(hx, y, M[2]); for (let y = 1; y < 4; y++) s.pset(hx, y, Tc); }
+  for (let x = 5; x <= 36; x++) s.pset(x, 25, M[1]);
 }));
 
 // kabel od monitora do łóżka
@@ -142,25 +140,33 @@ savePieces(process.argv[2], "hospital", night);
 
 // ---- Maciej leży: głowa na poduszce (widziana z góry, twarzą do nas), uszy rozłożone na poduszce, okulary,
 // kołdra po pierś, łapy na kołdrze. Klatka 1: wdech (kołdra na piersi o 1 px wyżej i szersza).
+// Maciej z portretu (portraits.js, maciej old) w skali ~0,55: lewe ucho proste, prawe zgięte z płatem, okrągłe
+// okulary z dużymi oczami, jasny pyszczek; kołdra po brodę, nic poza głową nie wystaje.
+// f: 0 wydech, 1 wdech (kołdra 1 px wyżej i szersza), 2 nie żyje (oczy zamknięte)
 function maciej(f) {
   const m = new P.Buf(80, 100);
   const S = (prims, rr, opt) => P.solid(m, prims, rr, { light: [-0.6, -0.8, 0.5], ...opt });
-  S([P.cap(32, 20, 24, 4, 3.4, 2.6), P.cap(48, 20, 56, 6, 3.4, 2.6)], C.fur, { dark: 0.9 });  // uszy na poduszce
-  S([P.ell(40, 24, 13, 11)], C.fur);                                                       // głowa
-  S([P.ell(36.5, 29, 5, 4), P.ell(43.5, 29, 5, 4)], [[200, 206, 216], [222, 228, 236], [240, 244, 248]]);
+  const pink = [[170, 140, 150], [196, 164, 172]];
+  S([P.cap(35, 19, 33, 3, 3.1, 2.6)], C.fur);                                               // lewe ucho: proste
+  S([P.cap(34.8, 17, 33.3, 6, 1.3, 1.1)], pink, { flat: true });
+  S([P.cap(45, 19, 46.4, 11, 3.1, 2.8), P.cap(46.4, 10.5, 50.5, 12, 2.8, 2.4), P.cap(50.5, 12, 52.2, 15.6, 2.5, 1.5)], C.fur, { dark: 0.9 }); // prawe: zgina się wysoko, płat opada
+  S([P.cap(45.2, 18, 46.2, 12, 1.3, 1.1)], pink, { flat: true });
+  S([P.ell(40, 28, 12.6, 9.9), P.ell(33, 33, 6, 5), P.ell(47, 33, 6, 5)], C.fur);         // głowa z policzkami
+  S([P.ell(37.8, 34.5, 3.6, 2.9), P.ell(42.2, 34.5, 3.6, 2.9)], [[214, 218, 226], [232, 236, 242], [246, 248, 252]]); // pyszczek
   const I = [26, 22, 34];
-  for (const ex of [34, 46]) {                                                             // oczy w okularach
-    for (const [dx, dy] of [[-1, -3], [0, -3], [1, -3], [-2, -2], [2, -2], [-3, -1], [3, -1], [-3, 0], [3, 0], [-3, 1], [3, 1], [-2, 2], [2, 2], [-1, 3], [0, 3], [1, 3]]) m.pset(ex + dx, 22 + dy, I);
-    m.pset(ex, 22, [40, 24, 18]); m.pset(ex, 21, [92, 54, 30]);
+  for (const cx of [35, 45]) {                                                               // okulary i oczy
+    for (let y = 22; y <= 32; y++) for (let x = cx - 5; x <= cx + 5; x++) { const d = Math.hypot(x - cx, y - 27); if (d > 3.6 && d <= 4.6) m.pset(x, y, I); }
+    if (f === 2) { m.rect(cx - 2, 28, cx + 3, 29, [70, 72, 86]); m.pset(cx - 2, 27, [70, 72, 86]); m.pset(cx + 2, 27, [70, 72, 86]); }                               // zamknięte powieki
+    else { m.rect(cx - 1, 25, cx + 2, 29, [44, 24, 18]); m.pset(cx - 1, 25, [232, 240, 255]); m.rect(cx, 27, cx + 2, 29, [124, 74, 40]); m.pset(cx + 1, 28, [44, 24, 18]); } // duże brązowe oczy z błyskiem
   }
-  m.rect(37, 21, 43, 22, I);
-  m.pset(39, 26, [176, 118, 128]); m.pset(40, 26, [176, 118, 128]);
-  const up = f ? 1 : 0;
+  m.rect(39, 26, 41, 27, I);                                                                 // mostek
+  m.rect(39, 31, 41, 32, [176, 118, 128]);                                                   // nos
+  for (const [x, y] of [[29, 33], [28, 34], [51, 33], [52, 34]]) m.pset(x, y, [236, 238, 244]); // wąsy
+  const up = f === 1 ? 1 : 0;
   const B = C.blue;
-  slab(m, 6 - up, 34 - up, 74 + up, 98, B, 0.72, 0.5);                                   // kołdra
-  m.rect(6 - up, 34 - up, 74 + up, 38 - up, C.white[3]); m.rect(6 - up, 38 - up, 74 + up, 39 - up, C.white[1]); // wywinięte prześcieradło
-  for (let y = 52; y < 96; y += 14) m.rect(10, y, 70, y + 1, B[1]);                        // fałdy
-  S([P.ell(22, 46 - up, 5, 4), P.ell(58, 46 - up, 5, 4)], C.fur);                          // łapy na kołdrze
+  slab(m, 4 - up, 37 - up, 76 + up, 98, B, 0.72, 0.5);                                       // kołdra po brodę
+  m.rect(4 - up, 37 - up, 76 + up, 41 - up, C.white[3]); m.rect(4 - up, 41 - up, 76 + up, 42 - up, C.white[1]); // wywinięte prześcieradło
+  for (let y = 56; y < 96; y += 14) m.rect(8, y, 72, y + 1, B[1]);                          // fałdy
   const o = require("./kit.js").ink(m); night(o); return o;
 }
-P.save(P.pack([maciej(0), maciej(1)], { cols: 2, pad: 0 }), process.argv[2] + "/hospital_maciej.png");
+P.save(P.pack([maciej(0), maciej(1), maciej(2)], { cols: 3, pad: 0 }), process.argv[2] + "/hospital_maciej.png");

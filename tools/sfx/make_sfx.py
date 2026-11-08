@@ -299,24 +299,23 @@ def frost(r, seconds=12.0):  # winter: almost silence, a cold breeze and a rare 
 
 
 # ------------------------------------------------------------------ intro: wywrotka zabiera teleskop
-def clank(r):  # stalowy tubus opada na stalową skrzynię: metal o metal – dźwięczny brzęk, krótkie odbicie, grzechot
-    def hit(g, seed):
+def clank(r, kind='b'):  # ciężki stalowy tubus spada na stalową skrzynię wywrotki: pełny metal o metal, głuche uderzenie
+    # bez długiego dzwonienia (to brzmiało jak rura): gęste, krótko gasnące mody masywnej stali + dudnienie blachy skrzyni
+    def hit(g, seed, size=1.0):
         q = dsp.rng(seed)
-        t = dsp.t_of(dsp.n_of(1.4))
-        ring = sum(a * np.sin(2 * np.pi * f * q.uniform(0.98, 1.02) * t + q.uniform(0, 6.28)) * np.exp(-t / d)  # dzwoniąca blacha i rura
-                   for f, a, d in [(263, 0.5, 0.35), (611, 0.8, 0.5), (1047, 0.9, 0.42), (1534, 0.7, 0.33), (2219, 0.6, 0.26),
-                                   (2871, 0.5, 0.2), (3593, 0.4, 0.16), (4410, 0.3, 0.12), (5312, 0.2, 0.08)])
-        thump = dsp.butter(dsp.noise(1.4, q, 'pink'), 'low', 200) * np.exp(-t / 0.05) * 0.9
-        crash = dsp.butter(dsp.noise(1.4, q), 'high', 1500) * np.exp(-t / 0.03) * 0.7
-        return (ring * 0.7 + thump + crash) * g
-    y = np.zeros(dsp.n_of(1.8))
+        t = dsp.t_of(dsp.n_of(1.2))
+        modes = sum(q.uniform(0.3, 1.0) * np.sin(2 * np.pi * f * t + q.uniform(0, 6.28)) * np.exp(-t / (0.02 + 18.0 / f))
+                    for f in np.sort(q.uniform(180, 3200, 36)) / size)
+        boom = np.sin(2 * np.pi * 86 / size * t) * np.exp(-t / 0.22) * 1.4                    # skrzynia: niska blacha
+        thump = dsp.butter(dsp.noise(1.2, q, 'pink'), 'low', 260) * np.exp(-t / 0.07) * 2.2
+        crack = dsp.svf(dsp.noise(1.2, q), 2600, q=0.7, mode='band') * np.exp(-t / 0.012) * 0.8
+        return (modes * 0.35 + boom + thump + crack) * g
+    y = np.zeros(dsp.n_of(1.6))
     dsp.place(y, hit(1.0, 31), 0.0)
-    dsp.place(y, hit(0.4, 32), 0.1)  # tubus podskakuje raz
-    for k in range(6):  # grzechot
-        q = dsp.rng(40 + k)
-        tk = dsp.svf(dsp.noise(0.04, q), q.uniform(2500, 5000), q=3.0, mode='band') * dsp.env_exp(0.04, 0.008, 0.0003)
-        dsp.place(y, tk * q.uniform(0.2, 0.4), 0.14 + k * q.uniform(0.025, 0.045))
-    return dsp.room(y, r, rt60=0.6, wet=0.12)
+    if kind == 'b':
+        dsp.place(y, hit(0.3, 32, 1.1), 0.09)                                                    # krótkie odbicie
+    y = dsp.butter(y, 'low', 5000)                                                               # z daleka (balkon)
+    return dsp.room(y, r, rt60=0.7, wet=0.18)
 
 
 def diesel(rate, r, clatter=0.35):

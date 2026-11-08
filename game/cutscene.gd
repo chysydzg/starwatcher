@@ -165,8 +165,8 @@ func _hospital() -> void:
 	for s in sorter.get_children():
 		if s.texture == Game.tex("hospital_bed"):
 			bed = s
-	var mc := _spr("hospital_maciej", Vector2(6, -120), bed, 2)  # leży w łóżku: rysowany zaraz po nim
-	var j := _spr("jania", Vector2(70, 118), sorter, 8)
+	var mc := _spr("hospital_maciej", Vector2(6, -120), bed, 3)  # wydech, wdech, nie żyje (oczy zamknięte)  # leży w łóżku: rysowany zaraz po nim
+	var j := _spr("jania_sad", Vector2(70, 118), sorter, 8)  # smutna mina
 	j.vframes = 3
 	j.offset = Vector2(0, -54)  # pozycja = stopy (sortowanie)
 	j.modulate = NIGHT
@@ -175,11 +175,12 @@ func _hospital() -> void:
 	fx_draw = _draw_ecg
 	add_child(fx)
 	tick = func():
+		night.queue_redraw()  # deszcz za oknem
 		if alive:
 			mc.frame = 1 if fmod(st, 3.2) > 1.8 else 0
 			if _cue("b%d" % int(st / BEAT), 0.0):
 				Game.sfx("beep", 1.0, -20.0)
-	Game.loop("rain_room", -18.0)
+	Game.loop("rain_room", -13.0)  # lekki szum deszczu
 	await create_tween().tween_property(fade, "color:a", 0.0, 0.8).finished
 	await _go(j, Vector2(70, 160))  # wchodzi drzwiami
 	var zoom := create_tween().set_parallel().set_trans(Tween.TRANS_SINE)
@@ -198,7 +199,7 @@ func _hospital() -> void:
 	await get_tree().create_timer(1.0).timeout
 	alive = false  # monitor: długi pisk i prosta linia
 	flat_at = st
-	mc.frame = 0
+	mc.frame = 2
 	Game.sfx("flatline", 1.0, -16.0)
 	await get_tree().create_timer(3.0).timeout
 	await get_tree().create_timer(1.2).timeout
@@ -461,7 +462,7 @@ func _sc_board() -> void:
 		cam.zoom = Vector2.ONE * 3.0 * pow(2.0 / 3.0, u)
 		cam.position = Vector2(207, 151).lerp(FINAL_CAM, u)
 		if _cue("clank", 3.78):  # teleskop ląduje w skrzyni
-			Game.sfx("clank", 1.0, -9.0)
+			Game.sfx("clank", 1.0, -14.0)
 		if _cue("start", 3.88):  # rozrusznik, silnik łapie ok. 0,7 s później
 			Game.sfx("engine_start", 1.0, -8.0)
 		if _cue("drive", CLOSE):

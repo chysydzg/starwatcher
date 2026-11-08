@@ -15,7 +15,7 @@ const R = {
   denim: P.hueRamp(4, { hue: 214, shift: 26, sat: 0.5, light: [0.26, 0.6] }),
   pink: P.hueRamp(2, { hue: 352, shift: 10, sat: 0.55, light: [0.64, 0.8] }),
 };
-const EYE = [42, 24, 22], SHINE = [250, 244, 236], BTN = [255, 214, 92], MOUTH = [120, 50, 40];
+const TEAR = [150, 200, 240], EYE = [42, 24, 22], SHINE = [250, 244, 236], BTN = [255, 214, 92], MOUTH = [120, 50, 40];
 const TOP = { light: [0, -0.62, 0.78] }; // światło z góry → cieniowanie symetryczne
 
 // o.paw: prawa łapka przodem w punkcie [x, y] (pisze); o.carry: z boku obie łapki przed sobą, kubek
@@ -62,6 +62,11 @@ function frame(dir, f, o = {}) {
       if (f === 6) { // radość: oczy ^ ^, otwarty uśmiech
         for (const [d, dy] of [[3, 2], [4, 1], [5, 1], [6, 2]]) sym(d, ey + dy, EYE);
         sym(0, ny + 1, MOUTH); sym(1, ny + 1, MOUTH); sym(0, ny + 2, R.pink[0]); sym(2, ny, MOUTH);
+      } else if (o.sad) { // smutek (szpital): brwi uniesione do środka, oczy w dół, usta w podkówkę, łza
+        for (const [d, dy] of [[3, -3], [4, -2], [5, -2], [6, -1]]) sym(d, ey + dy, R.fur[0]);
+        for (const d of [4, 5]) for (let y = ey + 1; y < ey + 3; y++) sym(d, y, EYE);
+        sym(4, ey + 3, TEAR);
+        sym(0, ny + 1, MOUTH); sym(1, ny + 1, MOUTH); sym(2, ny + 2, MOUTH);
       } else {
         sym(4, ey + 3, R.cream[2]); sym(5, ey + 3, R.cream[2]);
         if (f === 3) { sym(4, ey + 2, EYE); sym(5, ey + 2, EYE); }
@@ -70,7 +75,7 @@ function frame(dir, f, o = {}) {
         sym(0, ny + 1, MOUTH); sym(1, ny + 2, MOUTH); sym(2, ny + 2, MOUTH); sym(3, ny + 1, MOUTH); // uśmiech: ʌ pod noskiem, kąciki w górę
       }
       sym(0, ny, R.pink[0]);
-      sym(6, ey + 4, R.pink[1]); sym(7, ey + 4, R.pink[1]); // rumieńce
+      if (!o.sad) { sym(6, ey + 4, R.pink[1]); sym(7, ey + 4, R.pink[1]); } // rumieńce
       if (pawUp) S([E(26, 16, 2.1, 1.8)], R.cream);
     }
   } else { // ---- bok, patrzy w prawo
@@ -92,11 +97,18 @@ function frame(dir, f, o = {}) {
     S([E(16, 21 + hb, 7.5, 7), E(21, 23 + hb, 4, 3.2)], R.fur);
     fill(X(21.6), Y(25 + hb), 3.4, 2.4, R.cream[1]);
     const ey = Math.round(Y(19.5 + hb)), ex = Math.round(X(18.5));
-    for (let y = ey; y < ey + 3; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
-    b.pset(ex, ey, SHINE); b.pset(ex, ey + 3, R.cream[2]); b.pset(ex + 1, ey + 3, R.cream[2]);
     const nx = Math.round(X(24)), ny = Math.round(Y(23 + hb));
-    b.pset(nx, ny, R.pink[0]); b.pset(nx - 1, ny + 1, MOUTH); b.pset(nx - 2, ny + 2, MOUTH); b.pset(nx - 3, ny + 1, MOUTH);
-    b.pset(Math.round(X(19)), ey + 4, R.pink[1]);
+    if (o.sad) { // smutek: powieka w dół, brew uniesiona z przodu, kącik ust w dół, łza
+      for (let y = ey + 1; y < ey + 3; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
+      b.pset(ex - 1, ey - 1, R.fur[0]); b.pset(ex, ey - 2, R.fur[0]); b.pset(ex + 1, ey - 2, R.fur[0]);
+      b.pset(ex, ey + 3, TEAR); b.pset(ex, ey + 4, TEAR);
+      b.pset(nx, ny, R.pink[0]); b.pset(nx - 1, ny + 2, MOUTH); b.pset(nx - 2, ny + 2, MOUTH); b.pset(nx - 3, ny + 3, MOUTH);
+    } else {
+      for (let y = ey; y < ey + 3; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
+      b.pset(ex, ey, SHINE); b.pset(ex, ey + 3, R.cream[2]); b.pset(ex + 1, ey + 3, R.cream[2]);
+      b.pset(nx, ny, R.pink[0]); b.pset(nx - 1, ny + 1, MOUTH); b.pset(nx - 2, ny + 2, MOUTH); b.pset(nx - 3, ny + 1, MOUTH);
+      b.pset(Math.round(X(19)), ey + 4, R.pink[1]);
+    }
     if (o.carry) {  // kubek trzymany oburącz przed sobą: dalsza łapka za kubkiem, bliższa z przodu
       const mx = Math.round(X(21.4)), my = Math.round(Y(31 + hb));
       S([C(15, 30 + hb, 22, 32 + hb, 2, 1.8)], R.fur, { dark: 0.75 });
@@ -128,5 +140,9 @@ module.exports = { frames, frame, breath, FW, FH, COLS, R };
 
 if (require.main === module) {
   P.save(P.pack(frames, { cols: COLS, pad: 0 }), process.argv[2] + "/jania.png");
+  // smutna Jania (szpital): ten sam arkusz z miną smutku
+  const sad = [];
+  for (const [dir, n] of ROWS) for (let f = 0; f < COLS; f++) sad.push(f === 7 ? breath(frame(dir, 0, { sad: true })) : f < n ? frame(dir, f, { sad: true }) : new P.Buf(FW, FH));
+  P.save(P.pack(sad, { cols: COLS, pad: 0 }), process.argv[2] + "/jania_sad.png");
   console.log("jania.png", FW, FH, COLS);
 }
