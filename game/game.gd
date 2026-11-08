@@ -425,7 +425,7 @@ func _input(e: InputEvent) -> void:
 
 ## podpowiedź przycisku zgodna z urządzeniem
 func key(action: String) -> String:
-	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"]}
+	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "advance": ["Spacja", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"]}
 	return "[%s]" % k[action][1 if pad else 0]
 
 
@@ -910,3 +910,31 @@ func settings_ui(box: Container, on_change := Callable()) -> Control:
 func use_test_save() -> void:
 	SAVE = "user://test_save.json"
 	SAVE_BAK = "user://test_save.bak.json"
+
+
+## cienka ramka z polerowanej stali (styl przyrządu); inset = ciemny „wyświetlacz” w środku
+func metal(n: CanvasItem, r: Rect2) -> void:
+	n.draw_rect(r.grow(1), Color("120e1a"))
+	n.draw_rect(r, Color("6c7692"))
+	n.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color("d8e0ee"))
+	n.draw_rect(Rect2(r.position, Vector2(1, r.size.y)), Color("aab4c8"))
+	n.draw_rect(Rect2(r.position.x, r.end.y - 1, r.size.x, 1), Color("2a3044"))
+	n.draw_rect(Rect2(r.end.x - 1, r.position.y, 1, r.size.y), Color("2a3044"))
+	var d := r.grow(-3)  # wpuszczone okienko na tekst
+	n.draw_rect(d, Color("10141f"))
+	n.draw_rect(Rect2(d.position, Vector2(d.size.x, 1)), Color("05070c"))
+
+
+## przycisk jak klawisz klawiatury: zaokrąglone rogi, widoczny bok; wciśnięty = wierzch opada
+func keycap(n: CanvasItem, r: Rect2, down: bool) -> Rect2:
+	round_rect(n, r, Color("120e1a"))
+	round_rect(n, r.grow(-1), Color("3a4258"))
+	var cap := Rect2(r.position + Vector2(3, 2 + (2 if down else 0)), r.size - Vector2(6, 8))
+	round_rect(n, cap, Color("7a84a0") if down else Color("8e98b2"))
+	n.draw_rect(Rect2(cap.position + Vector2(1, 0), Vector2(cap.size.x - 2, 1)), Color("d8e0ee"))
+	return cap
+
+
+func round_rect(n: CanvasItem, r: Rect2, c: Color) -> void:
+	n.draw_rect(Rect2(r.position.x + 1, r.position.y, r.size.x - 2, r.size.y), c)
+	n.draw_rect(Rect2(r.position.x, r.position.y + 1, r.size.x, r.size.y - 2), c)

@@ -14,6 +14,11 @@ Menu główne (`music/menu`, wzorzec: menu.mp3 od autora): 90 BPM, h-moll, 24 ta
 gęste arpeggio celesty, w powrocie celesta dubluje temat i dochodzi cichy puls chip. Earshot: „uplifting / celebratory”
 jak wzorzec („playful / celebratory”), ale ciemniej (1,1 kHz wobec 3,3 kHz) – celowo w stylu pętli dnia i nocy.
 
+Intro (`music/intro`, cutscenka po NOWEJ GRZE, wzorzec: cutscene.mp3 od autora): 64 BPM, g-moll, 16 taktów (60 s, A–B);
+w A pozytywka prowadzi temat nad harfą, w B odpowiada miękkie pianino; bez perkusji, cicho pod tekstem (-18 LUFS).
+Earshot: „a music box melody”, „sad and melancholic” (z +3,6), jak wzorzec („solo piano”, „sad and melancholic”);
+jaśniej od wzorca (761 Hz wobec 467 Hz).
+
 ## Jak to powstaje
 - `compose.py` (skill music-production) pisze `song.json` – każda nuta jest w skrypcie.
 - Render na komputerze autora: `music\render.cmd rN` (FluidSynth + bank MS Basic, `C:\Users\tomas\.music-skill`).

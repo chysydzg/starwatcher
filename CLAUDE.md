@@ -7,6 +7,15 @@
 - Powiadomienia (paczki, zakupy, nowy dzień): **na środku ekranu, jedno pod drugim, bez ramek** (`_toast()`).
 - Komunikaty w okularze teleskopu: na środku, bez ramki.
 
+## Dialogi (zawsze w ten sposób, cała gra)
+- Okienko dialogu `game/dialogue.gd` (`preload(...).new().play([{"who": "jania", "text": "..."}])`, sygnał `finished`):
+  rozmówca **po lewej** (portret 88x88 `game/art/portrait_<kto>.png` w stalowej ramce + tabliczka z imieniem),
+  tekst po prawej w ramce `Game.metal`.
+- Tekst pojawia się litera po literze z cichym stukaniem przy każdej literze. Spacja / [A]: pierwsze naciśnięcie
+  pokazuje cały tekst, następne zmienia okno; gdy tekst już się wypisał, wystarczy jedno. Podpowiedź `[Spacja]`
+  (pad: `[A]`) miga w prawym dolnym rogu, gdy tekst jest pełny.
+- Portrety: z referencji autora (zdjęcia) przez codixel, `tools/art/portraits.js`.
+
 ## Samouczki (zawsze w ten sposób)
 - Okienko na kilka stron (`game/tutorial.gd`, `Game.tutorial_once`): na stronie jak najmniej tekstu + obraz albo
   nagranie z gry (`test/rec_tut.gd` → `game/art/tut/*.png`, klatki 320x180), na ostatniej stronie OK. Gra w pauzie.

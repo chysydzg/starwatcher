@@ -149,6 +149,26 @@ func _ready() -> void:
 	assert(Game.settings.vol.SFX == 10, "głośność z pliku ustawień przycięta do 0–10")
 	Game.settings.vol.SFX = 8
 	Game.apply_settings()
+	# intro: dialog litera po literze, Spacja dokańcza, druga Spacja dalej, po ostatnim pukanie i napis
+	var cut = load("res://game/cutscene.tscn").instantiate()
+	add_child(cut)
+	cut._talk()
+	await get_tree().process_frame
+	var dl: Array = cut.get_children().filter(func(n): return n.has_signal("finished") and n.get("lines") != null)
+	assert(dl.size() == 1 and not dl[0].done(), "dialog pisze tekst po literze")
+	var sp := InputEventKey.new()
+	sp.physical_keycode = KEY_SPACE
+	sp.pressed = true
+	Input.parse_input_event(sp)
+	await get_tree().process_frame
+	assert(dl[0].done() and dl[0]._i == 0, "pierwsza Spacja pokazuje cały tekst")
+	for i in 3:
+		Input.parse_input_event(sp)
+		await get_tree().process_frame
+	await get_tree().create_timer(1.3).timeout
+	assert(not is_instance_valid(dl[0]) and cut.door_a > 0.0, "po dialogu pukanie i napis na drzwiach")
+	cut.free()
+	Game.loop("music/intro", -INF)
 	print("TEST OK")
 	FileAccess.open("res://debug_shots/test_result.txt", FileAccess.WRITE).store_string("TEST OK")  # wynik czytelny po wyjściu z gry
 	Game.quit()

@@ -333,7 +333,7 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 	o.draw.connect(func(): _draw_dusk(o, 1.0 - k.u if dawn else k.u, k.u, dawn))
 	Game.sfx("dawn" if dawn else "dusk")  # krótki akcent: wznoszący się o świcie, opadający o zmierzchu
 	o.create_tween().set_loops().tween_callback(o.queue_redraw).set_delay(1.0 / 30.0)  # woda, chmury i gwiazdy żyją cały czas
-	var tw := create_tween()
+	var tw := o.create_tween()  # ginie razem z okienkiem
 	tw.tween_method(func(v): k.u = v, 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_callback(func():
 		var b := Button.new()
@@ -899,33 +899,6 @@ func _pc_screen(n: Node2D) -> void:
 	_px(n, r.position.x, r.position.y + fposmod(t * 6.0, r.size.y), r.size.x, 1, Color(1, 1, 1, 0.18))  # przebiegająca linia CRT
 
 
-## cienka ramka z polerowanej stali (styl przyrządu); inset = ciemny „wyświetlacz” w środku
-func _metal(n: CanvasItem, r: Rect2) -> void:
-	n.draw_rect(r.grow(1), Color("120e1a"))
-	n.draw_rect(r, Color("6c7692"))
-	n.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color("d8e0ee"))
-	n.draw_rect(Rect2(r.position, Vector2(1, r.size.y)), Color("aab4c8"))
-	n.draw_rect(Rect2(r.position.x, r.end.y - 1, r.size.x, 1), Color("2a3044"))
-	n.draw_rect(Rect2(r.end.x - 1, r.position.y, 1, r.size.y), Color("2a3044"))
-	var d := r.grow(-3)  # wpuszczone okienko na tekst
-	n.draw_rect(d, Color("10141f"))
-	n.draw_rect(Rect2(d.position, Vector2(d.size.x, 1)), Color("05070c"))
-
-
-## przycisk jak klawisz klawiatury: zaokrąglone rogi, widoczny bok; wciśnięty = wierzch opada
-func _key(n: CanvasItem, r: Rect2, down: bool) -> Rect2:
-	_round(n, r, Color("120e1a"))
-	_round(n, r.grow(-1), Color("3a4258"))
-	var cap := Rect2(r.position + Vector2(3, 2 + (2 if down else 0)), r.size - Vector2(6, 8))
-	_round(n, cap, Color("7a84a0") if down else Color("8e98b2"))
-	n.draw_rect(Rect2(cap.position + Vector2(1, 0), Vector2(cap.size.x - 2, 1)), Color("d8e0ee"))
-	return cap
-
-
-func _round(n: CanvasItem, r: Rect2, c: Color) -> void:
-	n.draw_rect(Rect2(r.position.x + 1, r.position.y, r.size.x - 2, r.size.y), c)
-	n.draw_rect(Rect2(r.position.x, r.position.y + 1, r.size.x, r.size.y - 2), c)
-
 
 ## tekst z ciemnym obrysem 1 px (bez tła) – powiadomienia i monolog
 func _otxt(n: CanvasItem, p: Vector2, s: String, c: Color) -> void:
@@ -959,15 +932,15 @@ func _draw_hud() -> void:
 	var n := hud
 	if viewport and viewport.get("hide_hud"):
 		return
-	_metal(n, Rect2(4, 4, 92, 40))
+	Game.metal(n, Rect2(4, 4, 92, 40))
 	_txt(Vector2(11, 21), "$ %d" % Game.money, Color("ffcf6b"))
 	_txt(Vector2(11, 37), "PW %d" % Game.pw, Color("6affa0"))
 	var cal := Game.calendar()
-	_metal(n, Rect2(622 - _w(cal), 4, _w(cal) + 14, 24))
+	Game.metal(n, Rect2(622 - _w(cal), 4, _w(cal) + 14, 24))
 	_txt(Vector2(629 - _w(cal), 21), cal, Color("c8c4e8"))
 	if Game.night:  # pasek pozostałego czasu nocy
 		var frac := Game.night_left / Game.night_length()
-		_metal(n, Rect2(500, 32, 136, 24))
+		Game.metal(n, Rect2(500, 32, 136, 24))
 		_txt(Vector2(507, 49), "NOC %d:%02d" % [floori(Game.night_left / 60.0), int(Game.night_left) % 60], Color("c8c4e8"))
 		n.draw_rect(Rect2(572, 41, 56, 6), Color("2a2a40"))
 		n.draw_rect(Rect2(572, 41, 56 * frac, 6), Color("8aa8ff") if frac > 0.2 else Color("ff9a6a"))
@@ -989,7 +962,7 @@ func _draw_hud() -> void:
 		var label: String = Game.key("interact").trim_prefix("[").trim_suffix("]")  # sam klawisz, bez opisu obiektu
 		var r := Rect2((body.position + Vector2(-(_w(label) + 14) / 2, -80)).floor(), Vector2(_w(label) + 14, 24))
 		r.position = r.position.clamp(Vector2(4, 4), Vector2(636, 356) - r.size)
-		var cap := _key(n, r, false)
+		var cap := Game.keycap(n, r, false)
 		_txt_on(n, (cap.position + Vector2((cap.size.x - _w(label)) / 2, 13)).floor(), label, Color("1a1426"))
 	if tip != "":
 		var w := _w(tip)

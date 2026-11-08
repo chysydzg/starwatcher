@@ -91,7 +91,7 @@ func _start() -> void:
 func _new_game() -> void:
 	Game.new_game()
 	Game.save_game()
-	get_tree().change_scene_to_file("res://game/world.tscn")
+	get_tree().change_scene_to_file("res://game/cutscene.tscn")  # intro, potem gra
 
 
 func _settings() -> void:

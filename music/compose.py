@@ -19,11 +19,17 @@ VOICE = {
     'Em7': [52, 55, 59, 62], 'Em9': [52, 55, 59, 62], 'F#7': [52, 58, 62], 'B7': [57, 63, 66],
     'A13': [55, 61, 66, 71], 'Cmaj9': [52, 59, 62, 67], 'Am9': [60, 64, 67, 71], 'B7sus4': [57, 64, 66],
     'D69': [54, 59, 64, 69], 'A9': [55, 59, 61, 64], 'A': [57, 61, 64], 'F#7sus4': [52, 59, 61], 'F#m7b5': [52, 57, 60],
+    # g-moll (intro)
+    'Gm9': [58, 62, 65, 69], 'Ebmaj7': [55, 58, 63, 67], 'Bbmaj7': [57, 62, 65, 69], 'Bbmaj7/D': [57, 62, 65, 69],
+    'F': [57, 60, 65], 'Fsus4': [58, 60, 65], 'Gm7': [58, 62, 65, 67], 'Cm9': [51, 55, 58, 62], 'Cm7': [51, 55, 58, 63],
+    'D7sus4': [55, 57, 60, 62], 'D7': [54, 57, 60, 62],
 }
-ROOT = {'D': 38, 'E': 40, 'F#': 42, 'G': 43, 'A': 45, 'B': 35, 'C': 36}
+ROOT = {'D': 38, 'E': 40, 'F#': 42, 'G': 43, 'A': 45, 'B': 35, 'C': 36, 'Eb': 39, 'Bb': 34, 'F': 41}
 
 
 def root_of(sym):
+    if '/' in sym:
+        return ROOT[sym.split('/')[1]]
     return ROOT[sym[:2]] if sym[:2] in ROOT else ROOT[sym[0]]
 
 
@@ -401,8 +407,64 @@ def menu():
     s.save('menu')
 
 
+# ---------------------------------------------------------------- INTRO (cutscenka): g-moll, 64 BPM, 16 taktów (60 s)
+def intro():
+    A = [[(0, 'Gm9')], [(0, 'Ebmaj7')], [(0, 'Bbmaj7')], [(0, 'Fsus4'), (2, 'F')],
+         [(0, 'Gm7')], [(0, 'Ebmaj7')], [(0, 'Cm9')], [(0, 'D7sus4'), (2, 'D7')]]
+    B = [[(0, 'Ebmaj7')], [(0, 'Bbmaj7/D')], [(0, 'Cm7')], [(0, 'Gm7')],
+         [(0, 'Ebmaj7')], [(0, 'F')], [(0, 'Cm9')], [(0, 'D7sus4'), (2, 'D7')]]
+    prog = A + B
+    sec = [{'id': 'a', 'start_bar': 0, 'bars': 8, 'intent': 'memory: music box theme over harp, father and daughter under the stars'},
+           {'id': 'b', 'start_bar': 8, 'bars': 8, 'intent': 'answer on soft piano, harp opens up, back to the theme'}]
+    s = Song('Star Watcher - Intro', 64, 16, sec,
+             'Cutscene bed under dialogue (text, no voices): slow, soft, steady. Inspired by the user reference '
+             '(solo piano / harp / music box, melancholic, G minor, ~64 BPM) only in mode, tempo and colour.')
+    s.p['mix']['target_lufs'] = -18
+    s.chords(prog)
+    s.track('box', 'melody', {'level_dbfs': -20, 'highpass': 300, 'lowpass': 6000, 'reverb_db': -10, 'pan': -0.15,
+                              'delay': {'beats': 0.75, 'feedback': 0.25, 'send_db': -18, 'lowpass': 3000, 'ping_pong': True}},
+            program=10)
+    s.track('piano', 'melody', {'level_dbfs': -19, 'highpass': 90, 'lowpass': 5000, 'reverb_db': -11, 'pan': 0.1}, program=0)
+    s.track('harp', 'texture', {'level_dbfs': -27, 'highpass': 90, 'lowpass': 6000, 'reverb_db': -10, 'pan': 0.5}, program=46)
+    s.track('pad', 'texture', {'level_dbfs': -31, 'highpass': 110, 'lowpass': 3500, 'reverb_db': -8, 'pan': -0.45}, program=48)
+    s.track('bass', 'bass', {'level_dbfs': -25, 'highpass': 35, 'lowpass': 1200}, program=32)
+    A_mel = [
+        [(0, 1, 74), (1, 1, 70), (2, 1.5, 72), (3.5, .5, 74)], [(0, 3, 67), (3, 1, 70)],
+        [(0, 1, 69), (1, 1, 70), (2, 1, 74), (3, 1, 77)], [(0, 3, 72), (3, 1, 69)],
+        [(0, 1, 74), (1, 1, 70), (2, 1, 72), (3, 1, 74)], [(0, 1.5, 75), (1.5, .5, 74), (2, 2, 70)],
+        [(0, 1, 72), (1, 1, 74), (2, 2, 75)], [(0, 2, 74), (2, 2, 66)],
+    ]
+    B_mel = [
+        [(0, 2, 67), (2, 1, 70), (3, 1, 74)], [(0, 3, 77), (3, 1, 74)], [(0, 2, 75), (2, 1, 74), (3, 1, 72)], [(0, 4, 70)],
+        [(0, 1, 67), (1, 1, 70), (2, 1, 74), (3, 1, 79)], [(0, 2, 77), (2, 2, 72)],
+        [(0, 1, 75), (1, 1, 74), (2, 1, 72), (3, 1, 70)], [(0, 2, 69), (2, 2, 66)],
+    ]
+    for i, cells in enumerate(A_mel):
+        s.line('box', i, [(b, d, p + 12) for b, d, p in cells], 66)
+    for i, cells in enumerate(B_mel):
+        s.line('piano', 8 + i, cells, 62)
+    for bar, items in enumerate(prog):
+        for b, ln, sym in spans(items):
+            v = VOICE[sym]
+            on = bar * 4 + b
+            for p in v:
+                s.note('pad', on, ln, p, 46)
+            r = root_of(sym)
+            arp = [r + 12] + v + [v[1] + 12]
+            for k in range(int(ln / .5)):  # harfa ósemkami w górę; w B gęściej i głośniej
+                if bar >= 8 or k % 2 == 0:
+                    s.note('harp', on + k * .5, min(1.0, 64 - on - k * .5), arp[k % len(arp)], (48 if bar >= 8 else 46) - 6 * (k % 2), 0.9)
+            s.note('bass', on, min(ln, 2) - .1, r, 70)
+            if ln == 4:
+                s.note('bass', on + 2, 1.9, r + 7, 56)
+    vinyl(s, 16)
+    s.p['tracks'][-1]['mix']['level_dbfs'] = -48
+    s.save('intro')
+
+
 if __name__ == '__main__':
     day()
     night()
     menu()
+    intro()
     print('ok')

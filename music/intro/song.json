@@ -1,0 +1,3058 @@
+{
+ "schema": "music-production/v1",
+ "title": "Star Watcher - Intro",
+ "version": "1.0.r1",
+ "brief": "Cutscene bed under dialogue (text, no voices): slow, soft, steady. Inspired by the user reference (solo piano / harp / music box, melancholic, G minor, ~64 BPM) only in mode, tempo and colour.",
+ "clock": {
+  "bars": 16,
+  "meter": [
+   4,
+   4
+  ],
+  "tempo": [
+   [
+    0,
+    64
+   ]
+  ],
+  "tail_seconds": 4
+ },
+ "sections": [
+  {
+   "id": "a",
+   "start_bar": 0,
+   "bars": 8,
+   "intent": "memory: music box theme over harp, father and daughter under the stars"
+  },
+  {
+   "id": "b",
+   "start_bar": 8,
+   "bars": 8,
+   "intent": "answer on soft piano, harp opens up, back to the theme"
+  }
+ ],
+ "tracks": [
+  {
+   "id": "box",
+   "name": "box",
+   "role": "melody",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 10,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "box_0000",
+     "on": 0,
+     "duration": 1,
+     "pitch": 86
+    },
+    {
+     "id": "box_0001",
+     "on": 1,
+     "duration": 1,
+     "pitch": 82
+    },
+    {
+     "id": "box_0002",
+     "on": 2,
+     "duration": 1.5,
+     "pitch": 84
+    },
+    {
+     "id": "box_0003",
+     "on": 3.5,
+     "duration": 0.5,
+     "pitch": 86
+    },
+    {
+     "id": "box_0004",
+     "on": 4,
+     "duration": 3,
+     "pitch": 79
+    },
+    {
+     "id": "box_0005",
+     "on": 7,
+     "duration": 1,
+     "pitch": 82
+    },
+    {
+     "id": "box_0006",
+     "on": 8,
+     "duration": 1,
+     "pitch": 81
+    },
+    {
+     "id": "box_0007",
+     "on": 9,
+     "duration": 1,
+     "pitch": 82
+    },
+    {
+     "id": "box_0008",
+     "on": 10,
+     "duration": 1,
+     "pitch": 86
+    },
+    {
+     "id": "box_0009",
+     "on": 11,
+     "duration": 1,
+     "pitch": 89
+    },
+    {
+     "id": "box_0010",
+     "on": 12,
+     "duration": 3,
+     "pitch": 84
+    },
+    {
+     "id": "box_0011",
+     "on": 15,
+     "duration": 1,
+     "pitch": 81
+    },
+    {
+     "id": "box_0012",
+     "on": 16,
+     "duration": 1,
+     "pitch": 86
+    },
+    {
+     "id": "box_0013",
+     "on": 17,
+     "duration": 1,
+     "pitch": 82
+    },
+    {
+     "id": "box_0014",
+     "on": 18,
+     "duration": 1,
+     "pitch": 84
+    },
+    {
+     "id": "box_0015",
+     "on": 19,
+     "duration": 1,
+     "pitch": 86
+    },
+    {
+     "id": "box_0016",
+     "on": 20,
+     "duration": 1.5,
+     "pitch": 87
+    },
+    {
+     "id": "box_0017",
+     "on": 21.5,
+     "duration": 0.5,
+     "pitch": 86
+    },
+    {
+     "id": "box_0018",
+     "on": 22,
+     "duration": 2,
+     "pitch": 82
+    },
+    {
+     "id": "box_0019",
+     "on": 24,
+     "duration": 1,
+     "pitch": 84
+    },
+    {
+     "id": "box_0020",
+     "on": 25,
+     "duration": 1,
+     "pitch": 86
+    },
+    {
+     "id": "box_0021",
+     "on": 26,
+     "duration": 2,
+     "pitch": 87
+    },
+    {
+     "id": "box_0022",
+     "on": 28,
+     "duration": 2,
+     "pitch": 86
+    },
+    {
+     "id": "box_0023",
+     "on": 30,
+     "duration": 2,
+     "pitch": 78
+    }
+   ],
+   "performance": {
+    "notes": {
+     "box_0000": {
+      "velocity": 67,
+      "timing_ms": -13.59,
+      "gate": 1.0092
+     },
+     "box_0001": {
+      "velocity": 61,
+      "timing_ms": -0.83,
+      "gate": 1.0587
+     },
+     "box_0002": {
+      "velocity": 63,
+      "timing_ms": 3.68,
+      "gate": 1.0516
+     },
+     "box_0003": {
+      "velocity": 65,
+      "timing_ms": -0.66,
+      "gate": 0.9493
+     },
+     "box_0004": {
+      "velocity": 67,
+      "timing_ms": 2.0,
+      "gate": 1.0148
+     },
+     "box_0005": {
+      "velocity": 66,
+      "timing_ms": 5.22,
+      "gate": 0.9834
+     },
+     "box_0006": {
+      "velocity": 73,
+      "timing_ms": 7.89,
+      "gate": 0.9959
+     },
+     "box_0007": {
+      "velocity": 65,
+      "timing_ms": 0.15,
+      "gate": 1.0123
+     },
+     "box_0008": {
+      "velocity": 65,
+      "timing_ms": -0.81,
+      "gate": 0.9832
+     },
+     "box_0009": {
+      "velocity": 67,
+      "timing_ms": -4.29,
+      "gate": 0.9717
+     },
+     "box_0010": {
+      "velocity": 73,
+      "timing_ms": -2.12,
+      "gate": 1.0052
+     },
+     "box_0011": {
+      "velocity": 65,
+      "timing_ms": 9.36,
+      "gate": 0.98
+     },
+     "box_0012": {
+      "velocity": 72,
+      "timing_ms": -4.4,
+      "gate": 0.9757
+     },
+     "box_0013": {
+      "velocity": 66,
+      "timing_ms": -2.44,
+      "gate": 0.99
+     },
+     "box_0014": {
+      "velocity": 67,
+      "timing_ms": -11.99,
+      "gate": 1.0266
+     },
+     "box_0015": {
+      "velocity": 73,
+      "timing_ms": -5.13,
+      "gate": 0.98
+     },
+     "box_0016": {
+      "velocity": 79,
+      "timing_ms": -2.35,
+      "gate": 1.0114
+     },
+     "box_0017": {
+      "velocity": 70,
+      "timing_ms": -4.05,
+      "gate": 0.9507
+     },
+     "box_0018": {
+      "velocity": 70,
+      "timing_ms": 1.1,
+      "gate": 1.0386
+     },
+     "box_0019": {
+      "velocity": 78,
+      "timing_ms": -3.95,
+      "gate": 1.0181
+     },
+     "box_0020": {
+      "velocity": 71,
+      "timing_ms": 4.18,
+      "gate": 1.0036
+     },
+     "box_0021": {
+      "velocity": 66,
+      "timing_ms": 9.03,
+      "gate": 1.0275
+     },
+     "box_0022": {
+      "velocity": 74,
+      "timing_ms": 7.96,
+      "gate": 1.0298
+     },
+     "box_0023": {
+      "velocity": 65,
+      "timing_ms": 6.05,
+      "gate": 1.0145
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": -0.15,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -10,
+    "delay_db": null,
+    "level_dbfs": -20,
+    "highpass": 300,
+    "lowpass": 6000,
+    "delay": {
+     "beats": 0.75,
+     "feedback": 0.25,
+     "send_db": -18,
+     "lowpass": 3000,
+     "ping_pong": true
+    }
+   }
+  },
+  {
+   "id": "piano",
+   "name": "piano",
+   "role": "melody",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 0,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "piano_0000",
+     "on": 32,
+     "duration": 2,
+     "pitch": 67
+    },
+    {
+     "id": "piano_0001",
+     "on": 34,
+     "duration": 1,
+     "pitch": 70
+    },
+    {
+     "id": "piano_0002",
+     "on": 35,
+     "duration": 1,
+     "pitch": 74
+    },
+    {
+     "id": "piano_0003",
+     "on": 36,
+     "duration": 3,
+     "pitch": 77
+    },
+    {
+     "id": "piano_0004",
+     "on": 39,
+     "duration": 1,
+     "pitch": 74
+    },
+    {
+     "id": "piano_0005",
+     "on": 40,
+     "duration": 2,
+     "pitch": 75
+    },
+    {
+     "id": "piano_0006",
+     "on": 42,
+     "duration": 1,
+     "pitch": 74
+    },
+    {
+     "id": "piano_0007",
+     "on": 43,
+     "duration": 1,
+     "pitch": 72
+    },
+    {
+     "id": "piano_0008",
+     "on": 44,
+     "duration": 4,
+     "pitch": 70
+    },
+    {
+     "id": "piano_0009",
+     "on": 48,
+     "duration": 1,
+     "pitch": 67
+    },
+    {
+     "id": "piano_0010",
+     "on": 49,
+     "duration": 1,
+     "pitch": 70
+    },
+    {
+     "id": "piano_0011",
+     "on": 50,
+     "duration": 1,
+     "pitch": 74
+    },
+    {
+     "id": "piano_0012",
+     "on": 51,
+     "duration": 1,
+     "pitch": 79
+    },
+    {
+     "id": "piano_0013",
+     "on": 52,
+     "duration": 2,
+     "pitch": 77
+    },
+    {
+     "id": "piano_0014",
+     "on": 54,
+     "duration": 2,
+     "pitch": 72
+    },
+    {
+     "id": "piano_0015",
+     "on": 56,
+     "duration": 1,
+     "pitch": 75
+    },
+    {
+     "id": "piano_0016",
+     "on": 57,
+     "duration": 1,
+     "pitch": 74
+    },
+    {
+     "id": "piano_0017",
+     "on": 58,
+     "duration": 1,
+     "pitch": 72
+    },
+    {
+     "id": "piano_0018",
+     "on": 59,
+     "duration": 1,
+     "pitch": 70
+    },
+    {
+     "id": "piano_0019",
+     "on": 60,
+     "duration": 2,
+     "pitch": 69
+    },
+    {
+     "id": "piano_0020",
+     "on": 62,
+     "duration": 2,
+     "pitch": 66
+    }
+   ],
+   "performance": {
+    "notes": {
+     "piano_0000": {
+      "velocity": 63,
+      "timing_ms": 2.73,
+      "gate": 1.0117
+     },
+     "piano_0001": {
+      "velocity": 57,
+      "timing_ms": 1.68,
+      "gate": 0.9847
+     },
+     "piano_0002": {
+      "velocity": 58,
+      "timing_ms": 1.37,
+      "gate": 0.9911
+     },
+     "piano_0003": {
+      "velocity": 67,
+      "timing_ms": 9.47,
+      "gate": 1.0039
+     },
+     "piano_0004": {
+      "velocity": 65,
+      "timing_ms": 15.72,
+      "gate": 1.0208
+     },
+     "piano_0005": {
+      "velocity": 69,
+      "timing_ms": 2.4,
+      "gate": 1.0184
+     },
+     "piano_0006": {
+      "velocity": 65,
+      "timing_ms": 0.65,
+      "gate": 0.9708
+     },
+     "piano_0007": {
+      "velocity": 63,
+      "timing_ms": 5.99,
+      "gate": 0.9865
+     },
+     "piano_0008": {
+      "velocity": 70,
+      "timing_ms": -0.9,
+      "gate": 1.027
+     },
+     "piano_0009": {
+      "velocity": 71,
+      "timing_ms": 0.96,
+      "gate": 1.0088
+     },
+     "piano_0010": {
+      "velocity": 65,
+      "timing_ms": 2.13,
+      "gate": 1.0422
+     },
+     "piano_0011": {
+      "velocity": 68,
+      "timing_ms": 2.66,
+      "gate": 1.0412
+     },
+     "piano_0012": {
+      "velocity": 66,
+      "timing_ms": -2.1,
+      "gate": 1.0248
+     },
+     "piano_0013": {
+      "velocity": 76,
+      "timing_ms": 0.66,
+      "gate": 0.9996
+     },
+     "piano_0014": {
+      "velocity": 65,
+      "timing_ms": -6.41,
+      "gate": 1.0179
+     },
+     "piano_0015": {
+      "velocity": 68,
+      "timing_ms": -8.72,
+      "gate": 0.9934
+     },
+     "piano_0016": {
+      "velocity": 65,
+      "timing_ms": -7.22,
+      "gate": 0.9808
+     },
+     "piano_0017": {
+      "velocity": 61,
+      "timing_ms": -12.29,
+      "gate": 0.9719
+     },
+     "piano_0018": {
+      "velocity": 61,
+      "timing_ms": -4.09,
+      "gate": 1.0203
+     },
+     "piano_0019": {
+      "velocity": 67,
+      "timing_ms": 0.3,
+      "gate": 1.016
+     },
+     "piano_0020": {
+      "velocity": 55,
+      "timing_ms": -2.71,
+      "gate": 1.0275
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0.1,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -11,
+    "delay_db": null,
+    "level_dbfs": -19,
+    "highpass": 90,
+    "lowpass": 5000
+   }
+  },
+  {
+   "id": "harp",
+   "name": "harp",
+   "role": "texture",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 46,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "harp_0000",
+     "on": 0.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0001",
+     "on": 1.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0002",
+     "on": 2.0,
+     "duration": 1.0,
+     "pitch": 69
+    },
+    {
+     "id": "harp_0003",
+     "on": 3.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0004",
+     "on": 4.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0005",
+     "on": 5.0,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0006",
+     "on": 6.0,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0007",
+     "on": 7.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0008",
+     "on": 8.0,
+     "duration": 1.0,
+     "pitch": 46
+    },
+    {
+     "id": "harp_0009",
+     "on": 9.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0010",
+     "on": 10.0,
+     "duration": 1.0,
+     "pitch": 69
+    },
+    {
+     "id": "harp_0011",
+     "on": 11.0,
+     "duration": 1.0,
+     "pitch": 46
+    },
+    {
+     "id": "harp_0012",
+     "on": 12.0,
+     "duration": 1.0,
+     "pitch": 53
+    },
+    {
+     "id": "harp_0013",
+     "on": 13.0,
+     "duration": 1.0,
+     "pitch": 60
+    },
+    {
+     "id": "harp_0014",
+     "on": 14.0,
+     "duration": 1.0,
+     "pitch": 53
+    },
+    {
+     "id": "harp_0015",
+     "on": 15.0,
+     "duration": 1.0,
+     "pitch": 60
+    },
+    {
+     "id": "harp_0016",
+     "on": 16.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0017",
+     "on": 17.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0018",
+     "on": 18.0,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0019",
+     "on": 19.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0020",
+     "on": 20.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0021",
+     "on": 21.0,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0022",
+     "on": 22.0,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0023",
+     "on": 23.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0024",
+     "on": 24.0,
+     "duration": 1.0,
+     "pitch": 48
+    },
+    {
+     "id": "harp_0025",
+     "on": 25.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0026",
+     "on": 26.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0027",
+     "on": 27.0,
+     "duration": 1.0,
+     "pitch": 48
+    },
+    {
+     "id": "harp_0028",
+     "on": 28.0,
+     "duration": 1.0,
+     "pitch": 50
+    },
+    {
+     "id": "harp_0029",
+     "on": 29.0,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0030",
+     "on": 30.0,
+     "duration": 1.0,
+     "pitch": 50
+    },
+    {
+     "id": "harp_0031",
+     "on": 31.0,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0032",
+     "on": 32.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0033",
+     "on": 32.5,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0034",
+     "on": 33.0,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0035",
+     "on": 33.5,
+     "duration": 1.0,
+     "pitch": 63
+    },
+    {
+     "id": "harp_0036",
+     "on": 34.0,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0037",
+     "on": 34.5,
+     "duration": 1.0,
+     "pitch": 70
+    },
+    {
+     "id": "harp_0038",
+     "on": 35.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0039",
+     "on": 35.5,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0040",
+     "on": 36.0,
+     "duration": 1.0,
+     "pitch": 50
+    },
+    {
+     "id": "harp_0041",
+     "on": 36.5,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0042",
+     "on": 37.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0043",
+     "on": 37.5,
+     "duration": 1.0,
+     "pitch": 65
+    },
+    {
+     "id": "harp_0044",
+     "on": 38.0,
+     "duration": 1.0,
+     "pitch": 69
+    },
+    {
+     "id": "harp_0045",
+     "on": 38.5,
+     "duration": 1.0,
+     "pitch": 74
+    },
+    {
+     "id": "harp_0046",
+     "on": 39.0,
+     "duration": 1.0,
+     "pitch": 50
+    },
+    {
+     "id": "harp_0047",
+     "on": 39.5,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0048",
+     "on": 40.0,
+     "duration": 1.0,
+     "pitch": 48
+    },
+    {
+     "id": "harp_0049",
+     "on": 40.5,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0050",
+     "on": 41.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0051",
+     "on": 41.5,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0052",
+     "on": 42.0,
+     "duration": 1.0,
+     "pitch": 63
+    },
+    {
+     "id": "harp_0053",
+     "on": 42.5,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0054",
+     "on": 43.0,
+     "duration": 1.0,
+     "pitch": 48
+    },
+    {
+     "id": "harp_0055",
+     "on": 43.5,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0056",
+     "on": 44.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0057",
+     "on": 44.5,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0058",
+     "on": 45.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0059",
+     "on": 45.5,
+     "duration": 1.0,
+     "pitch": 65
+    },
+    {
+     "id": "harp_0060",
+     "on": 46.0,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0061",
+     "on": 46.5,
+     "duration": 1.0,
+     "pitch": 74
+    },
+    {
+     "id": "harp_0062",
+     "on": 47.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0063",
+     "on": 47.5,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0064",
+     "on": 48.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0065",
+     "on": 48.5,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0066",
+     "on": 49.0,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0067",
+     "on": 49.5,
+     "duration": 1.0,
+     "pitch": 63
+    },
+    {
+     "id": "harp_0068",
+     "on": 50.0,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0069",
+     "on": 50.5,
+     "duration": 1.0,
+     "pitch": 70
+    },
+    {
+     "id": "harp_0070",
+     "on": 51.0,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0071",
+     "on": 51.5,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0072",
+     "on": 52.0,
+     "duration": 1.0,
+     "pitch": 53
+    },
+    {
+     "id": "harp_0073",
+     "on": 52.5,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0074",
+     "on": 53.0,
+     "duration": 1.0,
+     "pitch": 60
+    },
+    {
+     "id": "harp_0075",
+     "on": 53.5,
+     "duration": 1.0,
+     "pitch": 65
+    },
+    {
+     "id": "harp_0076",
+     "on": 54.0,
+     "duration": 1.0,
+     "pitch": 72
+    },
+    {
+     "id": "harp_0077",
+     "on": 54.5,
+     "duration": 1.0,
+     "pitch": 53
+    },
+    {
+     "id": "harp_0078",
+     "on": 55.0,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0079",
+     "on": 55.5,
+     "duration": 1.0,
+     "pitch": 60
+    },
+    {
+     "id": "harp_0080",
+     "on": 56.0,
+     "duration": 1.0,
+     "pitch": 48
+    },
+    {
+     "id": "harp_0081",
+     "on": 56.5,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0082",
+     "on": 57.0,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0083",
+     "on": 57.5,
+     "duration": 1.0,
+     "pitch": 58
+    },
+    {
+     "id": "harp_0084",
+     "on": 58.0,
+     "duration": 1.0,
+     "pitch": 62
+    },
+    {
+     "id": "harp_0085",
+     "on": 58.5,
+     "duration": 1.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0086",
+     "on": 59.0,
+     "duration": 1.0,
+     "pitch": 48
+    },
+    {
+     "id": "harp_0087",
+     "on": 59.5,
+     "duration": 1.0,
+     "pitch": 51
+    },
+    {
+     "id": "harp_0088",
+     "on": 60.0,
+     "duration": 1.0,
+     "pitch": 50
+    },
+    {
+     "id": "harp_0089",
+     "on": 60.5,
+     "duration": 1.0,
+     "pitch": 55
+    },
+    {
+     "id": "harp_0090",
+     "on": 61.0,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0091",
+     "on": 61.5,
+     "duration": 1.0,
+     "pitch": 60
+    },
+    {
+     "id": "harp_0092",
+     "on": 62.0,
+     "duration": 1.0,
+     "pitch": 50
+    },
+    {
+     "id": "harp_0093",
+     "on": 62.5,
+     "duration": 1.0,
+     "pitch": 54
+    },
+    {
+     "id": "harp_0094",
+     "on": 63.0,
+     "duration": 1.0,
+     "pitch": 57
+    },
+    {
+     "id": "harp_0095",
+     "on": 63.5,
+     "duration": 0.5,
+     "pitch": 60
+    }
+   ],
+   "performance": {
+    "notes": {
+     "harp_0000": {
+      "velocity": 46,
+      "timing_ms": 3.24,
+      "gate": 0.9494
+     },
+     "harp_0001": {
+      "velocity": 46,
+      "timing_ms": 4.41,
+      "gate": 0.9267
+     },
+     "harp_0002": {
+      "velocity": 47,
+      "timing_ms": 8.72,
+      "gate": 0.9017
+     },
+     "harp_0003": {
+      "velocity": 48,
+      "timing_ms": 2.95,
+      "gate": 0.8996
+     },
+     "harp_0004": {
+      "velocity": 49,
+      "timing_ms": 13.6,
+      "gate": 0.8607
+     },
+     "harp_0005": {
+      "velocity": 46,
+      "timing_ms": 5.06,
+      "gate": 0.8798
+     },
+     "harp_0006": {
+      "velocity": 49,
+      "timing_ms": 7.12,
+      "gate": 0.8723
+     },
+     "harp_0007": {
+      "velocity": 48,
+      "timing_ms": 3.72,
+      "gate": 0.8853
+     },
+     "harp_0008": {
+      "velocity": 48,
+      "timing_ms": 1.22,
+      "gate": 0.9186
+     },
+     "harp_0009": {
+      "velocity": 48,
+      "timing_ms": 0.87,
+      "gate": 0.9147
+     },
+     "harp_0010": {
+      "velocity": 47,
+      "timing_ms": -2.74,
+      "gate": 0.9132
+     },
+     "harp_0011": {
+      "velocity": 47,
+      "timing_ms": -3.73,
+      "gate": 0.9077
+     },
+     "harp_0012": {
+      "velocity": 49,
+      "timing_ms": 6.76,
+      "gate": 0.8985
+     },
+     "harp_0013": {
+      "velocity": 48,
+      "timing_ms": 0.08,
+      "gate": 0.9015
+     },
+     "harp_0014": {
+      "velocity": 46,
+      "timing_ms": -3.65,
+      "gate": 0.8948
+     },
+     "harp_0015": {
+      "velocity": 44,
+      "timing_ms": 1.53,
+      "gate": 0.8909
+     },
+     "harp_0016": {
+      "velocity": 43,
+      "timing_ms": -4.53,
+      "gate": 0.8927
+     },
+     "harp_0017": {
+      "velocity": 44,
+      "timing_ms": -4.91,
+      "gate": 0.9115
+     },
+     "harp_0018": {
+      "velocity": 47,
+      "timing_ms": -13.4,
+      "gate": 0.9073
+     },
+     "harp_0019": {
+      "velocity": 49,
+      "timing_ms": -2.19,
+      "gate": 0.9013
+     },
+     "harp_0020": {
+      "velocity": 51,
+      "timing_ms": -7.57,
+      "gate": 0.9508
+     },
+     "harp_0021": {
+      "velocity": 48,
+      "timing_ms": -4.87,
+      "gate": 0.9118
+     },
+     "harp_0022": {
+      "velocity": 49,
+      "timing_ms": 4.42,
+      "gate": 0.8833
+     },
+     "harp_0023": {
+      "velocity": 48,
+      "timing_ms": -6.69,
+      "gate": 0.9065
+     },
+     "harp_0024": {
+      "velocity": 46,
+      "timing_ms": -5.24,
+      "gate": 0.935
+     },
+     "harp_0025": {
+      "velocity": 46,
+      "timing_ms": -3.96,
+      "gate": 0.9232
+     },
+     "harp_0026": {
+      "velocity": 47,
+      "timing_ms": -5.38,
+      "gate": 0.9118
+     },
+     "harp_0027": {
+      "velocity": 47,
+      "timing_ms": -2.1,
+      "gate": 0.9102
+     },
+     "harp_0028": {
+      "velocity": 46,
+      "timing_ms": -5.24,
+      "gate": 0.9191
+     },
+     "harp_0029": {
+      "velocity": 49,
+      "timing_ms": -6.26,
+      "gate": 0.923
+     },
+     "harp_0030": {
+      "velocity": 46,
+      "timing_ms": -9.1,
+      "gate": 0.876
+     },
+     "harp_0031": {
+      "velocity": 46,
+      "timing_ms": -10.05,
+      "gate": 0.8612
+     },
+     "harp_0032": {
+      "velocity": 48,
+      "timing_ms": -11.31,
+      "gate": 0.8902
+     },
+     "harp_0033": {
+      "velocity": 44,
+      "timing_ms": -5.61,
+      "gate": 0.8744
+     },
+     "harp_0034": {
+      "velocity": 47,
+      "timing_ms": 0.53,
+      "gate": 0.8695
+     },
+     "harp_0035": {
+      "velocity": 41,
+      "timing_ms": -13.42,
+      "gate": 0.8891
+     },
+     "harp_0036": {
+      "velocity": 48,
+      "timing_ms": -1.56,
+      "gate": 0.8759
+     },
+     "harp_0037": {
+      "velocity": 41,
+      "timing_ms": -1.35,
+      "gate": 0.8791
+     },
+     "harp_0038": {
+      "velocity": 49,
+      "timing_ms": -1.24,
+      "gate": 0.9009
+     },
+     "harp_0039": {
+      "velocity": 43,
+      "timing_ms": 2.7,
+      "gate": 0.8815
+     },
+     "harp_0040": {
+      "velocity": 51,
+      "timing_ms": 1.26,
+      "gate": 0.8502
+     },
+     "harp_0041": {
+      "velocity": 41,
+      "timing_ms": -7.48,
+      "gate": 0.899
+     },
+     "harp_0042": {
+      "velocity": 50,
+      "timing_ms": -7.3,
+      "gate": 0.8945
+     },
+     "harp_0043": {
+      "velocity": 43,
+      "timing_ms": -6.4,
+      "gate": 0.9053
+     },
+     "harp_0044": {
+      "velocity": 51,
+      "timing_ms": -2.31,
+      "gate": 0.8644
+     },
+     "harp_0045": {
+      "velocity": 44,
+      "timing_ms": -3.36,
+      "gate": 0.909
+     },
+     "harp_0046": {
+      "velocity": 48,
+      "timing_ms": 5.37,
+      "gate": 0.8894
+     },
+     "harp_0047": {
+      "velocity": 44,
+      "timing_ms": 4.81,
+      "gate": 0.8693
+     },
+     "harp_0048": {
+      "velocity": 46,
+      "timing_ms": 2.08,
+      "gate": 0.8766
+     },
+     "harp_0049": {
+      "velocity": 43,
+      "timing_ms": 2.0,
+      "gate": 0.8928
+     },
+     "harp_0050": {
+      "velocity": 48,
+      "timing_ms": 6.52,
+      "gate": 0.9124
+     },
+     "harp_0051": {
+      "velocity": 43,
+      "timing_ms": -0.49,
+      "gate": 0.8892
+     },
+     "harp_0052": {
+      "velocity": 49,
+      "timing_ms": 2.01,
+      "gate": 0.8919
+     },
+     "harp_0053": {
+      "velocity": 42,
+      "timing_ms": 0.56,
+      "gate": 0.8854
+     },
+     "harp_0054": {
+      "velocity": 51,
+      "timing_ms": 3.36,
+      "gate": 0.8929
+     },
+     "harp_0055": {
+      "velocity": 45,
+      "timing_ms": 2.94,
+      "gate": 0.8847
+     },
+     "harp_0056": {
+      "velocity": 51,
+      "timing_ms": 0.31,
+      "gate": 0.866
+     },
+     "harp_0057": {
+      "velocity": 45,
+      "timing_ms": -1.67,
+      "gate": 0.8681
+     },
+     "harp_0058": {
+      "velocity": 49,
+      "timing_ms": -0.61,
+      "gate": 0.8913
+     },
+     "harp_0059": {
+      "velocity": 41,
+      "timing_ms": -1.37,
+      "gate": 0.8895
+     },
+     "harp_0060": {
+      "velocity": 47,
+      "timing_ms": 4.04,
+      "gate": 0.8675
+     },
+     "harp_0061": {
+      "velocity": 39,
+      "timing_ms": -3.03,
+      "gate": 0.8468
+     },
+     "harp_0062": {
+      "velocity": 44,
+      "timing_ms": -3.79,
+      "gate": 0.8337
+     },
+     "harp_0063": {
+      "velocity": 37,
+      "timing_ms": -7.03,
+      "gate": 0.8532
+     },
+     "harp_0064": {
+      "velocity": 42,
+      "timing_ms": 0.12,
+      "gate": 0.8452
+     },
+     "harp_0065": {
+      "velocity": 39,
+      "timing_ms": -1.47,
+      "gate": 0.8932
+     },
+     "harp_0066": {
+      "velocity": 44,
+      "timing_ms": -2.1,
+      "gate": 0.8986
+     },
+     "harp_0067": {
+      "velocity": 40,
+      "timing_ms": 5.99,
+      "gate": 0.8998
+     },
+     "harp_0068": {
+      "velocity": 50,
+      "timing_ms": -7.87,
+      "gate": 0.8924
+     },
+     "harp_0069": {
+      "velocity": 42,
+      "timing_ms": 0.98,
+      "gate": 0.8851
+     },
+     "harp_0070": {
+      "velocity": 46,
+      "timing_ms": 2.79,
+      "gate": 0.9271
+     },
+     "harp_0071": {
+      "velocity": 40,
+      "timing_ms": -8.04,
+      "gate": 0.8904
+     },
+     "harp_0072": {
+      "velocity": 45,
+      "timing_ms": -1.27,
+      "gate": 0.8985
+     },
+     "harp_0073": {
+      "velocity": 40,
+      "timing_ms": 1.18,
+      "gate": 0.9106
+     },
+     "harp_0074": {
+      "velocity": 46,
+      "timing_ms": 1.83,
+      "gate": 0.9296
+     },
+     "harp_0075": {
+      "velocity": 41,
+      "timing_ms": 3.75,
+      "gate": 0.8732
+     },
+     "harp_0076": {
+      "velocity": 46,
+      "timing_ms": 3.0,
+      "gate": 0.9232
+     },
+     "harp_0077": {
+      "velocity": 41,
+      "timing_ms": 6.2,
+      "gate": 0.9386
+     },
+     "harp_0078": {
+      "velocity": 48,
+      "timing_ms": 3.69,
+      "gate": 0.9415
+     },
+     "harp_0079": {
+      "velocity": 42,
+      "timing_ms": 5.22,
+      "gate": 0.996
+     },
+     "harp_0080": {
+      "velocity": 48,
+      "timing_ms": 7.46,
+      "gate": 0.9352
+     },
+     "harp_0081": {
+      "velocity": 45,
+      "timing_ms": 12.32,
+      "gate": 0.9039
+     },
+     "harp_0082": {
+      "velocity": 51,
+      "timing_ms": 10.61,
+      "gate": 0.9327
+     },
+     "harp_0083": {
+      "velocity": 45,
+      "timing_ms": -4.04,
+      "gate": 0.9518
+     },
+     "harp_0084": {
+      "velocity": 50,
+      "timing_ms": 2.45,
+      "gate": 0.9255
+     },
+     "harp_0085": {
+      "velocity": 43,
+      "timing_ms": -0.88,
+      "gate": 0.9121
+     },
+     "harp_0086": {
+      "velocity": 49,
+      "timing_ms": 8.89,
+      "gate": 0.9019
+     },
+     "harp_0087": {
+      "velocity": 44,
+      "timing_ms": 0.11,
+      "gate": 0.9361
+     },
+     "harp_0088": {
+      "velocity": 51,
+      "timing_ms": 2.73,
+      "gate": 0.9125
+     },
+     "harp_0089": {
+      "velocity": 43,
+      "timing_ms": 2.42,
+      "gate": 0.9177
+     },
+     "harp_0090": {
+      "velocity": 48,
+      "timing_ms": 5.53,
+      "gate": 0.906
+     },
+     "harp_0091": {
+      "velocity": 42,
+      "timing_ms": 3.2,
+      "gate": 0.8934
+     },
+     "harp_0092": {
+      "velocity": 46,
+      "timing_ms": -4.12,
+      "gate": 0.8902
+     },
+     "harp_0093": {
+      "velocity": 40,
+      "timing_ms": 4.84,
+      "gate": 0.9075
+     },
+     "harp_0094": {
+      "velocity": 43,
+      "timing_ms": 7.85,
+      "gate": 0.9595
+     },
+     "harp_0095": {
+      "velocity": 38,
+      "timing_ms": 3.3,
+      "gate": 0.9465
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0.5,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -10,
+    "delay_db": null,
+    "level_dbfs": -27,
+    "highpass": 90,
+    "lowpass": 6000
+   }
+  },
+  {
+   "id": "pad",
+   "name": "pad",
+   "role": "texture",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 48,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "pad_0000",
+     "on": 0,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0001",
+     "on": 0,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0002",
+     "on": 0,
+     "duration": 4,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0003",
+     "on": 0,
+     "duration": 4,
+     "pitch": 69
+    },
+    {
+     "id": "pad_0004",
+     "on": 4,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0005",
+     "on": 4,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0006",
+     "on": 4,
+     "duration": 4,
+     "pitch": 63
+    },
+    {
+     "id": "pad_0007",
+     "on": 4,
+     "duration": 4,
+     "pitch": 67
+    },
+    {
+     "id": "pad_0008",
+     "on": 8,
+     "duration": 4,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0009",
+     "on": 8,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0010",
+     "on": 8,
+     "duration": 4,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0011",
+     "on": 8,
+     "duration": 4,
+     "pitch": 69
+    },
+    {
+     "id": "pad_0012",
+     "on": 12,
+     "duration": 2,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0013",
+     "on": 12,
+     "duration": 2,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0014",
+     "on": 12,
+     "duration": 2,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0015",
+     "on": 14,
+     "duration": 2,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0016",
+     "on": 14,
+     "duration": 2,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0017",
+     "on": 14,
+     "duration": 2,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0018",
+     "on": 16,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0019",
+     "on": 16,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0020",
+     "on": 16,
+     "duration": 4,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0021",
+     "on": 16,
+     "duration": 4,
+     "pitch": 67
+    },
+    {
+     "id": "pad_0022",
+     "on": 20,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0023",
+     "on": 20,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0024",
+     "on": 20,
+     "duration": 4,
+     "pitch": 63
+    },
+    {
+     "id": "pad_0025",
+     "on": 20,
+     "duration": 4,
+     "pitch": 67
+    },
+    {
+     "id": "pad_0026",
+     "on": 24,
+     "duration": 4,
+     "pitch": 51
+    },
+    {
+     "id": "pad_0027",
+     "on": 24,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0028",
+     "on": 24,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0029",
+     "on": 24,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0030",
+     "on": 28,
+     "duration": 2,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0031",
+     "on": 28,
+     "duration": 2,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0032",
+     "on": 28,
+     "duration": 2,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0033",
+     "on": 28,
+     "duration": 2,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0034",
+     "on": 30,
+     "duration": 2,
+     "pitch": 54
+    },
+    {
+     "id": "pad_0035",
+     "on": 30,
+     "duration": 2,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0036",
+     "on": 30,
+     "duration": 2,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0037",
+     "on": 30,
+     "duration": 2,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0038",
+     "on": 32,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0039",
+     "on": 32,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0040",
+     "on": 32,
+     "duration": 4,
+     "pitch": 63
+    },
+    {
+     "id": "pad_0041",
+     "on": 32,
+     "duration": 4,
+     "pitch": 67
+    },
+    {
+     "id": "pad_0042",
+     "on": 36,
+     "duration": 4,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0043",
+     "on": 36,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0044",
+     "on": 36,
+     "duration": 4,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0045",
+     "on": 36,
+     "duration": 4,
+     "pitch": 69
+    },
+    {
+     "id": "pad_0046",
+     "on": 40,
+     "duration": 4,
+     "pitch": 51
+    },
+    {
+     "id": "pad_0047",
+     "on": 40,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0048",
+     "on": 40,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0049",
+     "on": 40,
+     "duration": 4,
+     "pitch": 63
+    },
+    {
+     "id": "pad_0050",
+     "on": 44,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0051",
+     "on": 44,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0052",
+     "on": 44,
+     "duration": 4,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0053",
+     "on": 44,
+     "duration": 4,
+     "pitch": 67
+    },
+    {
+     "id": "pad_0054",
+     "on": 48,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0055",
+     "on": 48,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0056",
+     "on": 48,
+     "duration": 4,
+     "pitch": 63
+    },
+    {
+     "id": "pad_0057",
+     "on": 48,
+     "duration": 4,
+     "pitch": 67
+    },
+    {
+     "id": "pad_0058",
+     "on": 52,
+     "duration": 4,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0059",
+     "on": 52,
+     "duration": 4,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0060",
+     "on": 52,
+     "duration": 4,
+     "pitch": 65
+    },
+    {
+     "id": "pad_0061",
+     "on": 56,
+     "duration": 4,
+     "pitch": 51
+    },
+    {
+     "id": "pad_0062",
+     "on": 56,
+     "duration": 4,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0063",
+     "on": 56,
+     "duration": 4,
+     "pitch": 58
+    },
+    {
+     "id": "pad_0064",
+     "on": 56,
+     "duration": 4,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0065",
+     "on": 60,
+     "duration": 2,
+     "pitch": 55
+    },
+    {
+     "id": "pad_0066",
+     "on": 60,
+     "duration": 2,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0067",
+     "on": 60,
+     "duration": 2,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0068",
+     "on": 60,
+     "duration": 2,
+     "pitch": 62
+    },
+    {
+     "id": "pad_0069",
+     "on": 62,
+     "duration": 2,
+     "pitch": 54
+    },
+    {
+     "id": "pad_0070",
+     "on": 62,
+     "duration": 2,
+     "pitch": 57
+    },
+    {
+     "id": "pad_0071",
+     "on": 62,
+     "duration": 2,
+     "pitch": 60
+    },
+    {
+     "id": "pad_0072",
+     "on": 62,
+     "duration": 2,
+     "pitch": 62
+    }
+   ],
+   "performance": {
+    "notes": {
+     "pad_0000": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0001": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0002": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0003": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0004": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0005": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0006": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0007": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0008": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0009": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0010": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0011": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0012": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0013": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0014": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0015": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0016": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0017": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0018": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0019": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0020": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0021": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0022": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0023": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0024": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0025": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0026": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0027": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0028": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0029": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0030": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0031": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0032": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0033": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0034": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0035": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0036": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0037": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0038": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0039": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0040": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0041": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0042": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0043": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0044": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0045": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0046": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0047": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0048": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0049": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0050": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0051": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0052": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0053": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0054": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0055": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0056": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0057": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0058": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0059": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0060": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0061": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0062": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0063": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0064": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0065": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0066": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0067": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0068": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0069": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0070": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0071": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     },
+     "pad_0072": {
+      "velocity": 46,
+      "timing_ms": 0,
+      "gate": 1.0
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": -0.45,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -8,
+    "delay_db": null,
+    "level_dbfs": -31,
+    "highpass": 110,
+    "lowpass": 3500
+   }
+  },
+  {
+   "id": "bass",
+   "name": "bass",
+   "role": "bass",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 32,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "bass_0000",
+     "on": 0,
+     "duration": 1.9,
+     "pitch": 43
+    },
+    {
+     "id": "bass_0001",
+     "on": 2,
+     "duration": 1.9,
+     "pitch": 50
+    },
+    {
+     "id": "bass_0002",
+     "on": 4,
+     "duration": 1.9,
+     "pitch": 39
+    },
+    {
+     "id": "bass_0003",
+     "on": 6,
+     "duration": 1.9,
+     "pitch": 46
+    },
+    {
+     "id": "bass_0004",
+     "on": 8,
+     "duration": 1.9,
+     "pitch": 34
+    },
+    {
+     "id": "bass_0005",
+     "on": 10,
+     "duration": 1.9,
+     "pitch": 41
+    },
+    {
+     "id": "bass_0006",
+     "on": 12,
+     "duration": 1.9,
+     "pitch": 41
+    },
+    {
+     "id": "bass_0007",
+     "on": 14,
+     "duration": 1.9,
+     "pitch": 41
+    },
+    {
+     "id": "bass_0008",
+     "on": 16,
+     "duration": 1.9,
+     "pitch": 43
+    },
+    {
+     "id": "bass_0009",
+     "on": 18,
+     "duration": 1.9,
+     "pitch": 50
+    },
+    {
+     "id": "bass_0010",
+     "on": 20,
+     "duration": 1.9,
+     "pitch": 39
+    },
+    {
+     "id": "bass_0011",
+     "on": 22,
+     "duration": 1.9,
+     "pitch": 46
+    },
+    {
+     "id": "bass_0012",
+     "on": 24,
+     "duration": 1.9,
+     "pitch": 36
+    },
+    {
+     "id": "bass_0013",
+     "on": 26,
+     "duration": 1.9,
+     "pitch": 43
+    },
+    {
+     "id": "bass_0014",
+     "on": 28,
+     "duration": 1.9,
+     "pitch": 38
+    },
+    {
+     "id": "bass_0015",
+     "on": 30,
+     "duration": 1.9,
+     "pitch": 38
+    },
+    {
+     "id": "bass_0016",
+     "on": 32,
+     "duration": 1.9,
+     "pitch": 39
+    },
+    {
+     "id": "bass_0017",
+     "on": 34,
+     "duration": 1.9,
+     "pitch": 46
+    },
+    {
+     "id": "bass_0018",
+     "on": 36,
+     "duration": 1.9,
+     "pitch": 38
+    },
+    {
+     "id": "bass_0019",
+     "on": 38,
+     "duration": 1.9,
+     "pitch": 45
+    },
+    {
+     "id": "bass_0020",
+     "on": 40,
+     "duration": 1.9,
+     "pitch": 36
+    },
+    {
+     "id": "bass_0021",
+     "on": 42,
+     "duration": 1.9,
+     "pitch": 43
+    },
+    {
+     "id": "bass_0022",
+     "on": 44,
+     "duration": 1.9,
+     "pitch": 43
+    },
+    {
+     "id": "bass_0023",
+     "on": 46,
+     "duration": 1.9,
+     "pitch": 50
+    },
+    {
+     "id": "bass_0024",
+     "on": 48,
+     "duration": 1.9,
+     "pitch": 39
+    },
+    {
+     "id": "bass_0025",
+     "on": 50,
+     "duration": 1.9,
+     "pitch": 46
+    },
+    {
+     "id": "bass_0026",
+     "on": 52,
+     "duration": 1.9,
+     "pitch": 41
+    },
+    {
+     "id": "bass_0027",
+     "on": 54,
+     "duration": 1.9,
+     "pitch": 48
+    },
+    {
+     "id": "bass_0028",
+     "on": 56,
+     "duration": 1.9,
+     "pitch": 36
+    },
+    {
+     "id": "bass_0029",
+     "on": 58,
+     "duration": 1.9,
+     "pitch": 43
+    },
+    {
+     "id": "bass_0030",
+     "on": 60,
+     "duration": 1.9,
+     "pitch": 38
+    },
+    {
+     "id": "bass_0031",
+     "on": 62,
+     "duration": 1.9,
+     "pitch": 38
+    }
+   ],
+   "performance": {
+    "notes": {
+     "bass_0000": {
+      "velocity": 70,
+      "timing_ms": 2.69,
+      "gate": 0.9954
+     },
+     "bass_0001": {
+      "velocity": 54,
+      "timing_ms": 3.75,
+      "gate": 1.0161
+     },
+     "bass_0002": {
+      "velocity": 67,
+      "timing_ms": -1.4,
+      "gate": 0.9766
+     },
+     "bass_0003": {
+      "velocity": 56,
+      "timing_ms": 4.61,
+      "gate": 1.0157
+     },
+     "bass_0004": {
+      "velocity": 71,
+      "timing_ms": 4.39,
+      "gate": 1.0256
+     },
+     "bass_0005": {
+      "velocity": 57,
+      "timing_ms": -1.66,
+      "gate": 1.0084
+     },
+     "bass_0006": {
+      "velocity": 72,
+      "timing_ms": 2.17,
+      "gate": 0.9928
+     },
+     "bass_0007": {
+      "velocity": 69,
+      "timing_ms": 13.63,
+      "gate": 0.9755
+     },
+     "bass_0008": {
+      "velocity": 68,
+      "timing_ms": 5.96,
+      "gate": 1.0051
+     },
+     "bass_0009": {
+      "velocity": 56,
+      "timing_ms": 0.31,
+      "gate": 0.9898
+     },
+     "bass_0010": {
+      "velocity": 69,
+      "timing_ms": 5.84,
+      "gate": 1.0393
+     },
+     "bass_0011": {
+      "velocity": 60,
+      "timing_ms": 1.43,
+      "gate": 1.0335
+     },
+     "bass_0012": {
+      "velocity": 76,
+      "timing_ms": 7.6,
+      "gate": 0.9734
+     },
+     "bass_0013": {
+      "velocity": 58,
+      "timing_ms": 4.05,
+      "gate": 0.9945
+     },
+     "bass_0014": {
+      "velocity": 71,
+      "timing_ms": 2.83,
+      "gate": 0.9677
+     },
+     "bass_0015": {
+      "velocity": 69,
+      "timing_ms": 1.91,
+      "gate": 0.9665
+     },
+     "bass_0016": {
+      "velocity": 70,
+      "timing_ms": 4.0,
+      "gate": 1.026
+     },
+     "bass_0017": {
+      "velocity": 55,
+      "timing_ms": 4.17,
+      "gate": 1.008
+     },
+     "bass_0018": {
+      "velocity": 72,
+      "timing_ms": 5.33,
+      "gate": 0.98
+     },
+     "bass_0019": {
+      "velocity": 58,
+      "timing_ms": 7.08,
+      "gate": 0.9984
+     },
+     "bass_0020": {
+      "velocity": 72,
+      "timing_ms": 7.99,
+      "gate": 0.9998
+     },
+     "bass_0021": {
+      "velocity": 59,
+      "timing_ms": 6.53,
+      "gate": 0.9915
+     },
+     "bass_0022": {
+      "velocity": 69,
+      "timing_ms": 7.96,
+      "gate": 0.9973
+     },
+     "bass_0023": {
+      "velocity": 52,
+      "timing_ms": -5.21,
+      "gate": 0.9677
+     },
+     "bass_0024": {
+      "velocity": 64,
+      "timing_ms": 2.84,
+      "gate": 0.9943
+     },
+     "bass_0025": {
+      "velocity": 53,
+      "timing_ms": 7.74,
+      "gate": 0.9893
+     },
+     "bass_0026": {
+      "velocity": 69,
+      "timing_ms": -2.49,
+      "gate": 0.985
+     },
+     "bass_0027": {
+      "velocity": 57,
+      "timing_ms": 0.34,
+      "gate": 1.0062
+     },
+     "bass_0028": {
+      "velocity": 72,
+      "timing_ms": 2.62,
+      "gate": 1.0126
+     },
+     "bass_0029": {
+      "velocity": 57,
+      "timing_ms": 6.08,
+      "gate": 1.0092
+     },
+     "bass_0030": {
+      "velocity": 72,
+      "timing_ms": 10.67,
+      "gate": 1.0305
+     },
+     "bass_0031": {
+      "velocity": 72,
+      "timing_ms": 3.34,
+      "gate": 1.0281
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0,
+    "eq": [],
+    "automation": [],
+    "reverb_db": null,
+    "delay_db": null,
+    "level_dbfs": -25,
+    "highpass": 35,
+    "lowpass": 1200
+   }
+  },
+  {
+   "id": "vinyl",
+   "name": "vinyl",
+   "role": "effect",
+   "engine": "noise",
+   "drums": false,
+   "program": 0,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "vinyl_0000",
+     "on": 0,
+     "duration": 64,
+     "pitch": 60,
+     "articulation": "vinyl"
+    }
+   ],
+   "performance": {
+    "notes": {
+     "vinyl_0000": {
+      "velocity": 70,
+      "timing_ms": 0,
+      "gate": 1
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "peak",
+    "pan": 0,
+    "eq": [],
+    "automation": [],
+    "reverb_db": null,
+    "delay_db": null,
+    "level_dbfs": -48,
+    "highpass": 300,
+    "lowpass": 6000
+   }
+  }
+ ],
+ "harmony": [
+  {
+   "bar": 1,
+   "beat": 0,
+   "symbol": "Gm9"
+  },
+  {
+   "bar": 2,
+   "beat": 0,
+   "symbol": "Ebmaj7"
+  },
+  {
+   "bar": 3,
+   "beat": 0,
+   "symbol": "Bbmaj7"
+  },
+  {
+   "bar": 4,
+   "beat": 0,
+   "symbol": "Fsus4"
+  },
+  {
+   "bar": 4,
+   "beat": 2,
+   "symbol": "F"
+  },
+  {
+   "bar": 5,
+   "beat": 0,
+   "symbol": "Gm7"
+  },
+  {
+   "bar": 6,
+   "beat": 0,
+   "symbol": "Ebmaj7"
+  },
+  {
+   "bar": 7,
+   "beat": 0,
+   "symbol": "Cm9"
+  },
+  {
+   "bar": 8,
+   "beat": 0,
+   "symbol": "D7sus4"
+  },
+  {
+   "bar": 8,
+   "beat": 2,
+   "symbol": "D7"
+  },
+  {
+   "bar": 9,
+   "beat": 0,
+   "symbol": "Ebmaj7"
+  },
+  {
+   "bar": 10,
+   "beat": 0,
+   "symbol": "Bbmaj7/D"
+  },
+  {
+   "bar": 11,
+   "beat": 0,
+   "symbol": "Cm7"
+  },
+  {
+   "bar": 12,
+   "beat": 0,
+   "symbol": "Gm7"
+  },
+  {
+   "bar": 13,
+   "beat": 0,
+   "symbol": "Ebmaj7"
+  },
+  {
+   "bar": 14,
+   "beat": 0,
+   "symbol": "F"
+  },
+  {
+   "bar": 15,
+   "beat": 0,
+   "symbol": "Cm9"
+  },
+  {
+   "bar": 16,
+   "beat": 0,
+   "symbol": "D7sus4"
+  },
+  {
+   "bar": 16,
+   "beat": 2,
+   "symbol": "D7"
+  }
+ ],
+ "loop": {
+  "start_bar": 0
+ },
+ "mix": {
+  "chain": "bus",
+  "target_lufs": -18,
+  "dynamics": "glue",
+  "wow_flutter": {
+   "wow_cents": 4,
+   "wow_hz": 0.5,
+   "flutter_cents": 1,
+   "flutter_hz": 7
+  }
+ }
+}
