@@ -339,7 +339,7 @@ func _sc_board() -> void:
 		cam.zoom = Vector2.ONE * 3.0 * pow(2.0 / 3.0, u)
 		cam.position = Vector2(207, 151).lerp(FINAL_CAM, u)
 		if _cue("clank", 3.78):  # teleskop ląduje w skrzyni
-			Game.sfx("clank", 1.0, -6.0)
+			Game.sfx("clank", 1.0, -9.0)
 		if _cue("start", 3.88):  # rozrusznik, silnik łapie ok. 0,7 s później
 			Game.sfx("engine_start", 1.0, -8.0)
 		if _cue("drive", CLOSE):
