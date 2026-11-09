@@ -482,7 +482,7 @@ func _process(dt: float) -> void:
 				ency_acc -= floorf(ency_acc)
 		if Game.night_left <= 0.0 and not tired_told:
 			tired_told = true
-			_toast("Jania ziewa... Pora iść spać.", "info")
+			_toast("Jania ziewa... Koniec obserwacji na dziś.", "info")
 			if viewport and viewport.has_method("tired"):
 				viewport.tired()  # ziewnie po zamknięciu teleskopu (closed)
 			elif viewport == null:
@@ -657,31 +657,37 @@ func _yawn() -> void:
 func _parcel_arrives() -> void:
 	Game.sfx("knock")
 	await get_tree().create_timer(0.7).timeout
-	_refresh()
 	if Game.location != "room":
+		_refresh()
 		return
-	var puff := CPUParticles2D.new()  # pikselowy dym: kwadraciki rozchodzą się, wznoszą i gasną
-	puff.position = props.parcel.position + Vector2(13, -10)
-	puff.amount = 28
+	var puff := CPUParticles2D.new()  # duży obłok pikselowego dymu: najpierw kłąb, z niego wyłania się paczka
+	puff.position = props.parcel.position + Vector2(13, -12)
+	puff.amount = 90
 	puff.one_shot = true
-	puff.explosiveness = 0.9
-	puff.lifetime = 0.9
+	puff.explosiveness = 0.85
+	puff.lifetime = 1.6
+	puff.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	puff.emission_sphere_radius = 14.0
 	puff.direction = Vector2.UP
 	puff.spread = 180.0
-	puff.initial_velocity_min = 20.0
-	puff.initial_velocity_max = 60.0
-	puff.gravity = Vector2(0, -30)
-	puff.damping_min = 40.0
-	puff.damping_max = 60.0
-	puff.scale_amount_min = 2.0
-	puff.scale_amount_max = 4.0
+	puff.initial_velocity_min = 8.0
+	puff.initial_velocity_max = 34.0
+	puff.gravity = Vector2(0, -12)
+	puff.damping_min = 10.0
+	puff.damping_max = 22.0
+	puff.scale_amount_min = 4.0
+	puff.scale_amount_max = 8.0
 	puff.color_ramp = Gradient.new()
-	puff.color_ramp.set_color(0, Color(0.92, 0.9, 0.86, 0.95))
-	puff.color_ramp.set_color(1, Color(0.7, 0.68, 0.72, 0.0))
-	room.add_child(puff)
+	puff.color_ramp.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	puff.color_ramp.colors = PackedColorArray([Color(0.95, 0.93, 0.9, 1.0), Color(0.86, 0.84, 0.86, 0.85), Color(0.72, 0.7, 0.76, 0.0)])
+	room.add_child(puff)  # nad sorterem: zasłania paczkę, póki kłąb jest gęsty
 	puff.emitting = true
 	puff.finished.connect(puff.queue_free)
 	Game.sfx("paper", 1.3, -10.0)
+	await get_tree().create_timer(0.35).timeout
+	_refresh()
+	props.parcel.modulate.a = 0.0
+	create_tween().tween_property(props.parcel, "modulate:a", 1.0, 0.8)
 
 
 ## włączona lampa świeci też w dzień, słabiej

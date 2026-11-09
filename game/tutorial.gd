@@ -12,8 +12,7 @@ const TUTORIALS := {
 	"pc": {"title": "Komputer", "pages": [
 		{"img": "tut/pc_walk", "text": "Aby sprzedawać odkrycia i zdobywać nowe umiejętności, podejdź do komputera i wciśnij {interact}."},
 		{"img": "tut/pc_desk", "text": "Wybierz Giełdę, żeby sprzedać odkrycia."},
-		{"img": "tut/pc_pick", "text": "Zaznacz kategorię, żeby zobaczyć jej notowania."},
-		{"img": "tut/pc_chart", "text": "Wykres pokazuje, które obiekty opłaca się dziś sprzedać. Masz ograniczoną przestrzeń na dysku, więc dobrze zaplanuj sprzedaż swoich obiektów."},
+		{"img": "tut/pc_chart", "text": "Zaznacz kategorię, a wykres pokaże, co opłaca się dziś sprzedać. Masz ograniczoną przestrzeń na dysku, więc dobrze zaplanuj sprzedaż swoich obiektów."},
 		{"img": "tut/pc_sell", "text": "Zaznacz odkrycia pojedynczo lub przyciskiem Zaznacz wszystkie, potem wyślij raport. Pieniądze z Giełdy przychodzą codziennie rano."},
 		{"img": "tut/pc_tree", "text": "Punkty wiedzy wydajesz w Badaniach. Wybierz podświetloną umiejętność i wciśnij {confirm}."},
 	]},

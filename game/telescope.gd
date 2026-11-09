@@ -828,6 +828,10 @@ func _draw_panels() -> void:
 			_text(Vector2(500, y), tg.info.name.split(" – ")[0].left(15), Color("6affa0"))
 			_check(Vector2(622, y - 11))
 			y += 18
+	var mets: int = Game.today.get("meteors_n", 0)
+	if mets > 0 and y <= 250:  # złapane meteory tej nocy (zapisane na dysku, sprzedaje się je na Giełdzie)
+		_text(Vector2(500, y), "Meteor" + (" x%d" % mets if mets > 1 else ""), Color("6affa0"))
+		_check(Vector2(622, y - 11))
 	if state == S.SCAN:
 		_text(Vector2(500, 272), "SYGNAŁ", dim)
 		var near := proximity()

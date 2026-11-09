@@ -215,8 +215,8 @@ func _ready() -> void:
 	for i in 6:
 		await grab(rw)
 	w._interact("komputer")
-	for i in 8:
-		await grab(rw)
+	for i in 10:  # włączony komputer: pulpit z ikonami (lewa górna część ekranu)
+		await grab(Rect2i(0, 0, 320, 180))
 	save("pc_walk")
 	var os = w.viewport
 	# 5) pulpit: kursor na Giełdę
@@ -235,11 +235,12 @@ func _ready() -> void:
 	await glide(rl, Vector2(150, 330), at, 8)
 	box.button_pressed = true
 	await grab(rl, 0.1, at, true)
-	for i in 8:
+	for i in 4:
 		await grab(rl, 0.1, at)
-	save("pc_pick")
-	# 7) sam wykres: linie zaznaczonych kategorii aż do dziś
-	for i in 12:
+	for i in 12:  # kamera jedzie od legendy do wykresu po prawej
+		var k := (1.0 - cos(PI * (i + 1) / 12.0)) / 2.0
+		await grab(Rect2i(roundi(314 * k), 180, 320, 180), 0.08, at)
+	for i in 10:
 		await grab(Rect2i(314, 180, 320, 180))
 	save("pc_chart")
 	# 7) sprzedaż: wiersze (góra) + suma i przyciski (dół), Zaznacz wszystkie, potem WYŚLIJ RAPORT
@@ -263,8 +264,6 @@ func _ready() -> void:
 	for i in 5:
 		await sell.call(all_b.lerp(send_b, (i + 1) / 5.0))
 	await sell.call(send_b, true)  # nagranie kończy się na kliknięciu WYŚLIJ RAPORT
-	for i in 6:
-		frames.append(frames[-1].duplicate())
 	button(os, "WYŚLIJ RAPORT").pressed.emit()
 	save("pc_sell")
 	# 8) Badania: pulpit, kursor na ikonę, drzewko, odblokowanie umiejętności
