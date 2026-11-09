@@ -12,6 +12,30 @@
   ]
  },
  {
+  "name": "balcony_newton",
+  "x": 214,
+  "y": 249,
+  "base": 342,
+  "foot": [
+   222,
+   330,
+   276,
+   346
+  ]
+ },
+ {
+  "name": "balcony_parasol",
+  "x": 199,
+  "y": 197,
+  "base": 330,
+  "foot": [
+   244,
+   324,
+   262,
+   334
+  ]
+ },
+ {
   "name": "balcony_chair",
   "x": 419,
   "y": 301,

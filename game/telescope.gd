@@ -9,7 +9,6 @@ signal all_done
 enum S { SCAN, FOCUS, CONNECT, FULL, RESULT }
 const C := Vector2(320, 180)
 const R := 172.0
-const SKY_SIZE := Vector2(1200, 700)
 const STAR_SCALE := 3.0          # rozstaw gwiazd konstelacji na ekranie
 const FOCUS_STEP := 0.02         # jeden ząbek kółka
 # stary wariant: soczewka z opóźnieniem i pływający ostry punkt (do powrotu, jeśli pasek się nie sprawdzi)
@@ -19,10 +18,11 @@ const FOCUS_SWAY := 0.045        # bujanie znacznika na pasku ostrości (Stabili
 const BAR_K := 200.0             # px paska na jednostkę ostrości
 const SHARP := 96                # od tej jakości soczewka „klika”
 
+var sky_size := Vector2(1200, 700)  # Newton: większe niebo (więcej obiektów)
 var is_telescope := true
 var hide_hud := true
 var state := S.SCAN
-var cam := SKY_SIZE / 2
+var cam := sky_size / 2
 var aim := C
 var zoom := 1.0
 var t := 0.0
@@ -60,6 +60,8 @@ func _ready() -> void:
 	size = Vector2(640, 360)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	zoom = 1.0 / 1.3 if Game.has("newton") else 1.0  # Newton: pole widzenia +30%
+	if Game.has("newton"):
+		sky_size = Vector2(1700, 900)
 	_rng.seed = Game.day * 977
 	_build_sky()
 	_build_frame()
@@ -79,9 +81,9 @@ func _ready() -> void:
 	add_child(hum)
 	hum.play()
 	_prev_cam = cam  # bez tego pierwsza klatka liczy skok od (0, 0) i słychać szum
-	if Game.rain:
-		for i in 6:
-			clouds.append([Vector2(_rng.randf_range(0, SKY_SIZE.x), _rng.randf_range(0, SKY_SIZE.y)), _rng.randf_range(60, 120)])
+	if Game.rain:  # chmury zasłaniają obiekty; w burzy jest ich dużo i są gęste
+		for i in (16 if Game.storm else 8) * int(sky_size.x / 1200.0):
+			clouds.append([Vector2(_rng.randf_range(0, sky_size.x), _rng.randf_range(0, sky_size.y)), _rng.randf_range(90, 170), _rng.randf() * TAU])
 	modulate.a = 0.0
 	create_tween().tween_property(self, "modulate:a", 1.0, 0.3)
 	_last_mouse = get_global_mouse_position()
@@ -95,11 +97,11 @@ func _meteor_gap() -> float:
 
 # ---------------------------------------------------------------- generowanie nieba i okularu
 func _build_sky() -> void:
-	var img := Image.create(int(SKY_SIZE.x), int(SKY_SIZE.y), false, Image.FORMAT_RGBA8)
-	for y in int(SKY_SIZE.y):
-		img.fill_rect(Rect2i(0, y, int(SKY_SIZE.x), 1), Color("0a0d24").lerp(Color("15193f"), float(y) / SKY_SIZE.y))
+	var img := Image.create(int(sky_size.x), int(sky_size.y), false, Image.FORMAT_RGBA8)
+	for y in int(sky_size.y):
+		img.fill_rect(Rect2i(0, y, int(sky_size.x), 1), Color("0a0d24").lerp(Color("15193f"), float(y) / sky_size.y))
 	for i in 900:
-		var p := Vector2i(_rng.randi_range(0, int(SKY_SIZE.x) - 1), _rng.randi_range(0, int(SKY_SIZE.y) - 1))
+		var p := Vector2i(_rng.randi_range(0, int(sky_size.x) - 1), _rng.randi_range(0, int(sky_size.y) - 1))
 		var k := _rng.randf()
 		img.set_pixelv(p, Color(0.42, 0.45, 0.66) if k < 0.7 else Color(0.62, 0.64, 0.82))  # tło przygaszone: cele mają się wyróżniać
 	_sky_tex = ImageTexture.create_from_image(img)
@@ -118,39 +120,78 @@ func _build_frame() -> void:
 				img.set_pixel(x, y, ring_d.darkened(0.4))
 			elif d > R:
 				img.set_pixel(x, y, ring.lightened(0.15) if d < R + 2 else (ring if d < R + 4 else ring_d))
-	if not Game.has("achromat"):  # popękana szybka w narożniku
-		var p := C + Vector2(104, -100)
-		for seg in [[Vector2(0, 0), Vector2(-28, 16)], [Vector2(-28, 16), Vector2(-40, 34)], [Vector2(0, 0), Vector2(-10, 28)]]:
-			for i in 30:
-				var q: Vector2 = p + seg[0].lerp(seg[1], i / 30.0)
-				if q.distance_to(C) < R:
-					img.set_pixelv(Vector2i(q), Color(0.85, 0.9, 1.0, 0.3))
-	if not Game.has("czyszczacy"):
-		for i in 20:
-			img.set_pixelv(Vector2i(C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(20, R - 8)), Color(0.7, 0.65, 0.55, 0.4))
+	if not Game.has("czyszczacy"):  # brudna soczewka: tłuste smugi, odciski i kurz zasłaniają kawał nieba
+		var smudge := PackedFloat32Array()
+		smudge.resize(640 * 360)
+		for i in 14:  # smugi jak przetarte palcem: wydłużone, pod różnymi kątami
+			var c0 := C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(0, R - 20)
+			var rad := _rng.randf_range(30, 70)
+			var thin := _rng.randf_range(0.12, 0.3)
+			var rot := _rng.randf() * PI
+			var peak := _rng.randf_range(0.25, 0.45)
+			for y in range(int(c0.y - rad), int(c0.y + rad)):
+				for x in range(int(c0.x - rad), int(c0.x + rad)):
+					var q := (Vector2(x, y) - c0).rotated(-rot)
+					var d := Vector2(q.x / rad, q.y / (rad * thin)).length()
+					if d < 1.0 and x >= 0 and y >= 0 and x < 640 and y < 360:
+						var streak := 0.6 + 0.4 * sin(q.y * 1.7)  # prążki jak ślady palców
+						smudge[y * 640 + x] = maxf(smudge[y * 640 + x], peak * pow(1.0 - d, 0.7) * streak)
+		for y in 360:
+			for x in 640:
+				var a := snappedf(smudge[y * 640 + x], 0.06)  # stopnie przezroczystości jak w pixel arcie
+				if a > 0.0 and Vector2(x, y).distance_to(C) < R:
+					img.set_pixel(x, y, Color(0.5, 0.46, 0.38, a))
+		for i in 220:  # kurz i drobinki
+			var q := Vector2i(C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(4, R - 4))
+			img.set_pixelv(q, Color(0.72, 0.66, 0.55, _rng.randf_range(0.35, 0.7)))
+	if not Game.has("achromat"):  # pęknięta szybka: grube, rozgałęzione pęknięcie z jasną krawędzią i cieniem
+		var segs := []
+		var tips := [[C + Vector2(150, -78), PI * 0.82, 7]]
+		while not tips.is_empty():
+			var tip: Array = tips.pop_back()
+			var a: float = tip[1]
+			var p0: Vector2 = tip[0]
+			for k in tip[2]:
+				var p1: Vector2 = p0 + Vector2.from_angle(a) * _rng.randf_range(12, 22)
+				segs.append([p0, p1, maxf(2.0, 4.0 - k * 0.35)])
+				if _rng.randf() < 0.3 and k < tip[2] - 2:
+					tips.append([p1, a + _rng.randf_range(0.5, 1.0) * (1 if _rng.randf() < 0.5 else -1), tip[2] - k - 1])
+				a += _rng.randf_range(-0.4, 0.4)
+				p0 = p1
+		for sg in segs:
+			for i in 24:
+				var q: Vector2 = sg[0].lerp(sg[1], i / 24.0)
+				for w in int(sg[2]):
+					var o := Vector2i(q + Vector2(0, w))
+					if Vector2(o).distance_to(C) < R - 1:
+						img.set_pixelv(o, Color(0.92, 0.96, 1.0, 0.75) if w == 0 else Color(0.78, 0.86, 1.0, 0.45))
+				var sh := Vector2i(q + Vector2(1, sg[2]))
+				if Vector2(sh).distance_to(C) < R - 1:
+					img.set_pixelv(sh, Color(0.02, 0.02, 0.06, 0.55))
 	_frame_tex = ImageTexture.create_from_image(img)
 
 
 func _place_targets() -> void:
-	var used := [SKY_SIZE / 2 + Vector2(-120, 30)]  # pierwszy cel blisko startowego widoku
+	var used := [sky_size / 2 + Vector2(-120, 30)]  # pierwszy cel blisko startowego widoku
 	var first := true
 	for id in Game.visible_objects():
 		var p: Vector2 = used[0] if first else Vector2.ZERO
 		if not first:
 			for tries in 60:
-				p = Vector2(_rng.randf_range(150, SKY_SIZE.x - 150), _rng.randf_range(130, SKY_SIZE.y - 130))
+				p = Vector2(_rng.randf_range(150, sky_size.x - 150), _rng.randf_range(130, sky_size.y - 130))
 				if used.all(func(u): return u.distance_to(p) > 190):
 					break
 			used.append(p)
 		first = false
 		var info := Game.obj_info(id)
-		var tg := {"id": id, "pos": p, "info": info, "sweet": _rng.randf_range(0.3, 0.7), "done": Game.tonight.has(id), "phase": _rng.randf() * TAU}
+		var tg := {"id": id, "pos": p, "info": info, "sweet": _rng.randf_range(0.3, 0.7), "done": Game.tonight.has(id), "phase": _rng.randf() * TAU,
+			"f0": _rng.randf_range(0.18, 0.38) * (1 if _rng.randf() < 0.5 else -1)}  # rozostrzenie: z daleka obiekt już jest nieostry
 		if info.cat in ["nebula", "deep"]:
 			tg.width = 0.014  # mgławice: węższy zakres ostrości
 		if id == "comet":
 			tg.vel = Vector2.from_angle(_rng.randf() * TAU) * 8.0
 		targets.append(tg)
-	cam = SKY_SIZE / 2
+	cam = sky_size / 2
 
 
 # ---------------------------------------------------------------- geometria
@@ -260,18 +301,23 @@ func _process(dt: float) -> void:
 			cam += mv * 260.0 * speed_mult() * dt / zoom
 		if not Game.has("naped"):
 			cam.x += 1.5 * dt
-		cam = cam.clamp(Vector2(R, R) / zoom, SKY_SIZE - Vector2(R, R) / zoom)
 		var h := hover_target()
+		if Game.has("naped") and not h.is_empty():  # napęd: wykryty obiekt sam wjeżdża na środek, celownik zostaje na nim
+			var k := 1.0 - exp(-2.5 * dt)
+			cam = cam.lerp(h.pos, k)
+			aim = aim.lerp(C, k)
+			_mouse_aim = aim
 		if not h.is_empty() and hovered != h:
 			Game.sfx("detect", 1.0, -4.0)  # pyknięcie: coś wykryte
 		hovered = h
 	for c in clouds:
-		c[0].x = fposmod(c[0].x + 6.0 * dt, SKY_SIZE.x)
+		c[0].x = fposmod(c[0].x + 6.0 * dt, sky_size.x)
 	for tg in targets:
 		if tg.has("vel") and not tg.done:
-			tg.pos = (tg.pos + tg.vel * dt).clamp(Vector2(140, 140), SKY_SIZE - Vector2(140, 140))
+			tg.pos = (tg.pos + tg.vel * dt).clamp(Vector2(140, 140), sky_size - Vector2(140, 140))
+	cam = cam.clamp(Vector2(R, R) / zoom, sky_size - Vector2(R, R) / zoom)  # okular nigdy nie wychodzi poza niebo (inaczej brzegi tekstury rysują się jako linie)
 	var near := proximity() if state == S.SCAN and hovered.is_empty() else 0.0
-	hum.volume_db = lerpf(hum.volume_db, -42.0 + 38.0 * near if near > 0.02 else -60.0, minf(1.0, dt * 6.0))
+	hum.volume_db = lerpf(hum.volume_db, -30.0 + 30.0 * near if near > 0.02 else -60.0, minf(1.0, dt * 6.0))
 	hum.pitch_scale = 0.8 + 0.9 * near  # wyżej = szybsze pulsowanie
 	var speed := cam.distance_to(_prev_cam) / maxf(dt, 0.001) * zoom
 	_prev_cam = cam
@@ -334,9 +380,9 @@ func focus_offset() -> float:
 	return f - target.get("sweet", 0.5) + FOCUS_SWAY * _calm() * (0.7 * sin(t * 2.1 + ph) + 0.3 * sin(t * 3.7 + ph * 2.0))
 
 
-## połowa zielonego pola (Czyste Soczewki i radio je poszerzają)
+## połowa zielonego pola (Czyste Soczewki i radio je poszerzają, brudna soczewka zwęża)
 func green() -> float:
-	return target.get("width", 0.02) * 1.5 * (1.0 + (0.3 if Game.has("czyste1") else 0.0) + (0.3 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0)
+	return target.get("width", 0.02) * 1.5 * (1.0 + (0.3 if Game.has("czyste1") else 0.0) + (0.3 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0) * (1.0 if Game.has("czyszczacy") else 0.8)
 
 
 ## siła bujania znacznika (Stabilizacja Obrazu I i II)
@@ -352,7 +398,10 @@ func _gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed:
 		match e.button_index:
 			MOUSE_BUTTON_RIGHT:
-				_lock_or_confirm()
+				if state in [S.FOCUS, S.CONNECT]:
+					_leave()
+				else:
+					_lock_or_confirm()
 			MOUSE_BUTTON_LEFT:
 				if state == S.CONNECT:
 					_click_star()
@@ -370,8 +419,7 @@ func _gui_input(e: InputEvent) -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_action_pressed("back"):
 		if state in [S.FOCUS, S.CONNECT]:
-			state = S.SCAN
-			target = {}
+			_leave()
 		elif state != S.FULL:
 			close()
 		get_viewport().set_input_as_handled()
@@ -384,6 +432,13 @@ func _unhandled_input(e: InputEvent) -> void:
 	elif state == S.SCAN and Game.has("szukacz") and (e.is_action_pressed("prev_obj") or e.is_action_pressed("next_obj")):
 		_jump(1 if e.is_action_pressed("next_obj") else -1)
 		get_viewport().set_input_as_handled()
+
+
+## wyjście z obiektu bez utraty postępu: wracając, gracz zastaje ostrość i połączone gwiazdy jak je zostawił
+func _leave() -> void:
+	target.saved = {"f": f, "lit": lit.duplicate(), "connect": state == S.CONNECT}
+	state = S.SCAN
+	target = {}
 
 
 func _jump(dir: int) -> void:
@@ -407,17 +462,23 @@ func _lock_or_confirm() -> void:
 				var r := Game.meteor_caught()
 				meteor = {}
 				Game.ding(1.5)
-				_show("Meteor złapany!", "+%d PW  +$%d" % r)
+				_show("Meteor złapany!", "+%d PW  %s" % [r.pw, "zapisany na dysk" if r.saved else "dysk pełny"])
 				discovered.emit()
 				return
 			var tg := hover_target()
 			if tg.is_empty():
 				return
 			target = tg
-			f = clampf(tg.sweet + _rng.randf_range(0.18, 0.38) * (1 if _rng.randf() < 0.5 else -1), 0.0, 1.0)
+			f = clampf(tg.sweet + tg.f0, 0.0, 1.0)  # tak samo nieostry jak z daleka
 			idle_focus = 0.0
 			sharp_t = 0.0
 			state = S.FOCUS
+			if tg.has("saved"):  # powrót do obiektu: ostrość i połączone gwiazdy jak przed wyjściem
+				f = tg.saved.f
+				if tg.saved.connect:
+					lit = tg.saved.lit.duplicate()
+					state = S.CONNECT
+				tg.erase("saved")
 			_notch = int(f * 50.0)  # pierwszy klik zębatki dopiero, gdy gracz pokręci
 		S.FOCUS:
 			if quality() < 20:
@@ -594,10 +655,13 @@ func _draw() -> void:
 		var s := to_screen(tg.pos)
 		if s.distance_to(C) < R + 60:
 			_draw_target(tg, s)
-	for c in clouds:
+	for c in clouds:  # kłęby: ciemne, gęste, z jaśniejszym wierzchem; zasłaniają gwiazdy pod spodem
 		var s := to_screen(c[0])
-		for k in 4:
-			draw_circle(s + Vector2(k * 16 - 24, sin(k) * 6), c[1] * 0.35 * zoom, Color(0.05, 0.05, 0.1, 0.6))
+		for k in 7:
+			var o := Vector2(cos(c[2] + k * 0.9) * c[1] * 0.38, sin(c[2] + k * 1.3) * c[1] * 0.18) * zoom
+			var rad: float = c[1] * (0.42 - k * 0.025) * zoom
+			draw_circle((s + o).floor(), rad, Color(0.2, 0.2, 0.28, 0.75))
+			draw_circle((s + o + Vector2(0, -rad * 0.25)).floor(), rad * 0.7, Color(0.3, 0.3, 0.38, 0.6))  # wierzch podświetlony Księżycem
 	if not meteor.is_empty():
 		var s := to_screen(meteor.pos)
 		var a: float = 1.0 - meteor.t / Game.METEOR_WINDOW
@@ -606,15 +670,19 @@ func _draw() -> void:
 		_glint(s, Color("fff3c4"), 3.0, a)
 	for b in bursts:
 		draw_arc(b.p, 4 + b.t * 40, 0, TAU, 24, Color(1, 0.85, 0.4, 1.0 - b.t * 2), 1.0)
-	if Game.rain:  # deszcz na soczewce: ciemniejszy obraz i spływające krople
-		draw_circle(C, R, Color(0.08, 0.1, 0.22, 0.3))
-		for i in 90:  # smugi deszczu przez całą soczewkę, lekko ukośne
-			var x := C.x - R + fposmod(i * 53.7, R * 2.0)
-			var y := C.y - R - 20.0 + fposmod(t * (170.0 + i % 7 * 25.0) + i * 41.0, R * 2.0 + 40.0)
-			var ln := 8.0 + i % 4 * 3.0
+	if Game.rain and not Game.has("parasol"):  # deszcz na soczewce (parasol balkonowy go zatrzymuje)
+		draw_circle(C, R, Color(0.08, 0.1, 0.22, 0.45 if Game.storm else 0.3))
+		var slant := 0.18 + 0.1 * sin(t * 0.7)  # skos zmienia się z porywami
+		for i in (420 if Game.storm else 220):  # gęste smugi; każda ma swoją prędkość, a po każdym spadku nowe miejsce i długość
+			var fall := (t * (190.0 + fmod(i * 37.7, 160.0)) + i * 41.0) / (R * 2.0 + 40.0)
+			var h := absi(hash(Vector2i(i, floori(fall))))
+			var y := C.y - R - 20.0 + (fall - floorf(fall)) * (R * 2.0 + 40.0)
+			var x := C.x - R + float(h % int(R * 2.0))
+			var ln := 6.0 + float(h / 7 % 9)
 			var top := Vector2(x, y).floor()
-			if top.distance_to(C) < R - 4 and (top + Vector2(-2, ln)).distance_to(C) < R - 4:
-				draw_line(top, top + Vector2(-2, ln), Color(0.72, 0.8, 1.0, 0.22 + i % 3 * 0.06), 1.0)
+			var end := top + Vector2(-ln * slant, ln).round()
+			if top.distance_to(C) < R - 4 and end.distance_to(C) < R - 4:
+				draw_line(top, end, Color(0.72, 0.8, 1.0, 0.16 + float(h % 4) * 0.06), 1.0)
 	for tg in targets:  # delikatna poświata przy krawędzi soczewki w stronę nieodkrytych obiektów
 		var ts := to_screen(tg.pos)
 		if not tg.done and ts.distance_to(C) > R - 12:
@@ -622,6 +690,8 @@ func _draw() -> void:
 			_edge_glow((ts - C).normalized(), col, 0.09 + 0.04 * sin(t * 2.5 + tg.phase))
 	if not meteor.is_empty() and to_screen(meteor.pos).distance_to(C) > R - 12:  # meteor: mocne, pomarańczowe, pulsuje
 		_edge_glow((to_screen(meteor.pos) - C).normalized(), Color(1, 0.55, 0.15), 0.3 + 0.12 * sin(t * 14.0))
+	if Game.lightning > 0.0:  # piorun (błyska sky_fx balkonu) rozświetla całe niebo w okularze
+		draw_circle(C, R, Color(0.85, 0.9, 1.0, 0.55 * Game.lightning))
 	draw_texture(_frame_tex, Vector2.ZERO)
 	var ring := Color("5d6478") if Game.has("newton") else Color("b08a3c")
 	for i in 60:  # radełko pierścienia ostrości obraca się razem z kółkiem myszy
@@ -643,20 +713,21 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 		s += Vector2(_rng.randi_range(-1, 1), _rng.randi_range(-1, 1))
 	var pulse := 0.75 + 0.25 * sin(t * 2.5 + tg.phase)
 	if tg.done:
-		var c2 := Color(0.55, 0.85, 0.65, 0.55)
+		_check(s + Vector2(14, -22))
 		if info.has("pts"):
+			var c2 := Color(0.55, 0.85, 0.65, 0.55)
 			var pts := star_points(tg)
 			for e in info.edges:
 				draw_line(pts[e[0]], pts[e[1]], Color(1, 0.8, 0.4, 0.3))
 			for p in pts:
 				_px(p.x - 1, p.y - 1, 2, 2, c2)
-		else:
-			draw_circle(s, 6, Color(c2, 0.4))
-		_check(s + Vector2(14, -22))
-		return
+			return
+		pulse = 1.0  # Księżyc, mgławice, planety: po odkryciu ostre, w pełnej postaci
 	var blur := 0.0
 	if focused and state == S.FOCUS:
 		blur = absf(focus_offset())
+	elif not tg.done and not (focused and state == S.CONNECT):
+		blur = absf(tg.f0) if not tg.has("saved") else absf(tg.saved.f - tg.sweet)  # z daleka nieostry, tak jak po namierzeniu
 	var a := pulse * (1.25 if hov else 1.0)
 	if blur > 0.03:  # rozmyta plama: im dalej od balansu, tym większa i bledsza
 		var r := 4.0 + blur * 70.0
@@ -715,10 +786,6 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 				for e in info.edges:
 					if lit.has(e[0]) and lit.has(e[1]):
 						draw_line(pts[e[0]], pts[e[1]], Color("ffcf6b"), 1.0)
-				if Game.has("linie"):
-					for e in info.edges:
-						if not (lit.has(e[0]) and lit.has(e[1])):
-							draw_dashed_line(pts[e[0]], pts[e[1]], Color(0.6, 0.8, 1.0, 0.3), 1.0, 3.0)
 				for i in pts.size():
 					var on: bool = lit.has(i)
 					var near := (aim + wobble()).distance_to(pts[i]) < 11

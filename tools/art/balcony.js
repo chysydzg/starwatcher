@@ -128,6 +128,25 @@ shadow(b, 254, 340, 22, 3);
   const t = P.trim(require("./kit.js").ink(sp));
   piece("telescope", 341, [230, 332, 280, 346], (T) => T.sprite(t, 226, 341 - t.h));
 }
+// Teleskop Newtona (sklep): duża biała tuba na montażu paralaktycznym i statywie (newton.js); gra pokazuje go zamiast refraktora
+{
+  const nt = require("./newton.js").newton();
+  piece("newton", 342, [222, 330, 276, 346], (T) => T.sprite(nt, 214, 342 - nt.h));
+}
+// Parasol balkonowy (sklep): czasza w pasy nad teleskopem, maszt za nim
+piece("parasol", 330, [244, 324, 262, 334], (T) => obj(T, 200, 196, 108, 138, (s) => {
+  const red = R.red, cream = P.hueRamp(3, { hue: 42, shift: 14, sat: 0.35, light: [0.62, 0.9] });
+  s.rect(53, 22, 56, 132, [70, 72, 86]); s.rect(54, 22, 55, 132, [120, 122, 140]);    // maszt
+  slab(s, 44, 130, 66, 138, R.wood, 0.6, 0.35);                                       // obciążnik
+  for (let y = 0; y < 28; y++)
+    for (let x = 0; x < 108; x++) {
+      const dx = (x - 54) / 54, top = 6 + 20 * dx * dx, bot = 26 - 3 * Math.abs(Math.sin(dx * Math.PI * 4)); // kopuła, falbanka
+      if (y < top || y > bot) continue;
+      const panel = Math.floor((dx + 1) * 4) % 2, sh = y > bot - 2 ? 0 : y < top + 2 ? 2 : 1;
+      s.pset(x, y, (panel ? red : cream)[sh]);
+    }
+  s.rect(53, 2, 56, 7, [70, 72, 86]);                                                 // szczyt
+}));
 shadow(b, 432, 340, 18, 3);
 piece("chair", 341, [416, 330, 450, 346], (T) => obj(T, 418, 302, 30, 38, (s) => { // proste drewniane krzesło z boku; siedzisko na wysokości bioder Jani
   s.rect(8, 16, 10, 38, R.wood[0]); s.rect(26, 20, 28, 38, R.wood[0]);  // dalsze nogi

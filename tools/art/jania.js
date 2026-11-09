@@ -31,7 +31,7 @@ function frame(dir, f, o = {}) {
     const back = dir === 2, droop = !back && (f === 4 || f === 5), pawUp = !back && f === 5;
     S([E(11, 44 - Math.max(st, 0), 4, 2.2), E(21, 44 - Math.max(-st, 0), 4, 2.2)], R.cream, back ? { dark: 0.85 } : {});
     S([C(12, 39, 12, 42, 3.2), C(20, 39, 20, 42, 3.2), E(16, 35 + bob, 7, 6)], R.denim);
-    const rp = o.paw || (pawUp ? [26, 16] : [25, 37 - st]);
+    const rp = o.paw || (pawUp ? [26, 16] : o.yawn === 2 ? [19, 26] : [25, 37 - st]); // ziewanie: łapka idzie do buzi
     S([C(8, 30 + bob, 7, 37 + st, 2.1, 1.9), C(24, 30 + bob, rp[0], rp[1] + (o.paw || pawUp ? 0 : bob), 2.1, 1.9)], R.fur);
     S([E(7, 38 + st + bob, 2.1, 1.8), E(rp[0], rp[1] + 1 + (o.paw || pawUp ? 0 : bob), 2.1, 1.8)], R.cream);
     const by = Math.round(Y(30 + bob));
@@ -59,7 +59,12 @@ function frame(dir, f, o = {}) {
       fill(CX, Y(25.2 + bob), 4.6, 2.6, R.cream[1]);  // pyszczek
       fill(CX, Y(24.3 + bob), 3.2, 1, R.cream[2]);
       const ey = Math.round(Y(19.5 + bob)), ny = Math.round(Y(23 + bob));
-      if (f === 6) { // radość: oczy ^ ^, otwarty uśmiech
+      if (o.yawn) { // ziewanie: oczy zaciśnięte; 1 – szeroko otwarta buzia, 2 – łapka zasłania usta, 3 – senne oczy
+        if (o.yawn === 3) for (const d of [4, 5]) sym(d, ey + 2, EYE);
+        else for (const [d, dy] of [[3, 1], [4, 2], [5, 2], [6, 1]]) sym(d, ey + dy, EYE);
+        if (o.yawn === 1) { for (const d of [0, 1]) for (let y = ny + 1; y <= ny + 4; y++) sym(d, y, MOUTH); sym(0, ny + 4, R.pink[0]); sym(2, ny + 2, MOUTH); sym(2, ny + 3, MOUTH); }
+        else if (o.yawn === 3) { sym(0, ny + 1, MOUTH); sym(1, ny + 1, MOUTH); }
+      } else if (f === 6) { // radość: oczy ^ ^, otwarty uśmiech
         for (const [d, dy] of [[3, 2], [4, 1], [5, 1], [6, 2]]) sym(d, ey + dy, EYE);
         sym(0, ny + 1, MOUTH); sym(1, ny + 1, MOUTH); sym(0, ny + 2, R.pink[0]); sym(2, ny, MOUTH);
       } else if (o.sad) { // smutek (szpital): brwi uniesione do środka, oczy w dół, usta w podkówkę; o.cry: łza
@@ -77,6 +82,7 @@ function frame(dir, f, o = {}) {
       sym(0, ny, R.pink[0]);
       if (!o.sad) { sym(6, ey + 4, R.pink[1]); sym(7, ey + 4, R.pink[1]); } // rumieńce
       if (pawUp) S([E(26, 16, 2.1, 1.8)], R.cream);
+      if (o.yawn === 2) S([E(18.5, 25.5 + bob, 2.6, 2.2)], R.cream); // łapka na ustach
     }
   } else { // ---- bok, patrzy w prawo
     // chód z boku: 4 fazy (kontakt, przejście, kontakt drugą nogą, przejście); stopy jak u królika – długie, płaskie
@@ -140,6 +146,8 @@ module.exports = { frames, frame, breath, FW, FH, COLS, R };
 
 if (require.main === module) {
   P.save(P.pack(frames, { cols: COLS, pad: 0 }), process.argv[2] + "/jania.png");
+  // ziewanie na koniec nocy (world.gd): 3 klatki przodem
+  P.save(P.pack([1, 2, 3].map((k) => frame(0, 0, { yawn: k })), { cols: 3, pad: 0 }), process.argv[2] + "/jania_yawn.png");
   // szpital: ten sam arkusz ze smutną miną, bez łez (jania_sad) i z łzami, gdy płacze razem z portretem (jania_cry)
   for (const [name, o] of [["jania_sad", { sad: true }], ["jania_cry", { sad: true, cry: true }]]) {
     const sh = [];

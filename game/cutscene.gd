@@ -20,6 +20,7 @@ var skip_t := 0.0          # jak długo trzymana
 var skipping := -1.0       # od 0 do 1: wygaszanie po pominięciu, potem gra
 var ended := false
 var skip_ui := Node2D.new()  # Pomiń [Spacja] i pasek przytrzymania, prawy dolny róg
+var skip_seen := -10.0     # kiedy ostatnio wciśnięto klawisz: napis pokazuje się tylko po nim
 
 
 func _ready() -> void:
@@ -50,6 +51,8 @@ func _ready() -> void:
 	skip_ui.draw.connect(_draw_skip)
 	ui.add_child(skip_ui)
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	# intro rysowane w rozdzielczości okna: kamera przesuwa się i przybliża o piksele ekranu, nie o piksele gry
+	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	Game.loop("music/intro", -12.0, "Music")
 	Game.loop("lake", -16.0)
 	var tw := create_tween()
@@ -95,6 +98,7 @@ func _end() -> void:
 	if ended:  # pominięcie i naturalny koniec mogą przyjść oba
 		return
 	ended = true
+	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT  # gra: znów siatka 640x360
 	Game.loop("music/intro", -INF)
 	Game.loop("lake", -INF)
 	Game.loop("rain_room", -INF)
@@ -122,6 +126,7 @@ var st := 0.0
 
 
 func _exit_tree() -> void:
+	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	if not fx.is_inside_tree():  # między scenami fx wisi poza drzewem
 		fx.free()
 
@@ -602,14 +607,22 @@ func _process(dt: float) -> void:
 	skip_ui.queue_redraw()
 
 
+func _input(e: InputEvent) -> void:
+	if (e is InputEventKey or e is InputEventJoypadButton) and e.is_pressed():
+		skip_seen = t
+
+
 func _draw_skip() -> void:
+	var a := 1.0 if skip_t > 0.0 else clampf(3.0 - (t - skip_seen), 0.0, 1.0)  # 2 s po klawiszu, potem gaśnie
+	if a <= 0.0:
+		return
 	var talking := get_children().any(func(c): return c.has_signal("line_shown"))
 	var msg := "Pomiń " + Game.key("advance")
 	var w := Game.font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 	var p := Vector2(628 - w, 220.0 if talking else 350.0).floor()  # przy dialogu nad jego okienkiem
 	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
-		skip_ui.draw_string(Game.font, p + d, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.1, 0.08, 0.16))
-	skip_ui.draw_string(Game.font, p, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.98, 0.95, 0.86))
+		skip_ui.draw_string(Game.font, p + d, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.1, 0.08, 0.16, a))
+	skip_ui.draw_string(Game.font, p, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.98, 0.95, 0.86, a))
 	if skip_t > 0.0:  # pasek nad napisem
 		var bar := Rect2(p.x, p.y - 20, floorf(w), 4)
 		skip_ui.draw_rect(bar.grow(1), Color(0.1, 0.08, 0.16))

@@ -8,13 +8,13 @@ signal stage_complete
 const HELP := """NOC (balkon)
 • Teleskop: zbliż celownik do świecącego obiektu, a gdy zacznie drżeć, kliknij.
 • Ostrość: kółkiem ustaw bujający się znacznik w zielonym polu i kliknij.
-• Konstelacje: klikaj świecące gwiazdy po kolei, aż połączą się w figurę.
+• Konstelacje: klikaj świecące gwiazdy po kolei, aż połączą się w figurę. PPM wychodzi i zostawia figurę, jak jest.
 • Odkrycia trafiają na dysk. Gdy się zapełni, kup dyskietki.
 • Noc kończy się, gdy pasek czasu dobiegnie końca. Do łóżka trzeba dojść samemu.
 
 DZIEŃ (komputer)
 • Giełda: wyślij raport z odkryciami (także w nocy), Centrum Naukowe zapłaci rano. Ceny zależą od popytu dnia.
-• Retro-Tech ($): sprzęt i komfort. Zakup od razu przychodzi paczką do pokoju.
+• Retro-Tech ($): sprzęt i komfort. Gdy wyłączysz komputer, kurier przynosi paczkę do pokoju.
 • Badania (PW): nowe obiekty na niebie i ułatwienia.
 • Esc zamyka okno, drugie Esc wyłącza komputer.
 
@@ -49,6 +49,7 @@ var stage_hover := -1      # zakładka etapu pod kursorem (drzewko)
 var hover := -1            # węzeł drzewka pod kursorem
 var nodes := []            # [pozycja, wiersz SCIENCE] drzewka
 var t := 0.0
+var legend_rows := []      # [CheckBox, kategoria] legendy Giełdy: długie nazwy przewijają się
 
 
 func _ready() -> void:
@@ -98,6 +99,20 @@ func _process(dt: float) -> void:
 	t += dt
 	if app in ["gielda", "badania"] and body:
 		body.queue_redraw()
+	if app == "gielda":
+		for row in legend_rows:
+			if is_instance_valid(row[0]):
+				row[0].text = _legend_text(row[1], row[0].button_pressed)
+
+
+## wiersz legendy: nazwa w okienku 12 znaków (dłuższa przesuwa się w kółko), indeks i zmiana
+func _legend_text(c: String, on: bool) -> String:
+	var name: String = Game.CATS[c]
+	if name.length() > 12:
+		var loop := name + "   " + name
+		name = loop.substr(maxi(0, int(t * 3.0) % (name.length() + 9) - 6), 12)  # 2 s początek nazwy, potem przewija
+	var d := _change(c)
+	return ("[x] " if on else "[ ] ") + "%-12s%4d%4s" % [name, int(round(_dem(-1, c) * 100)), ("+%d" if d >= 0 else "%d") % d]
 
 
 # ---------------------------------------------------------------- styl (jasne okna jak w starych systemach)
@@ -167,8 +182,11 @@ func _scroll(parent: Node, r: Rect2) -> VBoxContainer:
 	sc.position = r.position
 	sc.size = r.size
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.get_v_scroll_bar().custom_step = 20  # kółko przesuwa o cały wiersz – bez uciętych linii
-	sc.get_v_scroll_bar().step = 20
+	sc.get_v_scroll_bar().step = 20  # zawsze cały wiersz – bez uciętych linii
+	sc.gui_input.connect(func(e):  # kółko: o wiersz w obie strony (wbudowane przewija o 1/8 okna i przy kroku 20 nie wraca w górę)
+		if e is InputEventMouseButton and e.pressed and e.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			sc.scroll_vertical += 20 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -20
+			sc.accept_event())
 	parent.add_child(sc)
 	var v := VBoxContainer.new()
 	v.custom_minimum_size = Vector2(r.size.x - 10, 0)
@@ -364,8 +382,6 @@ func _day_summary(h: Dictionary) -> String:
 	var parts := []
 	if h.get("sales_n", 0) > 0:
 		parts.append("odkrycia x%d +$%d" % [h.sales_n, h.sales])
-	if h.get("meteors_n", 0) > 0:
-		parts.append("meteory x%d +$%d" % [h.meteors_n, h.meteors])
 	if h.get("pw", 0) > 0:
 		parts.append("+%d PW" % h.pw)
 	for b in h.get("bought", []):
@@ -384,25 +400,23 @@ func _breakdown(e: Dictionary) -> String:
 # ---------------------------------------------------------------- Giełda (ticker, wykres popytu, portfel)
 func _gielda() -> void:
 	if not Game.tips.has("chart"):  # pierwszy raz: pierwsza kategoria; potem pamiętamy wybór gracza
-		Game.tips.chart = {Game.CATS.keys()[0]: true}
+		Game.tips.chart = {Game.MARKET_CATS[0]: true}
 	body.draw.connect(_draw_market)
 	_label(body, "NOTOWANIA", Vector2(6, 156), Color("ffcf4a"))
 	var legend := VBoxContainer.new()
 	legend.position = Vector2(4, 178)
 	legend.add_theme_constant_override("separation", 0)
 	body.add_child(legend)
-	for c in Game.CATS:
+	legend_rows.clear()
+	for c in Game.MARKET_CATS:
 		var cb := CheckBox.new()
-		var d := _change(c)
-		var txt := "%-12s%4d%4s" % [Game.CATS[c].left(12), int(round(_dem(-1, c) * 100)), ("+%d" if d >= 0 else "%d") % d]
 		cb.button_pressed = Game.tips.chart.get(c, false)
-		cb.text = ("[x] " if cb.button_pressed else "[ ] ") + txt
+		cb.text = _legend_text(c, cb.button_pressed)
+		legend_rows.append([cb, c])
 		cb.custom_minimum_size = Vector2(206, 20)
 		for k in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
 			cb.add_theme_color_override(k, Color(CAT_COL[c]))
-		cb.toggled.connect(func(on):
-			Game.tips.chart[c] = on
-			cb.text = ("[x] " if on else "[ ] ") + txt)
+		cb.toggled.connect(func(on): Game.tips.chart[c] = on)
 		legend.add_child(cb)
 	_label(body, "PORTFEL ODKRYĆ", Vector2(6, 22), Color("ffcf4a"))
 	var stored := Game.stored()
@@ -503,7 +517,7 @@ func _draw_market() -> void:
 	n.draw_rect(Rect2(0, 0, 640, 20), Color("050c14"))
 	var items := []
 	var cycle := 0.0
-	for c in Game.CATS:
+	for c in Game.MARKET_CATS:
 		var d := _change(c)
 		var a := "%s %d " % [Game.CATS[c].to_upper(), int(round(_dem(-1, c) * 100))]
 		var b := "%+d%%   " % d
@@ -535,7 +549,7 @@ func _draw_market() -> void:
 		n.draw_string(Game.font_os, r.position + Vector2(120, 80), "Za mało notowań", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("6a8aa8"))
 		return
 	var step := (r.size.x - 40) / (hist.size() - 1)
-	for c in Game.CATS:
+	for c in Game.MARKET_CATS:
 		if Game.tips.chart.get(c, false):
 			_line(n, r, hist, c, step, lo, hi, Color(CAT_COL[c]), 2.0)
 	n.draw_string(Game.font_os, Vector2(r.end.x - 116, r.end.y - 4), "dziś", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("6a8aa8"))
@@ -679,6 +693,8 @@ func _tree_input(e: InputEvent) -> void:
 			Game.buy_science(r)
 			Game.ding(1.5)
 			bar.queue_redraw()
+			if r[0] == "meteory":
+				Game.tutorial_once(self, "meteor")
 
 
 func _parent(r: Array) -> Vector2:
@@ -787,11 +803,13 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 # ---------------------------------------------------------------- POMOC.TXT (konsola)
 func _pomoc() -> void:
 	_bg(Color("1f4a34"))
-	for i in 3:  # samouczki do ponownego obejrzenia
-		var id: String = ["tel", "pc", "shop"][i]
-		var b := _button("SAMOUCZEK: " + ["TELESKOP", "KOMPUTER", "SKLEP"][i], func(): Game.tutorial(self, id))
-		b.position = Vector2(10 + i * 208, 6)
-		b.size = Vector2(200, 24)
+	var tuts := [["tel", "TELESKOP"], ["pc", "KOMPUTER"], ["shop", "SKLEP"]] + ([["meteor", "METEORY"]] if Game.tips.has("tut_meteor") else [])
+	var bw := 624.0 / tuts.size()
+	for i in tuts.size():  # samouczki do ponownego obejrzenia
+		var id: String = tuts[i][0]
+		var b := _button(("SAMOUCZEK: " if tuts.size() < 4 else "") + tuts[i][1], func(): Game.tutorial(self, id))
+		b.position = Vector2(10 + i * bw, 6)
+		b.size = Vector2(bw - 8, 24)
 		body.add_child(b)
 	var v := _scroll(body, Rect2(10, 38, 624, 280))
 	var l := _label(v, "AstroOS: Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))

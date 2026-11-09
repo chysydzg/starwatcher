@@ -14,7 +14,7 @@ func _ready() -> void:
 	for i in 20: await get_tree().process_frame
 	var tut: Array = w.get_children().filter(func(n): return n.get("id") == "tel")
 	assert(tut.size() == 1 and get_tree().paused, "samouczek teleskopu przy pierwszym wejściu, gra w pauzie")
-	for i in 3:
+	for i in tut[0]._pages().size():
 		tut[0]._next.pressed.emit()
 	await get_tree().process_frame
 	assert(not get_tree().paused and Game.tips.has("tut_tel"), "samouczek zamknięty OK")

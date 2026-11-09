@@ -71,7 +71,7 @@ func _ready() -> void:
 	Game.new_game()
 	arrow = Game.img("os/ui_cursor")
 	arrow.convert(Image.FORMAT_RGBA8)
-	for k in ["tut_tel", "tut_pc", "tut_shop"]:  # samouczki nie zasłaniają nagrania
+	for k in ["tut_tel", "tut_pc", "tut_shop", "tut_meteor"]:  # samouczki nie zasłaniają nagrania
 		Game.tips[k] = true
 	var w = load("res://game/world.tscn").instantiate()
 	get_tree().root.add_child(w)
@@ -146,6 +146,60 @@ func _ready() -> void:
 	for i in 10:
 		await grab(r3)
 	save("tel3")
+	# 3b) trudny początek: rozmyte obiekty, brudna, pęknięta soczewka
+	tel.state = tel.S.SCAN
+	tel.target = {}
+	var open_t: Array = tel.targets.filter(func(x): return not x.done)
+	tel.cam = open_t[0].pos + Vector2(40, 10) if not open_t.is_empty() else tel.cam
+	tel.aim = tel.C + Vector2(30, 40)
+	tel._mouse_aim = tel.aim
+	for i in 12:
+		await grab(Rect2i(160, 90, 320, 180))
+	save("tel_hard")
+	# 3c) meteory: przelatuje meteor, celownik na nim, złapany
+	Game.science["meteory"] = true
+	var mpos: Vector2 = tel.C + Vector2(60, -20)
+	tel.meteor = {"pos": tel.to_sky(mpos + Vector2(-120, -60)), "vel": Vector2(120, 60) / tel.zoom, "t": 0.0}
+	var rm := Rect2i(160, 90, 320, 180)
+	for i in 10:
+		tel._mouse_aim = (tel.C + Vector2(-40, 30)).lerp(tel.to_screen(tel.meteor.pos), (i + 1) / 10.0)
+		await grab(rm, 0.07)
+	tel.aim = tel.to_screen(tel.meteor.pos)
+	tel._mouse_aim = tel.aim
+	tel._lock_or_confirm()
+	for i in 10:
+		await grab(rm)
+	save("meteor1")
+	# 3d) w trakcie łączenia gwiazd: PPM wychodzi, meteor złapany, powrót do konstelacji z zachowanymi gwiazdami
+	var c2: Array = tel.targets.filter(func(x): return x.info.has("pts") and not x.done)
+	if not c2.is_empty():
+		var tc: Dictionary = c2[0]
+		tel.cam = tc.pos
+		tel.target = tc
+		tel.f = tc.sweet
+		tel.lit = {0: true, 1: true}
+		tel.state = tel.S.CONNECT
+		for i in 6:
+			await grab(rm)
+		tel._leave()
+		tel.meteor = {"pos": tel.to_sky(tel.C + Vector2(-140, 40)), "vel": Vector2(110, -40) / tel.zoom, "t": 0.0}
+		for i in 8:
+			tel._mouse_aim = tel.aim.lerp(tel.to_screen(tel.meteor.pos), (i + 1) / 8.0)
+			await grab(rm, 0.07)
+		tel.aim = tel.to_screen(tel.meteor.pos)
+		tel._mouse_aim = tel.aim
+		tel._lock_or_confirm()
+		for i in 6:
+			await grab(rm)
+		tel.aim = tel.to_screen(tc.pos)
+		tel._mouse_aim = tel.aim
+		for i in 4:
+			await grab(rm)
+		tel._lock_or_confirm()  # wraca do konstelacji: dwie gwiazdy dalej połączone
+		for i in 8:
+			await grab(rm)
+	save("meteor2")
+	Game.science.erase("meteory")
 	tel.close()
 	await get_tree().create_timer(0.5).timeout
 	# 4) pokój: Jania podchodzi do komputera i go włącza
@@ -174,24 +228,19 @@ func _ready() -> void:
 	for i in 8:
 		await grab(rd, 0.1, Vector2(56, 120))
 	save("pc_desk")
-	# 6) wykres: legenda + koniec wykresu (dziś), kursor dokłada drugą kategorię
-	var chart := func(cur: Vector2, click := false) -> void:
-		await get_tree().create_timer(0.1).timeout
-		var img := screen()
-		var pic := Image.create(320, 180, false, Image.FORMAT_RGBA8)
-		pic.fill(img.get_pixel(215, 300))
-		pic.blit_rect(img, Rect2i(0, 200, 206, 160), Vector2i(0, 10))
-		pic.blit_rect(img, Rect2i(526, 200, 114, 160), Vector2i(206, 10))
-		cursor(pic, cur - Vector2(0, 190), click)
-		frames.append(pic)
-	var box: CheckBox = os.body.find_children("*", "CheckBox", true, false).filter(func(c): return "Znaki" in c.text)[0]
+	# 6) legenda: kursor zaznacza drugą kategorię (samo klikanie, osobno od wykresu)
+	var box: CheckBox = os.legend_rows.filter(func(row): return row[1] == "zodiac")[0][0]
 	var at: Vector2 = box.global_position + Vector2(40, 10)
-	for i in 8:
-		await chart.call(Vector2(150, 330).lerp(at, (i + 1) / 8.0))
+	var rl := Rect2i(0, 180, 320, 180)
+	await glide(rl, Vector2(150, 330), at, 8)
 	box.button_pressed = true
-	await chart.call(at, true)
-	for i in 14:
-		await chart.call(at)
+	await grab(rl, 0.1, at, true)
+	for i in 8:
+		await grab(rl, 0.1, at)
+	save("pc_pick")
+	# 7) sam wykres: linie zaznaczonych kategorii aż do dziś
+	for i in 12:
+		await grab(Rect2i(314, 180, 320, 180))
 	save("pc_chart")
 	# 7) sprzedaż: wiersze (góra) + suma i przyciski (dół), Zaznacz wszystkie, potem WYŚLIJ RAPORT
 	var sell := func(cur: Vector2, click := false) -> void:
@@ -213,10 +262,10 @@ func _ready() -> void:
 		await sell.call(all_b)
 	for i in 5:
 		await sell.call(all_b.lerp(send_b, (i + 1) / 5.0))
+	await sell.call(send_b, true)  # nagranie kończy się na kliknięciu WYŚLIJ RAPORT
+	for i in 6:
+		frames.append(frames[-1].duplicate())
 	button(os, "WYŚLIJ RAPORT").pressed.emit()
-	await sell.call(send_b, true)
-	for i in 8:
-		await sell.call(send_b)
 	save("pc_sell")
 	# 8) Badania: pulpit, kursor na ikonę, drzewko, odblokowanie umiejętności
 	os._close_app()
@@ -260,9 +309,10 @@ func _ready() -> void:
 	for i in 12:
 		await grab(rk, 0.1, kup)
 	save("shop_buy")
-	os.close()
-	await get_tree().create_timer(0.5).timeout
+	os.close()  # kurier puka, paczka pojawia się w kłębie dymu
 	var rp := crop_at(Vector2(330, 200))
+	for i in 14:
+		await grab(rp)
 	await walk(w, rp, ["move_down", "move_left"], func(_p): return w._nearest() == "paczka")
 	for i in 5:
 		await grab(rp)

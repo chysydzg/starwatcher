@@ -13,17 +13,18 @@ const OS_FS := 20            # VT323 w komputerze (AstroOS)
 const TITLE_FS := 8          # Press Start 2P na nagłówki: siatka 125/1000 em – rozmiary 8, 16, 24
 
 # ---------------------------------------------------------------- balans (GDD 25)
-const NIGHT_BASE := 240.0
-const NIGHT_MAX := 390.0
+const NIGHT_BASE := 60.0   # jedna minuta: krótka, gęsta noc
 const METEOR_INTERVAL := Vector2(40, 60)
 const METEOR_WINDOW := 3.5
 const RAIN_CHANCE := 0.20
+const STORM_CHANCE := 0.35  # część deszczowych nocy to burza z piorunami
 const COMET_NIGHTS := 3
 const COMET_GAP := 8
 const SEASONS := ["Wiosna", "Lato", "Jesień", "Zima"]
 const WEEKDAYS := ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]  # dzień 1 = poniedziałek
 const CATS := {"moon": "Księżyc", "const": "Konstelacje", "zodiac": "Znaki zodiaku", "nebula": "Mgławice",
-	"planet": "Planety", "deep": "Głębokie niebo", "comet": "Komety"}
+	"planet": "Planety", "deep": "Głębokie niebo", "comet": "Komety", "meteor": "Meteory"}
+const MARKET_CATS := ["moon", "const", "zodiac", "nebula", "planet", "deep", "comet"]  # meteory: stała cena, bez notowań
 const MOON_PHASES := ["Nów", "Przybywający sierp", "Pierwsza kwadra", "Przybywający garb", "Pełnia",
 	"Ubywający garb", "Ostatnia kwadra", "Ubywający sierp"]
 
@@ -130,8 +131,7 @@ const SCIENCE := [
 	["kawa", "Nocna Kawa", 50, 1, 1, "", "Celownik porusza się o 20% szybciej."],
 	["podstawowe", "Podstawowe Gwiazdozbiory", 20, 1, 2, "", "Proste układy 3-4 gwiazd i znaki zodiaku pory roku."],
 	["meteory", "Szybkie Spadające Gwiazdy", 60, 1, 2, "podstawowe", "Na niebie przelatują meteory: +25 PW."],
-	["linie", "Linie Kartograficzne", 100, 2, 0, "", "Podpowiedź zarysu konstelacji."],
-	["mikro", "Pokrętło Mikro-Ruchów", 180, 2, 0, "linie", "Usuwa drgania celownika."],
+	["mikro", "Pokrętło Mikro-Ruchów", 180, 2, 0, "", "Usuwa drgania celownika."],
 	["czyste1", "Czyste Soczewki I", 120, 2, 0, "", "Zielone pole ostrości szersze o 30%."],
 	["czyste2", "Czyste Soczewki II", 220, 2, 0, "czyste1", "Zielone pole szersze o kolejne 30%."],
 	["pamiec1", "Pamięć Fotograficzna I", 120, 2, 1, "", "+10% PW ze wszystkich źródeł."],
@@ -156,22 +156,21 @@ const SCIENCE_PATHS := ["Skanowanie i Optyka", "Analiza i Metodologia", "Kartogr
 # ---------------------------------------------------------------- sklep Retro-Tech & Astro (GDD 11)
 const SHOP := [
 	["statyw", "Używany Statyw Drewniany", 20, 1, 0, "", "Drgania celownika -40%."],
-	["czyszczacy", "Zestaw Czyszczący Optykę", 45, 1, 0, "", "Usuwa kurz z soczewki."],
+	["czyszczacy", "Zestaw Czyszczący Optykę", 45, 1, 0, "", "Czyści brudną soczewkę: wyraźny obraz i szersze pole ostrości."],
 	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Wartość odkryć +10%."],
 	["dd", "Paczka Dyskietek 3.5\" DD", 30, 1, 1, "", "+5 slotów (10)."],
 	["hd", "Paczka Dyskietek 3.5\" HD", 75, 1, 1, "dd", "+10 slotów (20)."],
-	["poduszka", "Wygodna Poduszka na Balkon", 80, 1, 2, "", "Noc +1 minuta."],
 	["achromat", "Szklana Soczewka Achromatyczna", 150, 2, 0, "czyszczacy", "Naprawia pękniętą szybkę. Wartość +20%."],
 	["montaz", "Ręczny Montaż Paralaktyczny", 280, 2, 0, "statyw", "Płynniej, przyciąganie +35%."],
 	["pudelko", "Plastikowe Pudełko na Dyskietki", 120, 2, 1, "hd", "+10 slotów (30)."],
 	["vga", "Karta Graficzna VGA", 200, 2, 1, "modem", "Wartość sprzedaży +20%."],
 	["astrotax", "Program „Astro-Tax 1.0”", 350, 2, 1, "dd", "+15% $ za sprzedany układ."],
 	["lcd", "Monitor LCD 19\" + Nowy Komputer", 600, 2, 1, "", "AstroOS XP. Wartość +25%."],
-	["termos", "Termos z Gorącą Czekoladą", 180, 2, 2, "", "Noc +1,5 minuty."],
+	["parasol", "Parasol Balkonowy", 450, 2, 2, "", "Osłania teleskop: deszcz nie zalewa soczewki."],
 	["plakat", "Plakat „I Want to Believe”", 150, 2, 2, "", "Komety i meteory +25% częściej."],
-	["materac", "Ergonomiczny Materac", 250, 2, 2, "poduszka", "+50 PW na start każdej nocy."],
-	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "Pole widzenia +30%. Cena bazowa +50%."],
-	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za niebem."],
+	["materac", "Ergonomiczny Materac", 250, 2, 2, "", "+50 PW na start każdej nocy."],
+	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "+10 obiektów na niebie, pole widzenia +30%, cena +50%."],
+	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za wykrytym obiektem i trzyma go w kadrze."],
 	["usb", "Zewnętrzna Stacja Dyskietek USB", 50, 3, 1, "lcd", "Dyskietki działają z nowym komputerem."],
 	["hdd", "Zewnętrzny Dysk HDD 5400 RPM", 300, 3, 1, "lcd", "+50 slotów."],
 	["ide", "Dysk HDD w Macierzy IDE", 650, 3, 1, "hdd", "+100 slotów, +5% za serie."],
@@ -204,6 +203,10 @@ var offer := {}            # okazyjna oferta instytutu / kolekcjonera na jedno o
 var today := {}            # podsumowanie dnia
 var rain := false
 var rain_next := false
+var storm := false          # burza: ulewa, pioruny, gęste chmury
+var storm_next := false
+var lightning := 0.0        # jasność błysku pioruna (burza), 0..1
+var arriving := false       # kupiona paczka: kurier zapuka, gdy Jania odejdzie od komputera
 var comet := {"left": 0, "gap": 0, "seed": 0}
 var tips := {}
 var location := "balcony"
@@ -425,7 +428,7 @@ func _input(e: InputEvent) -> void:
 
 ## podpowiedź przycisku zgodna z urządzeniem
 func key(action: String) -> String:
-	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "advance": ["Spacja", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"]}
+	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "advance": ["Spacja", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"], "leave": ["PPM", "B"]}
 	return "[%s]" % k[action][1 if pad else 0]
 
 
@@ -462,7 +465,7 @@ func moon_phase() -> int:
 
 
 func night_length() -> float:
-	return minf(NIGHT_BASE + (60.0 if has("poduszka") else 0.0) + (90.0 if has("termos") else 0.0), NIGHT_MAX)
+	return NIGHT_BASE
 
 
 func storage_cap() -> int:
@@ -514,6 +517,8 @@ func _roll_sky() -> void:
 	sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == "zodiac" and SKY[id].season == season()), 1)
 	for cat in ["nebula", "planet", "deep"]:
 		sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == cat), 1)
+	if has("newton"):  # większy teleskop: 10 obiektów więcej
+		sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat in ["const", "zodiac", "nebula"] and not sky_tonight.has(id)), 10)
 
 
 func obj_info(id: String) -> Dictionary:
@@ -633,12 +638,14 @@ func accept_offer() -> int:
 	return sum
 
 
-func meteor_caught() -> Array:
-	var cash := randi_range(10, 20)
-	money += cash
-	today.meteors = today.get("meteors", 0) + cash
+## złapany meteor: +25 PW i wpis na dysku (sprzedaje się na Giełdzie); bez miejsca na dysku tylko PW
+func meteor_caught() -> Dictionary:
+	var saved := stored().size() < storage_cap()
+	if saved:
+		_id_seq += 1
+		journal.append({"uid": _id_seq, "id": "meteor", "name": "Meteor", "cat": "meteor", "quality": 100, "base": 15.0, "day": day, "sold": false})
 	today.meteors_n = today.get("meteors_n", 0) + 1
-	return [add_pw(25), cash]
+	return {"pw": add_pw(25), "saved": saved}
 
 
 func can_buy_science(row: Array) -> String:
@@ -677,9 +684,9 @@ func buy_shop(row: Array) -> void:
 	money -= row[2]
 	today.bought = today.get("bought", []) + [["Zakup: " + row[1], row[2], "$"]]
 	parcels.append(row[0])
-	sfx("knock")  # kurier od razu puka, paczka ląduje na środku pokoju
+	arriving = true  # kurier zapuka, gdy Jania wyłączy komputer
 	changed.emit()
-	toast.emit("Kupiono: %s. Paczka czeka w pokoju." % row[1], "info")
+	toast.emit("Kupiono: %s. Kurier już jedzie." % row[1], "info")
 
 
 func unpack_all(quiet := false) -> void:
@@ -709,6 +716,7 @@ func start_night() -> void:
 	tonight.clear()
 	_roll_sky()
 	rain = rain_next
+	storm = storm_next
 	if has("materac"):
 		add_pw(50)
 	changed.emit()
@@ -735,7 +743,8 @@ func sleep() -> Dictionary:
 		if comet.gap <= 0 and randf() < (1.25 if has("plakat") else 1.0) * 0.6:
 			comet = {"left": COMET_NIGHTS, "gap": 0, "seed": randi()}
 	rain_next = randf() < RAIN_CHANCE
-	summary.forecast = "deszcz – słaba widoczność" if rain_next else "pogodnie"
+	storm_next = rain_next and randf() < STORM_CHANCE
+	summary.forecast = "burza z piorunami – prawie nic nie widać" if storm_next else ("deszcz – słaba widoczność" if rain_next else "pogodnie")
 	_roll_demand()
 	_roll_offer()
 	history.append(summary)
@@ -745,7 +754,7 @@ func sleep() -> Dictionary:
 
 func _roll_demand() -> void:
 	demand.clear()
-	var cats := CATS.keys()
+	var cats := MARKET_CATS.duplicate()
 	cats.shuffle()
 	for i in randi_range(1, 2):
 		demand[cats[i]] = snappedf(randf_range(1.2, 1.6), 0.05)
@@ -768,6 +777,9 @@ func new_game() -> void:
 	history.clear()
 	rain = false
 	rain_next = false
+	storm = false
+	storm_next = false
+	arriving = false
 	comet = {"left": 0, "gap": 0, "seed": 0}
 	location = "balcony"
 	stage_done = false
@@ -781,7 +793,7 @@ func new_game() -> void:
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "comet", "tips", "location", "stage_done", "_id_seq", "history"]
+	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history"]
 
 
 func has_save() -> bool:

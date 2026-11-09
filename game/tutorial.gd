@@ -4,21 +4,27 @@ extends CanvasLayer
 
 const TUTORIALS := {
 	"tel": {"title": "Teleskop", "pages": [
-		{"img": "tut/tel1", "text": "Odkrywaj obiekty na niebie, żeby zdobywać punkty wiedzy i pieniądze. Zbliż celownik do obiektu, a gdy zacznie drgać, wciśnij {confirm}."},
+		{"img": "tut/tel1", "text": "Odkrywaj obiekty na niebie, żeby zdobywać PW i $. Zbliż celownik do obiektu, a gdy zacznie drgać, wciśnij {confirm}."},
 		{"img": "tut/tel2", "text": "Wyostrz obiekt, a dostaniesz za niego więcej $. {focus}, aż znacznik trafi w zielone pole, i wciśnij {confirm}."},
 		{"img": "tut/tel3", "text": "Niektóre obiekty, np. konstelacje, trzeba odsłonić. Zaznacz po kolei jasno świecące gwiazdy {confirm}."},
+		{"img": "tut/tel_hard", "text": "Na początku gry odkrywanie gwiazd będzie trudne, lecz z czasem nauczysz się umiejętności, które to ułatwią."},
 	]},
 	"pc": {"title": "Komputer", "pages": [
 		{"img": "tut/pc_walk", "text": "Aby sprzedawać odkrycia i zdobywać nowe umiejętności, podejdź do komputera i wciśnij {interact}."},
 		{"img": "tut/pc_desk", "text": "Wybierz Giełdę, żeby sprzedać odkrycia."},
-		{"img": "tut/pc_chart", "text": "Wykresy pokazują, które obiekty opłaca się dziś sprzedać."},
+		{"img": "tut/pc_pick", "text": "Zaznacz kategorię, żeby zobaczyć jej notowania."},
+		{"img": "tut/pc_chart", "text": "Wykres pokazuje, które obiekty opłaca się dziś sprzedać. Masz ograniczoną przestrzeń na dysku, więc dobrze zaplanuj sprzedaż swoich obiektów."},
 		{"img": "tut/pc_sell", "text": "Zaznacz odkrycia pojedynczo lub przyciskiem Zaznacz wszystkie, potem wyślij raport. Pieniądze z Giełdy przychodzą codziennie rano."},
 		{"img": "tut/pc_tree", "text": "Punkty wiedzy wydajesz w Badaniach. Wybierz podświetloną umiejętność i wciśnij {confirm}."},
 	]},
 	"shop": {"title": "Sklep", "pages": [
 		{"img": "tut/shop_desk", "text": "W Retro-Tech kupisz sprzęt, który ułatwia obserwacje. Wybierz go na pulpicie."},
 		{"img": "tut/shop_buy", "text": "Kliknij KUP przy przedmiocie."},
-		{"img": "tut/shop_parcel", "text": "Kurier od razu przyniesie paczkę. Podejdź do niej i wciśnij {interact}, żeby ją otworzyć."},
+		{"img": "tut/shop_parcel", "text": "Gdy wyłączysz komputer, kurier zapuka i zostawi paczkę. Podejdź do niej i wciśnij {interact}, żeby ją otworzyć."},
+	]},
+	"meteor": {"title": "Meteory", "pages": [
+		{"img": "tut/meteor1", "text": "Gdy przelatuje meteor, okular drży. Najedź na niego celownikiem i wciśnij {confirm}, zanim zniknie."},
+		{"img": "tut/meteor2", "text": "Łączysz gwiazdy? {leave} wychodzi z konstelacji, a ona zostaje tak, jak ją zostawisz. Złap meteor i wróć do niej."},
 	]},
 }
 const FW := 320  # klatka nagrania 320x180, klatki obok siebie w jednym PNG
@@ -98,7 +104,7 @@ func _pages() -> Array:
 func _show() -> void:
 	var pg: Dictionary = _pages()[page]
 	_title.text = "%s  %d/%d" % [TUTORIALS[id].title.to_upper(), page + 1, _pages().size()]
-	_text.text = pg.text.replace("{confirm}", Game.key("confirm")).replace("{interact}", Game.key("interact")).replace("{focus}", "Wychylaj prawy drążek" if Game.pad else "Kręć kółkiem myszy")
+	_text.text = pg.text.replace("{confirm}", Game.key("confirm")).replace("{interact}", Game.key("interact")).replace("{leave}", Game.key("leave")).replace("{focus}", "Wychylaj prawy drążek" if Game.pad else "Kręć kółkiem myszy")
 	_pic.atlas = Game.tex(pg.img)
 	_f = 0
 	_tick()

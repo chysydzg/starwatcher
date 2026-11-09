@@ -52,6 +52,9 @@ var rain_front: Node2D    # krople deszczu przed rekwizytami balkonu
 var busy := false
 var tired_told := false
 var ency_acc := 0.0
+var yawn_t := -1.0         # ziewanie (koniec nocy): >= 0 trwa; jania_yawn.png – 3 klatki przodem
+var yawned := false
+const YAWN := 2.2
 var toasts := []
 var tip := ""
 
@@ -137,6 +140,8 @@ func _scene(where: String, root: Node2D) -> Node2D:
 		s.offset = Vector2(0, p.y - p.base)
 		sorter.add_child(s)
 		props[p.name] = s
+		if p.name in ["balcony_newton", "balcony_parasol"]:  # stoją tam, gdzie teleskop: jego kolider wystarczy
+			continue
 		# kolider = cały obrys obiektu (bez 1 px obrysu): przez mebel nie da się przejść ani wejść w niego
 		var sz := s.texture.get_size()
 		feet[where].append(Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3))
@@ -203,8 +208,8 @@ func _lcd_patch(desk: Sprite2D) -> Sprite2D:
 	var bg := Game.img("room")
 	var dk := Game.img("room_desk")
 	var dpos := Vector2i(desk.position + desk.offset)
-	var img := Image.create(32, 34, false, Image.FORMAT_RGBA8)
-	for y in 34:
+	var img := Image.create(32, 33, false, Image.FORMAT_RGBA8)  # do wiersza 99: wiersz 100 to górny obrys klawiatury
+	for y in 33:
 		var q := Vector2i(346, 67 + y) - dpos
 		var c := bg.get_pixel(346, 67 + y)
 		if q.x >= 0 and q.y >= 0 and q.x < dk.get_width() and q.y < dk.get_height() and dk.get_pixelv(q).a > 0.5:
@@ -229,23 +234,21 @@ func _build_balcony() -> void:
 	rain_front = preload("res://game/sky_fx.gd").new()
 	rain_front.front = true  # ulewa przed rekwizytami: przyciemnienie, smugi, rozbryzgi
 	balcony.add_child(rain_front)
-	var chair: Sprite2D = props.balcony_chair
-	props.pillow = _sprite("pillow", Vector2(426, 313) - chair.position, chair)
-	var crate: Sprite2D = props.balcony_crate
 	_colliders("balcony", balcony)
-	props.thermos = _sprite("thermos", Vector2(497, 298) - crate.position, crate)
 
 
 func _refresh() -> void:
 	props.lcd.visible = Game.has("lcd")
 	props.poster.visible = Game.has("plakat")
 	props.radio.visible = Game.has("radio")
-	props.parcel.visible = not Game.parcels.is_empty()
-	props.pillow.visible = Game.has("poduszka")
-	props.thermos.visible = Game.has("termos")
+	props.parcel.visible = not Game.parcels.is_empty() and not Game.arriving
+	props.balcony_telescope.visible = not Game.has("newton")
+	props.balcony_newton.visible = Game.has("newton")
+	props.balcony_parasol.visible = Game.has("parasol")
 	crt.visible = Game.settings.crt
 	sky_fx.raining = Game.rain
 	rain_front.raining = Game.rain
+	rain_front.storm = Game.storm and Game.night
 	sky_fx.meteors = Game.has("meteory")
 	sky_fx.comet = Game.comet.left > 0
 	_ambience()
@@ -255,7 +258,7 @@ func _refresh() -> void:
 func _ambience() -> void:
 	var bal := Game.location == "balcony"
 	Game.loop("rain_room", -12.0 if Game.rain and not bal else -INF)
-	Game.loop("rain_balcony", -8.0 if Game.rain and bal else -INF)
+	Game.loop("rain_balcony", (-3.0 if Game.storm else -8.0) if Game.rain and bal else -INF)
 	Game.loop("lake", -10.0 if bal else -INF)
 	for i in SEASON_LOOPS.size():
 		var on := Game.night and not Game.rain and i == Game.season()
@@ -332,7 +335,6 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 	dusk_o = o
 	var k := {"u": 0.0}
 	o.draw.connect(func(): _draw_dusk(o, 1.0 - k.u if dawn else k.u, k.u, dawn))
-	Game.sfx("dawn" if dawn else "dusk")  # krótki akcent: wznoszący się o świcie, opadający o zmierzchu
 	o.create_tween().set_loops().tween_callback(o.queue_redraw).set_delay(1.0 / 30.0)  # woda, chmury i gwiazdy żyją cały czas
 	var tw := o.create_tween()  # ginie razem z okienkiem
 	tw.tween_method(func(v): k.u = v, 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -424,9 +426,10 @@ func _txt_on(n: CanvasItem, p: Vector2, s: String, c: Color) -> void:
 func _start_night() -> void:
 	Game.start_night()
 	tired_told = false
+	yawned = false
 	_toast("Zapada noc. Niebo rozbłyska gwiazdami.", "info")
 	if Game.rain:
-		_toast("Pada deszcz – chmury zasłaniają część nieba.", "info")
+		_toast("Burza! Ulewa i pioruny – prawie nic nie widać." if Game.storm else "Pada deszcz – chmury zasłaniają część nieba.", "info")
 	_apply_phase()
 
 
@@ -468,9 +471,11 @@ func _process(dt: float) -> void:
 	t += dt
 	var pointer: bool = busy or (viewport != null and not viewport.get("is_telescope"))  # kursor tylko w okienkach i AstroOS
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pointer else Input.MOUSE_MODE_HIDDEN
+	if viewport or busy:  # przy komputerze, teleskopie i okienkach Jania stoi (inaczej tupanie gra dalej)
+		jania.set_meta("walking", false)
 	if Game.night:
 		Game.night_left = maxf(0.0, Game.night_left - dt)
-		if Game.has("encyklopedia"):
+		if Game.has("encyklopedia") and Game.night_left > 0.0:  # tylko póki trwa noc, nie do snu
 			ency_acc += 0.5 * mini(Game.discovered.size(), 20) * dt
 			if ency_acc >= 1.0:
 				Game.add_pw(floorf(ency_acc))
@@ -479,7 +484,9 @@ func _process(dt: float) -> void:
 			tired_told = true
 			_toast("Jania ziewa... Pora iść spać.", "info")
 			if viewport and viewport.has_method("tired"):
-				viewport.tired()
+				viewport.tired()  # ziewnie po zamknięciu teleskopu (closed)
+			elif viewport == null:
+				_yawn()
 	if is_instance_valid(dusk_o):
 		dusk_o.queue_redraw()
 	if Game.night and Game.location == "balcony" and not Game.rain:
@@ -522,6 +529,17 @@ func _move() -> void:
 func _animate(dt: float) -> void:
 	idle_t += dt
 	happy_t -= dt
+	if yawn_t >= 0.0:  # ziewa: przeciąga się z otwartą buzią, potem zasłania usta łapką
+		yawn_t += dt
+		var yawning: bool = yawn_t < YAWN and not jania.get_meta("walking", false)
+		jania.texture = Game.tex("jania_yawn" if yawning else "jania")
+		jania.hframes = 3 if yawning else 8
+		jania.vframes = 1 if yawning else 3
+		if yawning:
+			jania.flip_h = false
+			jania.frame = 0 if yawn_t < 0.5 else (1 if yawn_t < 1.7 else 2)
+			return
+		yawn_t = -1.0
 	var frame := 0
 	var walking: bool = jania.get_meta("walking", false)
 	if walking:
@@ -557,7 +575,7 @@ func _nearest() -> String:
 	var best := ""
 	var best_d := 1e9
 	for k in sp:
-		if (k == "paczka" and Game.parcels.is_empty()) or (k == "radio" and not Game.has("radio")):
+		if (k == "paczka" and not props.parcel.visible) or (k == "radio" and not Game.has("radio")):
 			continue
 		var r: Rect2 = sp[k]
 		var d := body.position.distance_to(body.position.clamp(r.position, r.end))
@@ -616,13 +634,54 @@ func _interact(k: String) -> void:
 		"krzeslo":
 			_say("Chwila odpoczynku z widokiem na jezioro.")
 		"skrzynka":
-			_say("Gorąca czekolada. Najlepsze paliwo astronomki." if Game.has("termos") else "Pusty kubek. Przydałby się termos.")
+			_say("Pusty kubek po czekoladzie.")
 		"kwiatek":
 			_say("Rośnie jak na drożdżach.")
 		"lampa", "lampka":
 			Game.sfx("switch")
 			lamps[k].on = not lamps[k].on
 			lamps[k].light.energy = _lamp_e(k)  # pstryczek działa od razu, bez przenikania
+
+
+## koniec nocy: Jania ziewa raz (zwrócona przodem)
+func _yawn() -> void:
+	if yawned:
+		return
+	yawned = true
+	yawn_t = 0.0
+	face = 0
+	idle_t = 0.0
+
+
+## kurier: pukanie do drzwi, po chwili paczka na środku pokoju w kłębie dymu
+func _parcel_arrives() -> void:
+	Game.sfx("knock")
+	await get_tree().create_timer(0.7).timeout
+	_refresh()
+	if Game.location != "room":
+		return
+	var puff := CPUParticles2D.new()  # pikselowy dym: kwadraciki rozchodzą się, wznoszą i gasną
+	puff.position = props.parcel.position + Vector2(13, -10)
+	puff.amount = 28
+	puff.one_shot = true
+	puff.explosiveness = 0.9
+	puff.lifetime = 0.9
+	puff.direction = Vector2.UP
+	puff.spread = 180.0
+	puff.initial_velocity_min = 20.0
+	puff.initial_velocity_max = 60.0
+	puff.gravity = Vector2(0, -30)
+	puff.damping_min = 40.0
+	puff.damping_max = 60.0
+	puff.scale_amount_min = 2.0
+	puff.scale_amount_max = 4.0
+	puff.color_ramp = Gradient.new()
+	puff.color_ramp.set_color(0, Color(0.92, 0.9, 0.86, 0.95))
+	puff.color_ramp.set_color(1, Color(0.7, 0.68, 0.72, 0.0))
+	room.add_child(puff)
+	puff.emitting = true
+	puff.finished.connect(puff.queue_free)
+	Game.sfx("paper", 1.3, -10.0)
 
 
 ## włączona lampa świeci też w dzień, słabiej
@@ -641,6 +700,11 @@ func _open(v: Control) -> void:
 	ui.add_child(v)
 	v.closed.connect(func():
 		viewport = null
+		if Game.arriving:  # kurier puka dopiero, gdy Jania odejdzie od komputera
+			Game.arriving = false
+			_parcel_arrives()
+		if tired_told and Game.night_left <= 0.0:
+			_yawn()
 		_refresh()
 		if Game.night and not v.get("is_telescope") and not Game.tips.has("hint_bed"):
 			Game.tips.hint_bed = true
@@ -658,8 +722,6 @@ func _sleep() -> void:
 	var rows := []  # [opis, kwota, „$”/„PW”, znak] – tylko to, co faktycznie się wydarzyło
 	if s.get("sales_n", 0) > 0:
 		rows.append(["Odkrycia x%d" % s.sales_n, s.sales, "$", 1])
-	if s.get("meteors_n", 0) > 0:
-		rows.append(["Meteory x%d" % s.meteors_n, s.meteors, "$", 1])
 	if s.get("pw", 0) > 0:
 		rows.append(["Punkty Wiedzy", s.pw, "PW", 1])
 	for b in s.get("bought", []):
@@ -757,6 +819,7 @@ func _sleep() -> void:
 			face = 0
 			_enter("room", true)
 			tired_told = false
+			yawned = false
 			_toast("Nowy dzień! " + Game.calendar(), "info")
 			Game.tutorial_once(self, "shop")))
 
@@ -867,7 +930,9 @@ func _draw_glow() -> void:
 				var cr: Rect2 = Rect2(fposmod(c.x + t * 3.0, 640.0) - 40.0, c.y, c.z, c.w).intersection(r)
 				if cr.has_area():
 					_px(n, cr.position.x, cr.position.y, cr.size.x, cr.size.y, Color("f4f8ff"))
-	if not Game.has("lcd"):
+	if Game.has("lcd"):
+		_lcd_screen(n)
+	else:
 		_pc_screen(n)
 	if Game.rain:  # deszcz spływa po szybach
 		for i in panes.size():
@@ -897,7 +962,51 @@ func _pc_screen(n: Node2D) -> void:
 			_px(n, r.position.x + 7, r.position.y + 6 + k * 2, 4 + (k * 3 + int(t * 2.0)) % 5, 1, Color("8a8aa0"))
 	_px(n, r.position.x, r.position.y, r.size.x, 1, Color("dcdce4"))
 	_px(n, r.position.x + 2 + int(t * 3.0) % 14, r.position.y + 8 + int(t * 1.3) % 6, 1, 2, Color.WHITE)  # kursor
-	_px(n, r.position.x, r.position.y + fposmod(t * 6.0, r.size.y), r.size.x, 1, Color(1, 1, 1, 0.18))  # przebiegająca linia CRT
+	# kineskop: wyraźne linie skanowania, wędrujący jasny pas, lekkie migotanie i poświata luminoforu wokół szkła
+	for y in range(1, int(r.size.y), 2):
+		_px(n, r.position.x, r.position.y + y, r.size.x, 1, Color(0, 0, 0.05, 0.28))
+	_px(n, r.position.x, r.position.y + fposmod(t * 6.0, r.size.y), r.size.x, 2, Color(1, 1, 1, 0.22))
+	_px(n, r.position.x, r.position.y, r.size.x, r.size.y, Color(0.6, 0.9, 1.0, 0.04 + 0.03 * sin(t * 37.0)))
+	_px(n, r.position.x - 1, r.position.y - 1, r.size.x + 2, 1, Color(0.5, 0.8, 1.0, 0.25))
+	_px(n, r.position.x - 1, r.end.y, r.size.x + 2, 1, Color(0.5, 0.8, 1.0, 0.25))
+
+
+## ekran monitora LCD: pulpit AstroOS XP „na wyższym poziomie” – więcej kolorów (pasma nieba z ditheringiem,
+## wzgórza w dwóch planach, słońce z poświatą), płynne ruchy (chmury i kursor), okno z gradientem
+func _lcd_screen(n: Node2D) -> void:
+	var r := Rect2(351, 71, 24, 16)
+	var sky := [Color("2a4ad8"), Color("3a6ae8"), Color("4a8af0"), Color("6aa8f4"), Color("8ac4f8"), Color("aad8fa")]
+	for y in int(r.size.y):
+		var k := y * 6.0 / 11.0
+		for x in int(r.size.x):  # dithering między pasmami
+			var i := mini(int(k + (0.5 if (x + y) % 2 == 0 else 0.0)), 5)
+			_px(n, r.position.x + x, r.position.y + y, 1, 1, sky[i])
+	n.draw_circle(r.position + Vector2(19, 3), 2.5, Color(1, 0.95, 0.7, 0.35))
+	_px(n, r.position.x + 18, r.position.y + 2, 2, 2, Color("fff4c0"))
+	for k in 2:  # chmury suną piksel po pikselu
+		var cx := floorf(fposmod(t * 4.0 + k * 13.0, r.size.x + 6.0)) - 6.0
+		for q in [[0, 1, 5, 1], [1, 0, 3, 1]]:
+			var cr := Rect2(r.position.x + cx + q[0], r.position.y + 3 + k * 3 + q[1], q[2], q[3]).intersection(r)
+			if cr.has_area():
+				_px(n, cr.position.x, cr.position.y, cr.size.x, cr.size.y, Color("f8fcff"))
+	for x in int(r.size.x):  # wzgórza: dalsze niebieskawe, bliższe soczyście zielone z jasną krawędzią
+		var far := int(10.0 + 1.5 * sin(x * 0.45))
+		var near := int(12.0 + 1.2 * sin(x * 0.3 + 2.0))
+		_px(n, r.position.x + x, r.position.y + far, 1, r.size.y - far, Color("5aa078"))
+		_px(n, r.position.x + x, r.position.y + near, 1, r.size.y - near, Color("4ab83a"))
+		_px(n, r.position.x + x, r.position.y + near, 1, 1, Color("8ae85a"))
+	if fmod(t, 9.0) < 4.0:  # okno programu z gradientowym paskiem tytułu
+		var w := Rect2(r.position.x + 4, r.position.y + 3, 13, 9)
+		_px(n, w.position.x, w.position.y, w.size.x, w.size.y, Color("f4f6fc"))
+		for x in int(w.size.x):
+			_px(n, w.position.x + x, w.position.y, 1, 2, Color("1a4ad8").lerp(Color("6ab0ff"), x / w.size.x))
+		_px(n, w.end.x - 2, w.position.y, 1, 1, Color("ff6a5a"))
+		for k in 3:
+			_px(n, w.position.x + 2, w.position.y + 4 + k * 2, 3 + (k * 3 + int(t * 2.0)) % 7, 1, [Color("4a8ae8"), Color("e8a83a"), Color("5ac85a")][k])
+	var cur := r.position + Vector2(4 + 15 * (0.5 + 0.5 * sin(t * 0.9)), 4 + 8 * (0.5 + 0.5 * sin(t * 1.3 + 1.0)))
+	_px(n, cur.x, cur.y, 1, 3, Color.WHITE)  # kursor sunie płynnie po krzywej
+	_px(n, cur.x + 1, cur.y + 1, 1, 1, Color.WHITE)
+	_px(n, r.position.x, r.position.y, r.size.x, 1, Color(1, 1, 1, 0.35))  # połysk matrycy
 
 
 

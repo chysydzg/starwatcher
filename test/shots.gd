@@ -110,6 +110,49 @@ func _ready() -> void:
 	w._apply_phase(true)
 	w._refresh()
 	await shot("deszcz")
+	# burza, Newton i parasol na balkonie, potem okular w burzy
+	Game.storm = true
+	Game.shop["newton"] = true
+	Game.shop["parasol"] = true
+	w._refresh()
+	w.rain_front._next_flash = 0.0
+	await get_tree().create_timer(0.15).timeout
+	await shot("burza_balkon")
+	w._interact("teleskop")
+	await get_tree().create_timer(1.0).timeout
+	await shot("burza_okular")
+	w.viewport.close()
+	await get_tree().create_timer(0.4).timeout
+	Game.shop.erase("parasol")
+	Game.shop["czyszczacy"] = true
+	w._interact("teleskop")
+	await get_tree().create_timer(1.0).timeout
+	await shot("burza_okular_bez_parasola")
+	w.viewport.close()
+	await get_tree().create_timer(0.4).timeout
+	Game.storm = false
+	Game.shop.erase("newton")
+	Game.shop.erase("czyszczacy")
+	# pokój: monitor LCD, paczka w dymie po wyjściu z komputera
+	Game.night = false
+	Game.rain = false
+	Game.shop["lcd"] = true
+	w._enter("room", true)
+	w._apply_phase(true)
+	w._refresh()
+	Game.parcels.append("statyw")
+	Game.arriving = true
+	w._parcel_arrives()
+	Game.arriving = false
+	await get_tree().create_timer(0.15).timeout
+	await shot("paczka_dym")
+	Game.shop.erase("lcd")
+	Game.parcels.clear()
+	w._refresh()
+	w.yawned = false
+	w._yawn()
+	await get_tree().create_timer(0.3).timeout
+	await shot("ziewanie")
 	Game.rain = false
 	Game.night = false
 	w._enter("room", true)

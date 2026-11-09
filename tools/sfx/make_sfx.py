@@ -191,26 +191,37 @@ def key(i):  # Cherry MX Brown / buckling spring: soft deep clicks, takes altern
     return b('fit/key/thock' if i % 2 == 0 else 'fit/key/medium', seed=i + 1)
 
 
-def modem(r):  # handshake when sending a report: dial tone, DTMF, answer tone, V.8 chirps, scrambled data
+def modem(r):  # short handshake when sending a report: dial tone, three DTMF digits, answer tone, chirp, a burst of data
     parts, t = [], lambda s: dsp.t_of(dsp.n_of(s))
-    tt = t(0.6)
+    tt = t(0.25)
     parts.append(0.4 * (np.sin(2 * np.pi * 350 * tt) + np.sin(2 * np.pi * 440 * tt)))
-    dtmf = {'1': (697, 1209), '4': (770, 1209), '8': (852, 1336), '0': (941, 1336), '5': (770, 1336), '2': (697, 1336)}
-    for d in '480125':
-        tt = t(0.08)
+    dtmf = {'1': (697, 1209), '4': (770, 1209), '8': (852, 1336)}
+    for d in '481':
+        tt = t(0.07)
         lo, hi = dtmf[d]
-        parts += [0.4 * (np.sin(2 * np.pi * lo * tt) + np.sin(2 * np.pi * hi * tt)), np.zeros(dsp.n_of(0.05))]
-    parts.append(np.zeros(dsp.n_of(0.3)))
-    tt = t(1.0)  # answer tone with phase reversals every 450 ms
-    parts.append(0.5 * np.sin(2 * np.pi * 2100 * tt + np.pi * (np.floor(tt / 0.45) % 2)))
-    tt = t(0.5)
+        parts += [0.4 * (np.sin(2 * np.pi * lo * tt) + np.sin(2 * np.pi * hi * tt)), np.zeros(dsp.n_of(0.04))]
+    tt = t(0.35)  # answer tone with a phase reversal
+    parts.append(0.5 * np.sin(2 * np.pi * 2100 * tt + np.pi * (np.floor(tt / 0.18) % 2)))
+    tt = t(0.25)
     parts.append(0.35 * (np.sin(2 * np.pi * (980 + 400 * np.sin(2 * np.pi * 7 * tt)) * tt) + np.sin(2 * np.pi * 1650 * tt)))
-    data = dsp.svf(dsp.noise(1.3, r), 1800, q=0.8, mode='band')
-    data *= 0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 9 * t(1.3)))
+    data = dsp.svf(dsp.noise(0.45, r), 1800, q=0.8, mode='band')
+    data *= (0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 9 * t(0.45)))) * np.linspace(1, 0, dsp.n_of(0.45)) ** 0.5
     parts.append(0.6 * data / np.abs(data).max())
     y = np.concatenate(parts)
     y = dsp.butter(dsp.butter(y, 'high', 300), 'low', 3400)  # telephone line
     return dsp.room(np.tanh(1.5 * y), r, rt60=0.2, wet=0.12)
+
+
+def thunder(r):  # grzmot w oddali: narasta i toczy się kilka razy, długi ogon
+    dur = 6.0
+    t = dsp.t_of(dsp.n_of(dur))
+    rolls = sum(np.exp(-((t - c) / w) ** 2) * g for c, w, g in [(0.6, 0.5, 1.0), (1.5, 0.6, 0.85), (2.6, 0.8, 0.7), (3.8, 1.0, 0.45)])
+    rumble = dsp.butter(dsp.noise(dur, r, 'brown'), 'low', 120)
+    rumble = rumble / np.abs(rumble).max() * rolls * np.clip(t / 0.4, 0, 1)
+    body = dsp.butter(dsp.noise(dur, r, 'pink'), 'low', 600)
+    body = body / np.abs(body).max() * rolls * 0.35 * np.exp(-t / 2.0)
+    y = rumble * 1.4 + body
+    return dsp.room(y, r, rt60=2.2, wet=0.35)
 
 
 # ------------------------------------------------------------------ weather and nature
@@ -403,10 +414,9 @@ def main():
     save('scan_hum', scan_hum(), -8, loop=True)
     save('detect', detect(r), -6)
     save('knock', door_knock(r), -4)
-    save('dawn', dsp.stack([(chord(['C6', 'E6', 'G6', 'C7'], step=0.13), 0, 0), (b('pro_shimmer/m1'), 0.3, -12)], peak_db=-1))
-    save('dusk', dsp.stack([(chord(['G6', 'E6', 'C6', 'G5'], 'mallet/marimba', step=0.16), 0, 0), (b('reverse_swell/dark'), 0.0, -14)], peak_db=-1))
     save('floppy', floppy(r), -8)
     save('modem', modem(r), -6)
+    save('thunder', thunder(r), -3)
     save('tick', b('fit/tick/domino'), -12)
     save('chord', chord(['C6', 'E6', 'G6', 'C7'], step=0.04))
     save('pop', b('pro_pop/bloop'), -8)
