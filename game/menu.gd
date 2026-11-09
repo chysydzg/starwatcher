@@ -11,7 +11,7 @@ func _ready() -> void:
 	var cam := Camera2D.new()  # scena 640x360 na środku; szeroki ekran pokazuje więcej balkonu
 	cam.position = Vector2(320, 180)
 	add_child(cam)
-	for k in [["balcony_wide", Vector2(-320, 0)], ["balcony", Vector2.ZERO]]:
+	for k in [["balcony_wide", Vector2(-320, -60)], ["balcony", Vector2.ZERO]]:
 		var bg := Sprite2D.new()
 		bg.texture = Game.tex(k[0])
 		bg.centered = false

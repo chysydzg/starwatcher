@@ -24,7 +24,7 @@ var skip_seen := -10.0     # kiedy ostatnio wciśnięto klawisz: napis pokazuje 
 
 
 func _ready() -> void:
-	_sprite("balcony_cut_wide", Vector2(-320, 0))  # szeroki ekran: balkon i jezioro dalej w obie strony
+	_sprite("balcony_cut_wide", Vector2(-320, -60))  # szeroki ekran: balkon i jezioro dalej w obie strony
 	_sprite("balcony_cut", Vector2.ZERO)
 	add_child(preload("res://game/sky_fx.gd").new())  # gwiazdy i spadające gwiazdy
 	var o := _sprite("cut_observatory", Vector2(146, 143))  # białe obserwatorium z otwartą kopułą

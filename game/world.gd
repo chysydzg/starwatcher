@@ -132,7 +132,7 @@ func _sprite(tex_name: String, pos: Vector2, parent: Node) -> Sprite2D:
 ## tło + sortowane obiekty z layoutu; zwraca węzeł sortujący (Jania trafia do niego)
 func _scene(where: String, root: Node2D) -> Node2D:
 	if FileAccess.file_exists(Game.ART + where + "_wide.png"):  # szeroki ekran: tło dalej w obie strony
-		_sprite(where + "_wide", Vector2(-320, 0), root)
+		_sprite(where + "_wide", Vector2(-320, -60), root)
 	_sprite(where, Vector2.ZERO, root)
 	var sorter := Node2D.new()
 	sorter.y_sort_enabled = true
@@ -396,7 +396,7 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 		o.draw_rect(Rect2(cx + 12, cy - 5, 36, 5), body_c)
 		o.draw_rect(Rect2(cx + 4, cy + 6, 60, 2), Color("ffb070").lerp(Color("2a2246"), night))
 	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
-	o.draw_texture(Game.tex("balcony_view_wide"), Vector2(-320, 0), Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
+	o.draw_texture(Game.tex("balcony_view_wide"), Vector2(-320, -60), Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
 	var glint := Color("f4f8ff").lerp(Color("ffc890"), dusk).lerp(Color("c8d0ff"), night)
 	for i in 60:  # fale: krótkie błyski dryfujące po jeziorze
 		var y := 224 + (i * 37) % 132

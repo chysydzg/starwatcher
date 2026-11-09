@@ -4,14 +4,17 @@ const W = 640, H = 360, SHORE = 210, RAIL = 266, DECK = 302;
 const CUT = process.env.CUT === "1"; // wersja do intro/montażu: bez starego budynku (zastępuje go białe obserwatorium)
 const WIDE = process.env.WIDE === "1"; // szeroki ekran (np. 21:9): tło szersze o 320 px z każdej strony; środek jak zwykle
 const OX = WIDE ? 320 : 0, X0 = -OX, X1 = W + OX, BW = W + 2 * OX;
+const OY = WIDE ? 60 : 0, BH = H + 2 * OY; // wyższy ekran (16:10, 4:3): niebo wyżej, deski niżej
 const NAME = (CUT ? "_cut" : "") + (WIDE ? "_wide" : "");
-const b = new P.Buf(BW, H);
+const b = new P.Buf(BW, BH);
 b.ox = -OX;
-const at = (x, y) => y * BW + x + OX; // indeks piksela w świecie
+b.oy = -OY;
+const at = (x, y) => (y + OY) * BW + x + OX; // indeks piksela w świecie
 
 // ---- niebo
 const skyCols = [[14, 16, 44], [20, 26, 66], [30, 38, 92], [44, 50, 112], [66, 62, 128], [92, 76, 136]];
 P.sky(b, { cols: [...skyCols].reverse(), y0: 0, y1: SHORE });
+if (WIDE) b.rect(X0, -OY, X1, 0, skyCols[0]); // nad kadrem: najciemniejszy pas nieba
 // poświata księżyca
 const MX = 492, MY = 74;
 for (let y = 0; y < SHORE; y++)
@@ -35,8 +38,8 @@ for (const [cx, cy, r] of [[484, 66, 4], [500, 82, 5], [496, 62, 2], [478, 82, 3
 if (WIDE) { // gwiazdy po bokach (osobny generator: środek nieba zostaje taki sam)
   const rw = P.rng(23);
   for (let i = 0; i < 260; i++) {
-    const x = Math.floor(X0 + rw() * BW), y = Math.floor(rw() * (SHORE - 50)), k = rw();
-    if (x >= 0 && x < W) continue;
+    const x = Math.floor(X0 + rw() * BW), y = Math.floor(-OY + rw() * (SHORE - 50 + OY)), k = rw();
+    if (x >= 0 && x < W && y >= 0) continue;
     b.pset(x, y, k < 0.5 ? [150, 150, 200] : k < 0.75 ? [230, 226, 250] : k < 0.88 ? [255, 236, 170] : [180, 210, 255]);
   }
 }
@@ -92,8 +95,10 @@ for (let y = SHORE + 5; y < DECK; y++) for (let x = X0; x < X1; x++) if (P.fbm(x
 
 const lake = b.px.slice(); // do pominięcia jeziora w nocnym przyciemnianiu
 { // widok zza balkonu bez nieba (przezroczyste), jezioro odbite w dół do krawędzi ekranu – tło animacji zmierzchu
-  const v = new P.Buf(BW, H);
-  for (let y = 0; y < H; y++) {
+  const v = new P.Buf(BW, BH);
+  v.ox = -OX;
+  v.oy = -OY;
+  for (let y = -OY; y < H + OY; y++) {
     const sy = y < DECK ? y : 2 * DECK - 1 - y;
     for (let x = X0; x < X1; x++) {
       const i = at(x, sy);
@@ -119,8 +124,8 @@ b.rect(78, RAIL, X1, RAIL + 1, [250, 248, 236]); // księżycowy połysk na por�
 slab(b, 78, DECK - 6, X1, DECK - 2, paint, 0.6, 0.35, { grain: 0 });
 
 // ---- podłoga balkonu: deski coraz szersze ku dołowi (perspektywa)
-for (let y = DECK, row = 0, h = 4; y < H; y += h, row++, h = Math.min(h + 1, 9))
-  for (let yy = y; yy < Math.min(y + h, H); yy++)
+for (let y = DECK, row = 0, h = 4; y < H + OY; y += h, row++, h = Math.min(h + 1, 9))
+  for (let yy = y; yy < Math.min(y + h, H + OY); yy++)
     for (let x = X0; x < X1; x++) {
       const seam = (x + row * 53) % 120 === 0;
       let c = R.wood[P.hash(row, Math.floor((x + row * 53) / 120), 7) > 0.65 ? 1 : 2];
@@ -185,9 +190,9 @@ piece("plant", 341, [564, 330, 600, 346], (T) => obj(T, 562, 280, 36, 60, (s) =>
 
 // ---- noc: przyciemnienie pierwszego planu (balkon jest sceną nocną) + ciepła poświata z drzwi
 const tint = (buf, bg) => {
-  for (let y = 150; y < H; y++)
+  for (let y = 150; y < buf.oy + buf.h; y++)
     for (let x = buf.ox; x < buf.ox + buf.w; x++) {
-      const i = y * buf.w + x - buf.ox;
+      const i = (y - buf.oy) * buf.w + x - buf.ox;
       if (!(buf.px[i] >>> 24)) continue;
       if (bg && x >= 78 && (y < RAIL || buf.px[i] === lake[at(x, y)])) continue; // niebo i jezioro są już nocne
       const c = P.unpack(buf.get(x, y));
