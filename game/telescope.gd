@@ -654,6 +654,7 @@ func _draw() -> void:
 	_sh = Vector2(_rng.randi_range(-2, 2), _rng.randi_range(-2, 2)) if shake > 0 else Vector2.ZERO
 	if _sh == Vector2.ZERO and not meteor.is_empty() and meteor.t < 1.2:  # meteor: okular drży, czas reagować
 		_sh = Vector2(_rng.randi_range(-1, 1), _rng.randi_range(-1, 1))  # lekki wstrząs po kliknięciu gwiazdy
+	draw_rect(Rect2(-Game.margin, Game.view), Color("0d0a16"))  # szeroki ekran: wokół okularu ciemno
 	draw_set_transform(_sh)
 	var half := Vector2(R, R)
 	draw_texture_rect_region(_sky_tex, Rect2(C - half, half * 2), Rect2(cam - half / zoom, half * 2 / zoom))

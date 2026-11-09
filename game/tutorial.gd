@@ -53,10 +53,10 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var dim := ColorRect.new()
 	dim.color = Color(0.06, 0.04, 0.1, 0.75)
-	dim.size = Vector2(640, 360)
+	Game.cover(dim)
 	add_child(dim)
 	var p := Panel.new()
-	p.position = Vector2(140, 8)
+	p.position = Vector2(140, 8) + Game.margin  # dim zaczyna się w -margin
 	p.size = Vector2(360, 344)  # tekst do 4 linii
 	dim.add_child(p)
 	_title = Label.new()

@@ -57,6 +57,10 @@ func _ready() -> void:
 	theme = _make_theme()
 	Game.sfx("crt_on")  # „thump” i pisk kineskopu, potem szum blaszaka
 	Game.loop("crt_hum", -10.0)
+	var back := ColorRect.new()  # szeroki ekran: obudowa monitora dookoła pulpitu
+	back.color = Color("0d0a16")
+	Game.cover(back)
+	add_child(back)
 	var wall := TextureRect.new()
 	wall.texture = Game.tex("os/os_wallpaper")
 	add_child(wall)

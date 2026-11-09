@@ -85,7 +85,7 @@ func _ready() -> void:
 	_layer(1).add_child(glow)
 	ui = _layer(5)
 	crt = ColorRect.new()
-	crt.size = Vector2(640, 360)
+	Game.cover(crt)
 	crt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	crt.material = ShaderMaterial.new()
 	crt.material.shader = load("res://game/crt.gdshader")
@@ -97,9 +97,12 @@ func _ready() -> void:
 	top = _layer(20)
 	fade = ColorRect.new()
 	fade.color = Color("1a1426")
-	fade.size = Vector2(640, 360)
+	Game.cover(fade)
 	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(fade)
+	var cam := Camera2D.new()  # świat 640x360 na środku; na szerokim ekranie po bokach widać więcej balkonu
+	cam.position = Vector2(320, 180)
+	add_child(cam)
 	Game.toast.connect(_toast)
 	Game.changed.connect(_refresh)
 	_enter(Game.location, true)
@@ -128,6 +131,8 @@ func _sprite(tex_name: String, pos: Vector2, parent: Node) -> Sprite2D:
 
 ## tło + sortowane obiekty z layoutu; zwraca węzeł sortujący (Jania trafia do niego)
 func _scene(where: String, root: Node2D) -> Node2D:
+	if FileAccess.file_exists(Game.ART + where + "_wide.png"):  # szeroki ekran: tło dalej w obie strony
+		_sprite(where + "_wide", Vector2(-320, 0), root)
 	_sprite(where, Vector2.ZERO, root)
 	var sorter := Node2D.new()
 	sorter.y_sort_enabled = true
@@ -330,7 +335,7 @@ func _ask(q: String, yes: Callable) -> void:
 ## zmierzch (dawn = false: Słońce zachodzi, wschodzi Księżyc) albo świt (odwrotnie); potem KONTYNUUJ → then
 func _sky_anim(dawn: bool, then: Callable) -> void:
 	var o := Control.new()
-	o.size = Vector2(640, 360)
+	Game.cover(o)
 	top.add_child(o)
 	dusk_o = o
 	var k := {"u": 0.0}
@@ -341,7 +346,7 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 	tw.tween_callback(func():
 		var b := Button.new()
 		b.text = "KONTYNUUJ"
-		b.position = Vector2(260, 318)
+		b.position = Vector2(260, 318) + Game.margin
 		b.custom_minimum_size = Vector2(120, 30)
 		o.add_child(b)
 		b.grab_focus()
@@ -359,8 +364,12 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 	var night := clampf(prog * 2.0 - 1.0, 0, 1)
 	var sky_top := Color("4a8ad8").lerp(Color("3a3a78"), dusk).lerp(Color("0a0c24"), night)
 	var hor := Color("a8d8f4").lerp(Color("ff9a5a"), dusk).lerp(Color("2a2650"), night)
+	o.draw_set_transform(Game.margin)  # rysunek w układzie sceny 640x360, ekran może być szerszy
+	var lx := -Game.margin.x
+	var vw := Game.view.x
+	o.draw_rect(Rect2(lx, -Game.margin.y, vw, Game.view.y), Color("0a0c24").lerp(sky_top, 0.5))
 	for i in 12:  # 12 pasm koloru jak w pixel arcie (bez gładkiego gradientu)
-		o.draw_rect(Rect2(0, i * 20, 640, 20), sky_top.lerp(hor, pow(i / 11.0, 1.6)))
+		o.draw_rect(Rect2(lx, i * 20, vw, 20), sky_top.lerp(hor, pow(i / 11.0, 1.6)))
 	for i in 90:  # gwiazdy z migotaniem
 		var a := clampf(prog * 3.0 - 1.9 - (i % 7) * 0.08, 0, 1) * (0.6 + 0.4 * sin(Time.get_ticks_msec() / 300.0 + i))
 		o.draw_rect(Rect2((i * 97) % 640, (i * 53) % 200, 1 + int(i % 11 == 0), 1 + int(i % 11 == 0)), Color(1, 0.95, 0.85, a))
@@ -387,7 +396,7 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 		o.draw_rect(Rect2(cx + 12, cy - 5, 36, 5), body_c)
 		o.draw_rect(Rect2(cx + 4, cy + 6, 60, 2), Color("ffb070").lerp(Color("2a2246"), night))
 	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
-	o.draw_texture(Game.tex("balcony_view"), Vector2.ZERO, Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
+	o.draw_texture(Game.tex("balcony_view_wide"), Vector2(-320, 0), Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
 	var glint := Color("f4f8ff").lerp(Color("ffc890"), dusk).lerp(Color("c8d0ff"), night)
 	for i in 60:  # fale: krótkie błyski dryfujące po jeziorze
 		var y := 224 + (i * 37) % 132
@@ -400,7 +409,7 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 				var w := 6.0 + 6.0 * absf(sin(now * 3.0 + r * 1.3)) - r * 0.2
 				o.draw_rect(Rect2(floorf(body_pos[0].x - w / 2), 226 + r * 6, floorf(w), 1), Color(body_pos[1], 0.8 - r * 0.045))
 	if Game.rain if dawn else Game.rain_next:  # deszcz tej nocy (zmierzch) albo tej, która minęła (świt)
-		o.draw_rect(Rect2(0, 0, 640, 360), Color(0.12, 0.14, 0.22, 0.3))
+		o.draw_rect(Rect2(lx, -Game.margin.y, vw, Game.view.y), Color(0.12, 0.14, 0.22, 0.3))
 		for i in 140:
 			var p := Vector2(fposmod(i * 53.3 - now * 40.0, 700.0) - 30.0, fposmod(now * (260.0 + i % 5 * 30.0) + i * 37.0, 400.0) - 20.0).floor()
 			o.draw_line(p, p + Vector2(-3, 11), Color(0.75, 0.82, 1.0, 0.25 + i % 3 * 0.08), 1.0)
@@ -736,7 +745,7 @@ func _sleep() -> void:
 		rows.append(["Paczka: " + n, 0, "", 0])
 	var h := 52 + maxi(rows.size(), 1) * 18 + 46
 	var p := _panel(Vector2(400, h))
-	p.position = Vector2(120, floorf((360 - h - 40) / 2.0))  # okienko na środku, przycisk tuż pod nim
+	p.position = Vector2(120, floorf((360 - h - 40) / 2.0)) + Game.margin  # okienko na środku, przycisk tuż pod nim
 	var title := Label.new()
 	title.text = "PODSUMOWANIE · " + s.calendar
 	title.position = Vector2(14, 10)
@@ -806,7 +815,7 @@ func _sleep() -> void:
 	var ok := Button.new()
 	ok.text = "KOLEJNY DZIEŃ"
 	ok.custom_minimum_size = Vector2(150, 26)
-	ok.position = Vector2(245, p.position.y + h + 8)
+	ok.position = Vector2(245 + Game.margin.x, p.position.y + h + 8)
 	p.get_parent().add_child(ok)
 	ok.grab_focus.call_deferred()
 	ok.pressed.connect(func():
@@ -833,11 +842,11 @@ func _sleep() -> void:
 func _panel(sz: Vector2) -> Panel:
 	var dim := ColorRect.new()
 	dim.color = Color(0.06, 0.04, 0.1, 0.7)
-	dim.size = Vector2(640, 360)
+	Game.cover(dim)
 	top.add_child(dim)
 	var p := Panel.new()
 	p.size = sz
-	p.position = ((Vector2(640, 360) - sz) / 2).floor()
+	p.position = ((Vector2(640, 360) - sz) / 2).floor() + Game.margin  # dzieci dim: dim zaczyna się w -margin
 	dim.add_child(p)
 	return p
 
@@ -1048,18 +1057,20 @@ func _draw_hud() -> void:
 	var n := hud
 	if viewport and viewport.get("hide_hud"):
 		return
-	Game.metal(n, Rect2(4, 4, 92, 40))
-	_txt(Vector2(11, 21), "$ %d" % Game.money, Color("ffcf6b"))
-	_txt(Vector2(11, 37), "PW %d" % Game.pw, Color("6affa0"))
+	var lt := -Game.margin  # rogi ekranu (szeroki ekran: dalej niż scena 640x360)
+	var rt := Vector2(Game.margin.x, -Game.margin.y)
+	Game.metal(n, Rect2(lt + Vector2(4, 4), Vector2(92, 40)))
+	_txt(lt + Vector2(11, 21), "$ %d" % Game.money, Color("ffcf6b"))
+	_txt(lt + Vector2(11, 37), "PW %d" % Game.pw, Color("6affa0"))
 	var cal := Game.calendar()
-	Game.metal(n, Rect2(622 - _w(cal), 4, _w(cal) + 14, 24))
-	_txt(Vector2(629 - _w(cal), 21), cal, Color("c8c4e8"))
+	Game.metal(n, Rect2(rt + Vector2(622 - _w(cal), 4), Vector2(_w(cal) + 14, 24)))
+	_txt(rt + Vector2(629 - _w(cal), 21), cal, Color("c8c4e8"))
 	if Game.night:  # pasek pozostałego czasu nocy
 		var frac := Game.night_left / Game.night_length()
-		Game.metal(n, Rect2(500, 32, 136, 24))
-		_txt(Vector2(507, 49), "NOC %d:%02d" % [floori(Game.night_left / 60.0), int(Game.night_left) % 60], Color("c8c4e8"))
-		n.draw_rect(Rect2(572, 41, 56, 6), Color("2a2a40"))
-		n.draw_rect(Rect2(572, 41, 56 * frac, 6), Color("8aa8ff") if frac > 0.2 else Color("ff9a6a"))
+		Game.metal(n, Rect2(rt + Vector2(500, 32), Vector2(136, 24)))
+		_txt(rt + Vector2(507, 49), "NOC %d:%02d" % [floori(Game.night_left / 60.0), int(Game.night_left) % 60], Color("c8c4e8"))
+		n.draw_rect(Rect2(rt + Vector2(572, 41), Vector2(56, 6)), Color("2a2a40"))
+		n.draw_rect(Rect2(rt + Vector2(572, 41), Vector2(56 * frac, 6)), Color("8aa8ff") if frac > 0.2 else Color("ff9a6a"))
 	var y := 72.0
 	for tt in toasts:  # powiadomienia: środek ekranu, jedno pod drugim, bez ramek
 		var col: Color = {"good": Color("6affa0"), "info": Color("f4ecdc"), "say": Color("ffcf6b"), "bad": Color("ff8a8a")}[tt.kind]

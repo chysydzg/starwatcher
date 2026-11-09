@@ -24,6 +24,7 @@ var skip_seen := -10.0     # kiedy ostatnio wciśnięto klawisz: napis pokazuje 
 
 
 func _ready() -> void:
+	_sprite("balcony_cut_wide", Vector2(-320, 0))  # szeroki ekran: balkon i jezioro dalej w obie strony
 	_sprite("balcony_cut", Vector2.ZERO)
 	add_child(preload("res://game/sky_fx.gd").new())  # gwiazdy i spadające gwiazdy
 	var o := _sprite("cut_observatory", Vector2(146, 143))  # białe obserwatorium z otwartą kopułą
@@ -45,7 +46,7 @@ func _ready() -> void:
 	ui.layer = 20
 	add_child(ui)
 	fade.color = Color.BLACK
-	fade.size = Vector2(640, 360)
+	Game.cover(fade)
 	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(fade)
 	skip_ui.draw.connect(_draw_skip)
@@ -619,7 +620,7 @@ func _draw_skip() -> void:
 	var talking := get_children().any(func(c): return c.has_signal("line_shown"))
 	var msg := "Pomiń " + Game.key("advance")
 	var w := Game.font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
-	var p := Vector2(628 - w, 220.0 if talking else 350.0).floor()  # przy dialogu nad jego okienkiem
+	var p := Vector2(628 + Game.margin.x - w, 220.0 if talking else 350.0 + Game.margin.y).floor()  # prawy dolny róg ekranu; przy dialogu nad jego okienkiem
 	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
 		skip_ui.draw_string(Game.font, p + d, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.1, 0.08, 0.16, a))
 	skip_ui.draw_string(Game.font, p, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.98, 0.95, 0.86, a))

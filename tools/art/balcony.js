@@ -2,8 +2,12 @@
 const { P, R, slab, obj, shadow, piece, savePieces } = require("./kit.js");
 const W = 640, H = 360, SHORE = 210, RAIL = 266, DECK = 302;
 const CUT = process.env.CUT === "1"; // wersja do intro/montażu: bez starego budynku (zastępuje go białe obserwatorium)
-const NAME = CUT ? "_cut" : "";
-const b = new P.Buf(W, H);
+const WIDE = process.env.WIDE === "1"; // szeroki ekran (np. 21:9): tło szersze o 320 px z każdej strony; środek jak zwykle
+const OX = WIDE ? 320 : 0, X0 = -OX, X1 = W + OX, BW = W + 2 * OX;
+const NAME = (CUT ? "_cut" : "") + (WIDE ? "_wide" : "");
+const b = new P.Buf(BW, H);
+b.ox = -OX;
+const at = (x, y) => y * BW + x + OX; // indeks piksela w świecie
 
 // ---- niebo
 const skyCols = [[14, 16, 44], [20, 26, 66], [30, 38, 92], [44, 50, 112], [66, 62, 128], [92, 76, 136]];
@@ -28,11 +32,19 @@ P.solid(b, [P.ell(MX, MY, 22, 22)], P.hueRamp(5, { hue: 48, shift: 25, sat: 0.55
 for (const [cx, cy, r] of [[484, 66, 4], [500, 82, 5], [496, 62, 2], [478, 82, 3], [507, 70, 2]])
   for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) b.pset(cx + x, cy + y, P.mix(P.unpack(b.get(cx + x, cy + y)), [180, 150, 110], 0.35));
 
+if (WIDE) { // gwiazdy po bokach (osobny generator: środek nieba zostaje taki sam)
+  const rw = P.rng(23);
+  for (let i = 0; i < 260; i++) {
+    const x = Math.floor(X0 + rw() * BW), y = Math.floor(rw() * (SHORE - 50)), k = rw();
+    if (x >= 0 && x < W) continue;
+    b.pset(x, y, k < 0.5 ? [150, 150, 200] : k < 0.75 ? [230, 226, 250] : k < 0.88 ? [255, 236, 170] : [180, 210, 255]);
+  }
+}
 const skyOnly = b.px.slice(); // do wycięcia samego krajobrazu (balcony_view.png – animacja zmierzchu)
 
 // ---- góry (dwa plany) i las na drugim brzegu
 const ridge = (y0, amp, s, cols, haze) => {
-  for (let x = 0; x < W; x++) {
+  for (let x = X0; x < X1; x++) {
     const top = y0 - amp * P.fbm(x * 0.008, 0.5, 4, s);
     for (let y = Math.floor(top); y < SHORE; y++) {
       const v = 0.85 - (y - top) / 50;
@@ -46,6 +58,10 @@ ridge(194, 30, 8, P.hueRamp(4, { hue: 210, shift: 30, sat: 0.32, light: [0.1, 0.
 const pine = P.hueRamp(4, { hue: 170, shift: 40, sat: 0.3, light: [0.1, 0.3] });
 for (let x = 4, i = 0; x < W; x += 6 + (i * 7) % 5, i++) {
   if (x > 140 && x < 230) continue; // miejsce na budynek
+  P.conifer(b, { x, base: SHORE - 4, h: 14 + (i * 13) % 12, rx: 4 + (i % 3), cols: pine, bark: [[20, 18, 30], [30, 24, 40]], seed: i });
+}
+for (let x = X0 + 2, i = 500; x < X1; x += 6 + (i * 7) % 5, i++) { // las po bokach szerokiego ekranu
+  if (x >= -4 && x < W + 4) continue;
   P.conifer(b, { x, base: SHORE - 4, h: 14 + (i * 13) % 12, rx: 4 + (i % 3), cols: pine, bark: [[20, 18, 30], [30, 24, 40]], seed: i });
 }
 // ---- opuszczony budynek z małą kopułą (przyszłe laboratorium)
@@ -64,7 +80,7 @@ if (!CUT) obj(b, 150, 165, 74, 42, (s) => {
 
 // ---- drugi brzeg: wąski pas trawy pod lasem + piaszczysta plaża (jak nad jeziorem na zdjęciu)
 const sand = P.hueRamp(3, { hue: 38, shift: 22, sat: 0.28, light: [0.3, 0.5] });
-for (let x = 0; x < W; x++) {
+for (let x = X0; x < X1; x++) {
   const top = SHORE - 6 + Math.round(1.2 * Math.sin(x * 0.05) + 0.8 * Math.sin(x * 0.17));
   const wide = 5 + Math.round(2 * Math.sin(x * 0.03 + 1)); // plaża raz szersza, raz węższa
   for (let y = top; y < top + 2; y++) b.pset(x, y, [26, 44, 40]);
@@ -72,23 +88,23 @@ for (let x = 0; x < W; x++) {
 }
 // ---- jezioro: odbicie brzegu + pasy fal
 P.reflect(b, { y0: SHORE + 4, y1: DECK, t: 0, T: 1, cols: [[30, 42, 90], [18, 26, 60]], keep: 0.55, falloff: 0.01, squash: 1.2 });
-for (let y = SHORE + 5; y < DECK; y++) for (let x = 0; x < W; x++) if (P.fbm(x * 0.03, y * 0.8, 2, 4) > 0.62) b.pset(x, y, P.mix(P.unpack(b.get(x, y)), [90, 110, 170], 0.3));
+for (let y = SHORE + 5; y < DECK; y++) for (let x = X0; x < X1; x++) if (P.fbm(x * 0.03, y * 0.8, 2, 4) > 0.62) b.pset(x, y, P.mix(P.unpack(b.get(x, y)), [90, 110, 170], 0.3));
 
 const lake = b.px.slice(); // do pominięcia jeziora w nocnym przyciemnianiu
 { // widok zza balkonu bez nieba (przezroczyste), jezioro odbite w dół do krawędzi ekranu – tło animacji zmierzchu
-  const v = new P.Buf(W, H);
+  const v = new P.Buf(BW, H);
   for (let y = 0; y < H; y++) {
     const sy = y < DECK ? y : 2 * DECK - 1 - y;
-    for (let x = 0; x < W; x++) {
-      const i = sy * W + x;
-      if (sy >= SHORE || lake[i] !== skyOnly[i]) v.px[y * W + x] = lake[i];
+    for (let x = X0; x < X1; x++) {
+      const i = at(x, sy);
+      if (sy >= SHORE || lake[i] !== skyOnly[i]) v.px[at(x, y)] = lake[i];
     }
   }
   P.save(v, process.argv[2] + "/balcony_view" + NAME + ".png");
 }
 // ---- ściana budynku i otwarte drzwi balkonowe (ciepłe światło z pokoju)
-slab(b, 0, 150, 78, DECK, R.beige, 0.5, 0.35, { grain: 0.06, sx: 0.2, sy: 0.2 });
-for (let y = 156; y < DECK; y += 8) b.rect(0, y, 78, y + 1, R.beige[1]);
+slab(b, X0, 150, 78, DECK, R.beige, 0.5, 0.35, { grain: 0.06, sx: 0.2, sy: 0.2 });
+for (let y = 156; y < DECK; y += 8) b.rect(X0, y, 78, y + 1, R.beige[1]);
 obj(b, 14, 214, 46, DECK - 214, (s) => {
   slab(s, 0, 0, 46, DECK - 214, R.woodL, 0.67, 0.67); // sama framuga, drzwi otwarte do środka
   slab(s, 5, 5, 41, DECK - 214, R.gold, 1, 0.6);
@@ -96,16 +112,16 @@ obj(b, 14, 214, 46, DECK - 214, (s) => {
 
 // ---- balustrada (malowane drewno, jak w Twoim szkicu)
 const paint = P.hueRamp(3, { hue: 40, shift: 25, sat: 0.18, light: [0.5, 0.86] });
-for (let x = 78; x < W; x += 11) slab(b, x, RAIL + 6, x + 4, DECK - 4, paint, 0.75, 0.45, { grain: 0 });
-for (let x = 78; x < W; x += 110) slab(b, x, RAIL - 4, x + 8, DECK, paint, 0.85, 0.5, { grain: 0 });
-slab(b, 78, RAIL, W, RAIL + 6, paint, 0.95, 0.55, { grain: 0 });
-b.rect(78, RAIL, W, RAIL + 1, [250, 248, 236]); // księżycowy połysk na poręczy
-slab(b, 78, DECK - 6, W, DECK - 2, paint, 0.6, 0.35, { grain: 0 });
+for (let x = 78; x < X1; x += 11) slab(b, x, RAIL + 6, x + 4, DECK - 4, paint, 0.75, 0.45, { grain: 0 });
+for (let x = 78; x < X1; x += 110) slab(b, x, RAIL - 4, x + 8, DECK, paint, 0.85, 0.5, { grain: 0 });
+slab(b, 78, RAIL, X1, RAIL + 6, paint, 0.95, 0.55, { grain: 0 });
+b.rect(78, RAIL, X1, RAIL + 1, [250, 248, 236]); // księżycowy połysk na poręczy
+slab(b, 78, DECK - 6, X1, DECK - 2, paint, 0.6, 0.35, { grain: 0 });
 
 // ---- podłoga balkonu: deski coraz szersze ku dołowi (perspektywa)
 for (let y = DECK, row = 0, h = 4; y < H; y += h, row++, h = Math.min(h + 1, 9))
   for (let yy = y; yy < Math.min(y + h, H); yy++)
-    for (let x = 0; x < W; x++) {
+    for (let x = X0; x < X1; x++) {
       const seam = (x + row * 53) % 120 === 0;
       let c = R.wood[P.hash(row, Math.floor((x + row * 53) / 120), 7) > 0.65 ? 1 : 2];
       if (yy === y) c = R.wood[3];
@@ -113,7 +129,7 @@ for (let y = DECK, row = 0, h = 4; y < H; y += h, row++, h = Math.min(h + 1, 9))
       if (yy === y + h - 1 || seam) c = R.wood[0];
       b.pset(x, yy, c);
     }
-for (let x = 0; x < W; x++) b.pset(x, DECK, R.wood[0]);
+for (let x = X0; x < X1; x++) b.pset(x, DECK, R.wood[0]);
 
 // ---- rekwizyty: tani teleskop, leżak z kocem, skrzynka z kubkiem, roślina
 shadow(b, 254, 340, 22, 3);
@@ -170,9 +186,10 @@ piece("plant", 341, [564, 330, 600, 346], (T) => obj(T, 562, 280, 36, 60, (s) =>
 // ---- noc: przyciemnienie pierwszego planu (balkon jest sceną nocną) + ciepła poświata z drzwi
 const tint = (buf, bg) => {
   for (let y = 150; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      if (!(buf.px[y * W + x] >>> 24)) continue;
-      if (bg && x >= 78 && (y < RAIL || buf.px[y * W + x] === lake[y * W + x])) continue; // niebo i jezioro są już nocne
+    for (let x = buf.ox; x < buf.ox + buf.w; x++) {
+      const i = y * buf.w + x - buf.ox;
+      if (!(buf.px[i] >>> 24)) continue;
+      if (bg && x >= 78 && (y < RAIL || buf.px[i] === lake[at(x, y)])) continue; // niebo i jezioro są już nocne
       const c = P.unpack(buf.get(x, y));
       if (bg && x >= 19 && x < 55 && y >= 219 && y < DECK) continue; // światło w drzwiach
       const n = [c[0] * 0.42 + 6, c[1] * 0.46 + 8, c[2] * 0.7 + 22];
@@ -183,5 +200,5 @@ const tint = (buf, bg) => {
 };
 tint(b, true);
 P.save(b, process.argv[2] + "/balcony" + NAME + ".png");
-if (!CUT) savePieces(process.argv[2], "balcony", (buf) => tint(buf, false));
+if (!CUT && !WIDE) savePieces(process.argv[2], "balcony", (buf) => tint(buf, false));
 console.log("balcony.png");

@@ -38,8 +38,8 @@ func _process(dt: float) -> void:
 			_flash = 1.0
 			get_tree().create_timer(_rng.randf_range(0.4, 1.4)).timeout.connect(Game.sfx.bind("thunder", _rng.randf_range(0.9, 1.1), -4.0))
 	if raining and front:
-		for i in (32 if storm else 14):
-			_drops.append(Vector3(_rng.randf_range(0, 700), _rng.randf_range(-20, 0), _rng.randf_range(0.7, 1.3)))
+		for i in (64 if storm else 28):  # krople na całej szerokości (szeroki ekran)
+			_drops.append(Vector3(_rng.randf_range(-320, 1020), _rng.randf_range(-20, 0), _rng.randf_range(0.7, 1.3)))
 	for i in range(_drops.size() - 1, -1, -1):
 		var d: Vector3 = _drops[i]
 		d += Vector3(-70, 360, 0) * d.z * dt
@@ -113,9 +113,9 @@ func _draw() -> void:
 func _draw_rain() -> void:
 	if not raining:
 		return
-	_px(0, 0, 640, 360, Color(0.12, 0.16, 0.3, 0.42 if storm else 0.32))
+	_px(-320, -Game.margin.y, 1280, Game.view.y, Color(0.12, 0.16, 0.3, 0.42 if storm else 0.32))
 	if _flash > 0.0:  # piorun: całe niebo i balkon na moment jasne
-		_px(0, 0, 640, 360, Color(0.85, 0.9, 1.0, 0.5 * _flash * (0.6 + 0.4 * absf(sin(_flash * 37.0)))))
+		_px(-320, -Game.margin.y, 1280, Game.view.y, Color(0.85, 0.9, 1.0, 0.5 * _flash * (0.6 + 0.4 * absf(sin(_flash * 37.0)))))
 	for d in _drops:
 		_px(d.x, d.y, 1, 7, Color(0.75, 0.82, 1.0, 0.55 * d.z))
 		_px(d.x + 1, d.y - 2, 1, 3, Color(0.75, 0.82, 1.0, 0.25 * d.z))

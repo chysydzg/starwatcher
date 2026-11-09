@@ -222,6 +222,8 @@ var _fades := {}  # nazwa -> Tween
 var theme: Theme
 var _textures := {}
 var _id_seq := 0
+var view := Vector2(640, 360)    # widoczny obszar (szeroki ekran: więcej niż 640x360, piksele dalej całe)
+var margin := Vector2.ZERO       # o ile scena 640x360 jest przesunięta od lewego górnego rogu ekranu
 
 
 func _ready() -> void:
@@ -235,7 +237,9 @@ func _ready() -> void:
 	_load_settings()
 	get_tree().set_auto_accept_quit(false)
 	get_tree().root.size_changed.connect(_cursor)
+	get_tree().root.size_changed.connect(_fit)
 	_cursor.call_deferred()
+	_fit.call_deferred()
 
 
 # ---------------------------------------------------------------- zasoby
@@ -388,6 +392,7 @@ func _setup_theme() -> void:
 	get_tree().root.theme = theme
 	# CanvasLayer przerywa dziedziczenie motywu: nadaj go każdej kontrolce najwyższego poziomu
 	get_tree().node_added.connect(func(n): if n is Control and n.theme == null and not (n.get_parent() is Control): n.theme = theme)
+	get_tree().node_added.connect(func(n): if n is CanvasLayer: n.offset = margin)  # UI 640x360 zawsze na środku ekranu
 
 
 func _setup_input() -> void:
@@ -868,6 +873,24 @@ func tutorial_once(host: Node, id: String) -> void:
 
 func tutorial(host: Node, id: String) -> void:
 	host.add_child(preload("res://game/tutorial.gd").new().setup(id))
+
+
+## szeroki / wysoki ekran: scena 640x360 na środku, dookoła widać więcej świata (albo tło), nigdy czarnych pasów
+func _fit() -> void:
+	view = get_tree().root.get_visible_rect().size
+	margin = ((view - Vector2(640, 360)) / 2.0).floor()
+	for l in get_tree().root.find_children("*", "CanvasLayer", true, false):
+		l.offset = margin
+	for c in get_tree().get_nodes_in_group("cover"):
+		cover(c)
+
+
+## prostokąt na cały ekran (zaciemnienie, wygaszenie, CRT) w warstwie przesuniętej o margin
+func cover(c: Control) -> void:
+	c.position = -margin
+	c.size = view
+	if not c.is_in_group("cover"):
+		c.add_to_group("cover")
 
 
 ## kursor w stylu AstroOS, skalowany jak gra (całkowicie); w samej grze świat go chowa
