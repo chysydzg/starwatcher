@@ -15,6 +15,11 @@ var fade := ColorRect.new()
 var chars := []            # [sprite, przesunięcie fazy oddechu]
 var obs := Node2D.new()    # komety i antena obserwatorium (obracająca się czasza)
 var top := Node2D.new()    # napis na drzwiach nad wszystkim
+const SKIP_HOLD := 2.5     # tyle trzeba trzymać spację, żeby pominąć intro
+var skip_t := 0.0          # jak długo trzymana
+var skipping := -1.0       # od 0 do 1: wygaszanie po pominięciu, potem gra
+var ended := false
+var skip_ui := Node2D.new()  # Pomiń [Spacja] i pasek przytrzymania, prawy dolny róg
 
 
 func _ready() -> void:
@@ -42,6 +47,8 @@ func _ready() -> void:
 	fade.size = Vector2(640, 360)
 	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(fade)
+	skip_ui.draw.connect(_draw_skip)
+	ui.add_child(skip_ui)
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	Game.loop("music/intro", -12.0, "Music")
 	Game.loop("lake", -16.0)
@@ -85,8 +92,12 @@ func _dinner() -> void:
 
 
 func _end() -> void:
+	if ended:  # pominięcie i naturalny koniec mogą przyjść oba
+		return
+	ended = true
 	Game.loop("music/intro", -INF)
 	Game.loop("lake", -INF)
+	Game.loop("rain_room", -INF)
 	get_tree().change_scene_to_file("res://game/world.tscn")
 
 
@@ -579,6 +590,30 @@ func _process(dt: float) -> void:
 		c[0].frame = 1 if fmod(t + c[1], 2.6) > 1.5 else 0
 	obs.queue_redraw()
 	top.queue_redraw()
+	if skipping < 0.0:
+		skip_t = skip_t + dt if Input.is_action_pressed("confirm") else 0.0
+		if skip_t >= SKIP_HOLD:
+			skipping = 0.0
+	else:  # szybkie wygaszenie nad tym, co akurat robi scena, potem gra
+		skipping += dt / 0.6
+		fade.color.a = maxf(fade.color.a, minf(skipping, 1.0))
+		if skipping >= 1.0:
+			_end()
+	skip_ui.queue_redraw()
+
+
+func _draw_skip() -> void:
+	var talking := get_children().any(func(c): return c.has_signal("line_shown"))
+	var msg := "Pomiń " + Game.key("advance")
+	var w := Game.font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+	var p := Vector2(628 - w, 220.0 if talking else 350.0).floor()  # przy dialogu nad jego okienkiem
+	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+		skip_ui.draw_string(Game.font, p + d, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.1, 0.08, 0.16))
+	skip_ui.draw_string(Game.font, p, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.98, 0.95, 0.86))
+	if skip_t > 0.0:  # pasek nad napisem
+		var bar := Rect2(p.x, p.y - 20, floorf(w), 4)
+		skip_ui.draw_rect(bar.grow(1), Color(0.1, 0.08, 0.16))
+		skip_ui.draw_rect(Rect2(bar.position, Vector2(floorf(bar.size.x * minf(skip_t / SKIP_HOLD, 1.0)), 4)), Color("ffcf6b"))
 
 
 func _draw_obs() -> void:
