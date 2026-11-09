@@ -120,54 +120,60 @@ func _build_frame() -> void:
 				img.set_pixel(x, y, ring_d.darkened(0.4))
 			elif d > R:
 				img.set_pixel(x, y, ring.lightened(0.15) if d < R + 2 else (ring if d < R + 4 else ring_d))
-	if not Game.has("czyszczacy"):  # brudna soczewka: tłuste smugi, odciski i kurz zasłaniają kawał nieba
-		var smudge := PackedFloat32Array()
-		smudge.resize(640 * 360)
-		for i in 14:  # smugi jak przetarte palcem: wydłużone, pod różnymi kątami
-			var c0 := C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(0, R - 20)
-			var rad := _rng.randf_range(30, 70)
-			var thin := _rng.randf_range(0.12, 0.3)
+	if not Game.has("czyszczacy"):  # brudna soczewka: kurz jak natrysk – ziarniste skupiska drobinek, gęste w środku, rzadkie na brzegach
+		for i in 10:
+			var c0 := C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(0, R - 30)
+			var rx := _rng.randf_range(14, 46)
+			var ry := rx * _rng.randf_range(0.3, 1.0)
 			var rot := _rng.randf() * PI
-			var peak := _rng.randf_range(0.25, 0.45)
-			for y in range(int(c0.y - rad), int(c0.y + rad)):
-				for x in range(int(c0.x - rad), int(c0.x + rad)):
-					var q := (Vector2(x, y) - c0).rotated(-rot)
-					var d := Vector2(q.x / rad, q.y / (rad * thin)).length()
-					if d < 1.0 and x >= 0 and y >= 0 and x < 640 and y < 360:
-						var streak := 0.6 + 0.4 * sin(q.y * 1.7)  # prążki jak ślady palców
-						smudge[y * 640 + x] = maxf(smudge[y * 640 + x], peak * pow(1.0 - d, 0.7) * streak)
-		for y in 360:
-			for x in 640:
-				var a := snappedf(smudge[y * 640 + x], 0.06)  # stopnie przezroczystości jak w pixel arcie
-				if a > 0.0 and Vector2(x, y).distance_to(C) < R:
-					img.set_pixel(x, y, Color(0.5, 0.46, 0.38, a))
-		for i in 220:  # kurz i drobinki
+			for n in int(rx * ry * _rng.randf_range(0.5, 1.1)):
+				var g := Vector2(_rng.randfn(0.0, 0.45), _rng.randfn(0.0, 0.45))
+				var q := (c0 + Vector2(g.x * rx, g.y * ry).rotated(rot)).floor()
+				if q.distance_to(C) < R - 1:
+					img.set_pixelv(Vector2i(q), Color(0.62, 0.57, 0.48, clampf(0.85 - g.length() * 0.45, 0.25, 0.8)))
+		for i in 320:  # pojedyncze pyłki po całej soczewce
 			var q := Vector2i(C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(4, R - 4))
-			img.set_pixelv(q, Color(0.72, 0.66, 0.55, _rng.randf_range(0.35, 0.7)))
-	if not Game.has("achromat"):  # pęknięta szybka: grube, rozgałęzione pęknięcie z jasną krawędzią i cieniem
-		var segs := []
-		var tips := [[C + Vector2(150, -78), PI * 0.82, 7]]
-		while not tips.is_empty():
-			var tip: Array = tips.pop_back()
-			var a: float = tip[1]
-			var p0: Vector2 = tip[0]
-			for k in tip[2]:
-				var p1: Vector2 = p0 + Vector2.from_angle(a) * _rng.randf_range(12, 22)
-				segs.append([p0, p1, maxf(2.0, 4.0 - k * 0.35)])
-				if _rng.randf() < 0.3 and k < tip[2] - 2:
-					tips.append([p1, a + _rng.randf_range(0.5, 1.0) * (1 if _rng.randf() < 0.5 else -1), tip[2] - k - 1])
-				a += _rng.randf_range(-0.4, 0.4)
-				p0 = p1
-		for sg in segs:
-			for i in 24:
-				var q: Vector2 = sg[0].lerp(sg[1], i / 24.0)
-				for w in int(sg[2]):
-					var o := Vector2i(q + Vector2(0, w))
+			img.set_pixelv(q, Color(0.66, 0.6, 0.5, _rng.randf_range(0.3, 0.65)))
+	if not Game.has("achromat"):  # pęknięcie „pajączek”: punkt uderzenia, promienie i poszarpane pierścienie (tylko kawałek soczewki)
+		var hit := C + Vector2(92, -66)
+		var spokes := []
+		var a0 := _rng.randf() * TAU
+		for k in 15:
+			var pts := [hit]
+			var a := a0 + k * TAU / 15.0 + _rng.randf_range(-0.15, 0.15)
+			var ln := _rng.randf_range(38, 78)
+			var r0 := 0.0
+			while r0 < ln:
+				r0 += _rng.randf_range(6, 11)
+				a += _rng.randf_range(-0.12, 0.12)
+				pts.append(hit + Vector2.from_angle(a) * r0)
+			spokes.append(pts)
+		var lines := []
+		for sp in spokes:
+			for j in sp.size() - 1:
+				lines.append([sp[j], sp[j + 1], 2 if j < 2 else 1])
+		for rg in [2, 4, 6]:  # pierścienie łączą sąsiednie promienie na tej samej odległości
+			for k in spokes.size():
+				var a: Array = spokes[k]
+				var b: Array = spokes[(k + 1) % spokes.size()]
+				if a.size() > rg and b.size() > rg and _rng.randf() < 0.75:
+					var mid: Vector2 = (a[rg] + b[rg]) / 2.0 + Vector2(_rng.randf_range(-3, 3), _rng.randf_range(-3, 3))
+					lines.append([a[rg], mid, 1])
+					lines.append([mid, b[rg], 1])
+		for l in lines:
+			var n := int(l[0].distance_to(l[1])) + 1
+			for i in n:
+				var q: Vector2 = l[0].lerp(l[1], float(i) / n).floor()
+				for w in l[2]:
+					var o := Vector2i(q + Vector2(w, 0))
 					if Vector2(o).distance_to(C) < R - 1:
-						img.set_pixelv(o, Color(0.92, 0.96, 1.0, 0.75) if w == 0 else Color(0.78, 0.86, 1.0, 0.45))
-				var sh := Vector2i(q + Vector2(1, sg[2]))
-				if Vector2(sh).distance_to(C) < R - 1:
-					img.set_pixelv(sh, Color(0.02, 0.02, 0.06, 0.55))
+						img.set_pixelv(o, Color(0.9, 0.95, 1.0, 0.8))
+				var sh := Vector2i(q + Vector2(l[2], 1))
+				if Vector2(sh).distance_to(C) < R - 1 and img.get_pixelv(sh).a < 0.5:
+					img.set_pixelv(sh, Color(0.02, 0.02, 0.06, 0.45))
+		for i in 40:  # skruszone szkło w miejscu uderzenia
+			var q := Vector2i(hit + Vector2(_rng.randfn(0, 2.5), _rng.randfn(0, 2.5)))
+			img.set_pixelv(q, Color(0.95, 0.98, 1.0, 0.85))
 	_frame_tex = ImageTexture.create_from_image(img)
 
 

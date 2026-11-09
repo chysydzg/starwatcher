@@ -21,7 +21,9 @@ function newton() {
   s.line(36, 54, 24, 70, sil[2], 1);
   slab0(s, 19, 68, 28, 75, blk); s.rect(20, 69, 27, 70, blk[2]);
   s.sprite(tube, 3, 0);
-  return P.trim(ink(s));
+  const o = P.trim(ink(s)), f = new P.Buf(o.w, o.h);  // lustro: tuba patrzy w prawo, jak stary teleskop
+  for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) f.px[y * o.w + x] = o.px[y * o.w + o.w - 1 - x];
+  return f;
 }
 function slab0(s, x0, y0, x1, y1, r) { s.rect(x0, y0, x1, y1, r[1]); s.rect(x0, y0, x1, y0 + 1, r[2]); s.rect(x0, y1 - 1, x1, y1, r[0]); }
 module.exports = { newton };
