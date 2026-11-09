@@ -700,6 +700,9 @@ func _draw() -> void:
 	if Game.lightning > 0.0:  # piorun (błyska sky_fx balkonu) rozświetla całe niebo w okularze
 		draw_circle(C, R, Color(0.85, 0.9, 1.0, 0.55 * Game.lightning))
 	draw_texture(_frame_tex, Vector2.ZERO)
+	var m := Game.margin + Vector2(4, 4)  # szeroki ekran: chmury nie wychodzą poza ramkę 640x360 (+4 na wstrząs)
+	for r in [Rect2(-m.x, -m.y, m.x, 360 + m.y * 2), Rect2(640, -m.y, m.x, 360 + m.y * 2), Rect2(0, -m.y, 640, m.y), Rect2(0, 360, 640, m.y)]:
+		draw_rect(r, Color("0d0a16"))
 	var ring := Color("5d6478") if Game.has("newton") else Color("b08a3c")
 	for i in 60:  # radełko pierścienia ostrości obraca się razem z kółkiem myszy
 		var dir := Vector2.from_angle(i * TAU / 60.0 + ring_a)

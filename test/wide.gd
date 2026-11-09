@@ -6,7 +6,9 @@ func shot(label: String) -> void:
 
 
 func _ready() -> void:
-	get_window().size = Vector2i(1720, 720)
+	get_window().mode = Window.MODE_WINDOWED  # ustawienia gracza mogą mieć pełny ekran
+	await get_tree().process_frame
+	get_window().size = Vector2i(1032, 432)  # 2,39:1 jak 3440x1440 (mieści się na każdym ekranie)
 	Game.use_test_save()
 	var m = load("res://game/menu.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(m)
