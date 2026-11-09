@@ -129,6 +129,7 @@ const SCIENCE := [
 	["nawyk1", "Nawyk Notowania I", 15, 1, 1, "", "+1 PW za każdy zaznaczony punkt."],
 	["nawyk2", "Nawyk Notowania II", 35, 1, 1, "nawyk1", "+2 PW za punkt (łącznie +3)."],
 	["kawa", "Nocna Kawa", 50, 1, 1, "", "Celownik porusza się o 20% szybciej."],
+	["nocny1", "Nocny Marek I", 30, 1, 1, "", "Noc trwa 10 s dłużej."],
 	["podstawowe", "Podstawowe Gwiazdozbiory", 20, 1, 2, "", "Proste układy 3-4 gwiazd i znaki zodiaku pory roku."],
 	["meteory", "Szybkie Spadające Gwiazdy", 60, 1, 2, "podstawowe", "Na niebie przelatują meteory: +25 PW."],
 	["mikro", "Pokrętło Mikro-Ruchów", 180, 2, 0, "", "Usuwa drgania celownika."],
@@ -137,6 +138,7 @@ const SCIENCE := [
 	["pamiec1", "Pamięć Fotograficzna I", 120, 2, 1, "", "+10% PW ze wszystkich źródeł."],
 	["pamiec2", "Pamięć Fotograficzna II", 250, 2, 1, "pamiec1", "Kolejne +15% PW."],
 	["instytuty", "Oferty Instytutów", 200, 2, 1, "", "Każdego ranka 30% szans, że instytut zechce kupić jedno odkrycie za 150% ceny."],
+	["nocny2", "Nocny Marek II", 160, 2, 1, "nocny1", "Noc trwa kolejne 15 s dłużej."],
 	["encyklopedia", "Encyklopedia Astronomiczna", 300, 2, 1, "", "+0,5 PW/s nocy za każdy odkryty obiekt (maks. 20)."],
 	["obloki", "Głębokie Obłoki Gazu", 150, 2, 2, "podstawowe", "Mgławice i pył kosmiczny (2x PW)."],
 	["kometa", "Kometa Okresowa", 280, 2, 2, "", "Kometa widoczna przez 3 noce: +150 PW."],
@@ -155,29 +157,31 @@ const SCIENCE_PATHS := ["Skanowanie i Optyka", "Analiza i Metodologia", "Kartogr
 
 # ---------------------------------------------------------------- sklep Retro-Tech & Astro (GDD 11)
 const SHOP := [
-	["statyw", "Używany Statyw Drewniany", 20, 1, 0, "", "Drgania celownika -40%."],
+	["statyw", "Używany Statyw Drewniany", 20, 1, 0, "", "Celownik drży o 40% mniej."],
 	["czyszczacy", "Zestaw Czyszczący Optykę", 45, 1, 0, "", "Czyści brudną soczewkę: wyraźny obraz i szersze pole ostrości."],
-	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Wartość odkryć +10%."],
-	["dd", "Paczka Dyskietek 3.5\" DD", 30, 1, 1, "", "+5 slotów (10)."],
-	["hd", "Paczka Dyskietek 3.5\" HD", 75, 1, 1, "dd", "+10 slotów (20)."],
-	["achromat", "Szklana Soczewka Achromatyczna", 150, 2, 0, "czyszczacy", "Naprawia pękniętą szybkę. Wartość +20%."],
-	["montaz", "Ręczny Montaż Paralaktyczny", 280, 2, 0, "statyw", "Płynniej, przyciąganie +35%."],
-	["pudelko", "Plastikowe Pudełko na Dyskietki", 120, 2, 1, "hd", "+10 slotów (30)."],
-	["vga", "Karta Graficzna VGA", 200, 2, 1, "modem", "Wartość sprzedaży +20%."],
-	["astrotax", "Program „Astro-Tax 1.0”", 350, 2, 1, "dd", "+15% $ za sprzedany układ."],
-	["lcd", "Monitor LCD 19\" + Nowy Komputer", 600, 2, 1, "", "AstroOS XP. Wartość +25%."],
+	["modem", "Modem Dial-Up 56k", 30, 1, 1, "", "Odkrycia sprzedają się o 10% drożej."],
+	["dd", "Paczka Dyskietek 3.5\" DD", 30, 1, 1, "", "Dysk mieści 10 odkryć zamiast 5."],
+	["hd", "Paczka Dyskietek 3.5\" HD", 75, 1, 1, "dd", "Dysk mieści 10 odkryć więcej."],
+	["achromat", "Szklana Soczewka Achromatyczna", 150, 2, 0, "czyszczacy", "Naprawia pękniętą soczewkę. Odkrycia sprzedają się o 20% drożej."],
+	["montaz", "Ręczny Montaż Paralaktyczny", 280, 2, 0, "statyw", "Teleskop chodzi płynniej, celownik mocniej łapie gwiazdy (+35%)."],
+	["pudelko", "Plastikowe Pudełko na Dyskietki", 120, 2, 1, "hd", "Dysk mieści 10 odkryć więcej."],
+	["vga", "Karta Graficzna VGA", 200, 2, 1, "modem", "Odkrycia sprzedają się o 20% drożej."],
+	["astrotax", "Program „Astro-Tax 1.0”", 350, 2, 1, "dd", "Odkrycia sprzedają się o 15% drożej."],
+	["lcd", "Monitor LCD 19\" + Nowy Komputer", 600, 2, 1, "", "Nowy system AstroOS XP. Odkrycia sprzedają się o 25% drożej."],
 	["parasol", "Parasol Balkonowy", 450, 2, 2, "", "Osłania teleskop: deszcz nie zalewa soczewki."],
-	["plakat", "Plakat „I Want to Believe”", 150, 2, 2, "", "Komety i meteory +25% częściej."],
-	["materac", "Ergonomiczny Materac", 250, 2, 2, "", "+50 PW na start każdej nocy."],
+	["plakat", "Plakat „I Want to Believe”", 150, 2, 2, "", "Komety i meteory pojawiają się o 25% częściej."],
+	["poduszka", "Wygodna Poduszka na Balkon", 80, 1, 2, "", "Noc trwa 15 s dłużej."],
+	["termos", "Termos z Gorącą Czekoladą", 180, 2, 2, "", "Noc trwa 20 s dłużej."],
+	["materac", "Ergonomiczny Materac", 250, 2, 2, "", "Wyspana Jania: +50 PW każdego ranka."],
 	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "+10 obiektów na niebie, pole widzenia +30%, cena +50%."],
 	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za wykrytym obiektem i trzyma go w kadrze."],
 	["usb", "Zewnętrzna Stacja Dyskietek USB", 50, 3, 1, "lcd", "Dyskietki działają z nowym komputerem."],
-	["hdd", "Zewnętrzny Dysk HDD 5400 RPM", 300, 3, 1, "lcd", "+50 slotów."],
-	["ide", "Dysk HDD w Macierzy IDE", 650, 3, 1, "hdd", "+100 slotów, +5% za serie."],
-	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Raport wypłacany od razu, bez czekania do rana."],
-	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zagraniczne instytuty: x2 za rzadkie układy i planety."],
-	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "+10% szybkości akcji w minigrach."],
-	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem – tu powstanie Twoje Centrum Naukowe (Etap 2)."],
+	["hdd", "Zewnętrzny Dysk HDD 5400 RPM", 300, 3, 1, "lcd", "Dysk mieści 50 odkryć więcej."],
+	["ide", "Dysk HDD w Macierzy IDE", 650, 3, 1, "hdd", "Dysk mieści 100 odkryć więcej."],
+	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Za raport płacą od razu, bez czekania do rana."],
+	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Rzadkie odkrycia (zodiak, mgławice, komety, planety) 2x drożej."],
+	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "Jazz: celownik o 10% szybszy, pole ostrości o 10% szersze."],
+	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem pod Twoje Centrum Naukowe (Etap 2)."],
 ]
 const SHOP_PATHS := ["Hardware i Optyka", "Komputer i Biurko", "Pokój i Komfort Jani"]
 
@@ -470,7 +474,7 @@ func moon_phase() -> int:
 
 
 func night_length() -> float:
-	return NIGHT_BASE
+	return NIGHT_BASE + (15.0 if has("poduszka") else 0.0) + (20.0 if has("termos") else 0.0) + (10.0 if has("nocny1") else 0.0) + (15.0 if has("nocny2") else 0.0)
 
 
 func storage_cap() -> int:

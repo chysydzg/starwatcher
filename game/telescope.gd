@@ -44,6 +44,7 @@ var meteor := {}
 var next_meteor := 0.0
 var clouds := []
 var result := {}
+var dialog: Control  # okno wyboru (pełny dysk): wtedy widać kursor
 var center_msg := ""
 var center_t := 0.0
 var _sky_tex: ImageTexture
@@ -289,6 +290,9 @@ func _process(dt: float) -> void:
 	center_t -= dt
 	var mv := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var mouse := get_global_mouse_position()
+	var moved := mouse.distance_to(_last_mouse) > 2.0 or (Game.pad and mv.length() > 0.2)
+	if moved and not result.is_empty() and result.t < 1.6:  # gracz rusza dalej: podsumowanie znika i nie zasłania kolejnego obiektu
+		result = {}
 	if mouse.distance_to(_last_mouse) > 0.5:
 		_mouse_aim = mouse
 		_last_mouse = mouse
@@ -565,6 +569,7 @@ func _center(s: String, dur := 2.5) -> void:
 
 func _full_dialog() -> void:
 	var box := VBoxContainer.new()
+	dialog = box
 	box.position = Vector2(190, 140)
 	box.custom_minimum_size = Vector2(260, 0)
 	add_child(box)
@@ -577,6 +582,7 @@ func _full_dialog() -> void:
 		b.text = pair[0]
 		box.add_child(b)
 		b.pressed.connect(func():
+			dialog = null
 			box.queue_free()
 			if pair[1]:
 				_finish(true)
@@ -587,7 +593,7 @@ func _full_dialog() -> void:
 
 
 func tired() -> void:
-	_center("Jania ziewa... Koniec obserwacji na dziś.", 2.0)
+	_center("Późno już, nie mam sił. Pora spać.", 2.0)
 	get_tree().create_timer(1.8).timeout.connect(close)
 
 

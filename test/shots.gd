@@ -61,6 +61,8 @@ func _ready() -> void:
 	Game.journal.append({"uid": 99, "id": "kasjopeja", "name": "Kasjopeja", "cat": "const", "quality": 92, "base": 25.0, "day": 1, "sold": false})
 	Game.analysis.uids.append(99)  # raport poranny do podsumowania
 	Game.parcels = ["statyw"]  # nieodebrana paczka otwiera się przy śnie
+	for r in Game.SHOP.slice(0, 12):  # dużo zakupów: lista podsumowania się przewija
+		Game.today.bought = Game.today.get("bought", []) + [["Zakup: " + r[1], r[2], "$"]]
 	w._sleep()
 	await get_tree().create_timer(2.5).timeout  # kwoty nabijają się
 	await shot("podsumowanie")
@@ -143,9 +145,10 @@ func _ready() -> void:
 	Game.parcels.append("statyw")
 	Game.arriving = true
 	w._parcel_arrives()
-	Game.arriving = false
-	await get_tree().create_timer(0.15).timeout
+	await get_tree().create_timer(0.95).timeout  # kłąb gęsty, paczki jeszcze nie ma
 	await shot("paczka_dym")
+	await get_tree().create_timer(0.9).timeout
+	await shot("paczka_dym2")
 	Game.shop.erase("lcd")
 	Game.parcels.clear()
 	w._refresh()

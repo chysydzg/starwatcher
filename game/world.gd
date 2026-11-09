@@ -55,6 +55,7 @@ var ency_acc := 0.0
 var yawn_t := -1.0         # ziewanie (koniec nocy): >= 0 trwa; jania_yawn.png – 3 klatki przodem
 var yawned := false
 const YAWN := 2.2
+const TIRED := "Późno już, nie mam sił.\nPora spać."
 var toasts := []
 var tip := ""
 
@@ -478,7 +479,7 @@ func _go(where: String) -> void:
 # ---------------------------------------------------------------- pętla
 func _process(dt: float) -> void:
 	t += dt
-	var pointer: bool = busy or (viewport != null and not viewport.get("is_telescope"))  # kursor tylko w okienkach i AstroOS
+	var pointer: bool = busy or (viewport != null and (not viewport.get("is_telescope") or viewport.get("dialog") != null))  # kursor tylko w okienkach, AstroOS i oknie wyboru w okularze
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pointer else Input.MOUSE_MODE_HIDDEN
 	if viewport or busy:  # przy komputerze, teleskopie i okienkach Jania stoi (inaczej tupanie gra dalej)
 		jania.set_meta("walking", false)
@@ -491,7 +492,6 @@ func _process(dt: float) -> void:
 				ency_acc -= floorf(ency_acc)
 		if Game.night_left <= 0.0 and not tired_told:
 			tired_told = true
-			_toast("Jania ziewa... Koniec obserwacji na dziś.", "info")
 			if viewport and viewport.has_method("tired"):
 				viewport.tired()  # ziewnie po zamknięciu teleskopu (closed)
 			elif viewport == null:
@@ -660,13 +660,19 @@ func _yawn() -> void:
 	yawn_t = 0.0
 	face = 0
 	idle_t = 0.0
+	_say(TIRED)
 
 
 ## kurier: pukanie do drzwi, po chwili paczka na środku pokoju w kłębie dymu
+var knocking := false  # paczka w drodze: ukryta do chwili, aż zasłoni ją dym
+
+
 func _parcel_arrives() -> void:
 	Game.sfx("knock")
 	await get_tree().create_timer(0.7).timeout
 	if Game.location != "room":
+		knocking = false
+		Game.arriving = false
 		_refresh()
 		return
 	var puff := CPUParticles2D.new()  # duży obłok pikselowego dymu: najpierw kłąb, z niego wyłania się paczka
@@ -693,7 +699,9 @@ func _parcel_arrives() -> void:
 	puff.emitting = true
 	puff.finished.connect(puff.queue_free)
 	Game.sfx("paper", 1.3, -10.0)
-	await get_tree().create_timer(0.35).timeout
+	await get_tree().create_timer(0.45).timeout  # paczka pojawia się dopiero w gęstym kłębie
+	knocking = false
+	Game.arriving = false
 	_refresh()
 	props.parcel.modulate.a = 0.0
 	create_tween().tween_property(props.parcel, "modulate:a", 1.0, 0.8)
@@ -715,8 +723,8 @@ func _open(v: Control) -> void:
 	ui.add_child(v)
 	v.closed.connect(func():
 		viewport = null
-		if Game.arriving:  # kurier puka dopiero, gdy Jania odejdzie od komputera
-			Game.arriving = false
+		if Game.arriving and not knocking:  # kurier puka dopiero, gdy Jania odejdzie od komputera
+			knocking = true
 			_parcel_arrives()
 		if tired_told and Game.night_left <= 0.0:
 			_yawn()
@@ -743,7 +751,8 @@ func _sleep() -> void:
 		rows.append([b[0], b[1], b[2], -1])
 	for n in s.get("opened", []):
 		rows.append(["Paczka: " + n, 0, "", 0])
-	var h := 52 + maxi(rows.size(), 1) * 18 + 46
+	const VIS := 10  # więcej wierszy (dużo zakupów): przewijanie zamiast ucinania okna
+	var h := 52 + clampi(rows.size(), 1, VIS) * 18 + 46
 	var p := _panel(Vector2(400, h))
 	p.position = Vector2(120, floorf((360 - h - 40) / 2.0)) + Game.margin  # okienko na środku, przycisk tuż pod nim
 	var title := Label.new()
@@ -758,6 +767,14 @@ func _sleep() -> void:
 		l.text = "Spokojny dzień – bez nowych wpływów."
 		l.position = Vector2(14, 34)
 		p.add_child(l)
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(14, 34)
+	sc.size = Vector2(386, mini(rows.size(), VIS) * 18)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	p.add_child(sc)
+	var list := Control.new()
+	list.custom_minimum_size = Vector2(372, rows.size() * 18)
+	sc.add_child(list)
 	var delay := 0.3
 	var anims: Array[Tween] = []  # należą do panelu: giną razem z nim
 	var finals := []  # [opis, kwota, tekst końcowy] – pokazywane od razu, gdy gracz pominie animację
@@ -765,20 +782,21 @@ func _sleep() -> void:
 		var r: Array = rows[i]
 		var a := Label.new()
 		a.text = r[0].left(34)
-		a.position = Vector2(14, 34 + i * 18)
+		a.position = Vector2(0, i * 18)
 		a.modulate.a = 0.0
 		var v := Label.new()
-		v.position = Vector2(250, 34 + i * 18)
+		v.position = Vector2(236, i * 18)
 		v.size = Vector2(136, 18)
 		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		v.add_theme_color_override("font_color", Color("a8d8f4") if r[3] == 0 else Color("ff8a7a") if r[3] < 0 else (Color("ffcf6b") if r[2] == "$" else Color("6affa0")))
-		p.add_child(a)
-		p.add_child(v)
+		list.add_child(a)
+		list.add_child(v)
 		var fmt: String = "otwarta" if r[3] == 0 else ("+" if r[3] > 0 else "-") + ("$%d" if r[2] == "$" else "%d PW")
 		finals.append([a, v, fmt if r[3] == 0 else fmt % r[1]])
 		var tw := p.create_tween()  # wiersz pojawia się, a kwota „nabija się” od zera
 		anims.append(tw)
 		tw.tween_interval(delay)
+		tw.tween_callback(sc.ensure_control_visible.bind(v))  # lista sama przewija się za nabijanymi kwotami
 		tw.tween_property(a, "modulate:a", 1.0, 0.12)
 		if r[3] == 0:
 			tw.tween_callback(v.set_text.bind(fmt))
@@ -1039,13 +1057,15 @@ func _txt(p: Vector2, s: String, c: Color) -> void:
 
 
 func _wrap(s: String, width: float) -> Array:
-	var out := [""]
-	for word in s.split(" "):
-		var cand: String = (out[-1] + " " + word).strip_edges()
-		if _w(cand) > width and out[-1] != "":
-			out.append(word)
-		else:
-			out[-1] = cand
+	var out := []
+	for para in s.split("\n"):  # „\n” wymusza nową linię (np. po zdaniu)
+		out.append("")
+		for word in para.split(" "):
+			var cand: String = (out[-1] + " " + word).strip_edges()
+			if _w(cand) > width and out[-1] != "":
+				out.append(word)
+			else:
+				out[-1] = cand
 	return out
 
 

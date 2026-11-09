@@ -617,12 +617,12 @@ func _sklep() -> void:
 
 func _card(r: Array, st: String) -> Panel:
 	var c := Panel.new()  # karta tylko informuje; kupuje się zielonym przyciskiem KUP
-	c.custom_minimum_size = Vector2(168, 74)
+	c.custom_minimum_size = Vector2(168, 88)  # 3 linie nazwy (np. „Licencja Niezależnego Badacza”)
 	var bg: Color = {"owned": Color("d8f4d8"), "ok": Color("ffffff"), "cost": Color("d4d6de"), "req": Color("d4d6de")}[st]  # nie stać nas = szare jak zablokowane
 	c.add_theme_stylebox_override("panel", _box(bg, Color("6a6a80")))
-	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 132)
-	title.max_lines_visible = 2
-	var price := _label(c, "$%d" % r[2], Vector2(6, 52), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
+	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 156)
+	title.max_lines_visible = 3
+	var price := _label(c, "$%d" % r[2], Vector2(6, 66), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
 	if st == "owned":
 		price.text = ""
 	if st == "ok":
@@ -630,7 +630,7 @@ func _card(r: Array, st: String) -> Panel:
 			Game.buy_shop(r)
 			Game.ding(1.2)
 			_rebuild())
-		buy.position = Vector2(112, 46)
+		buy.position = Vector2(112, 60)
 		buy.size = Vector2(50, 24)
 		buy.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
 		buy.add_theme_stylebox_override("hover", _box(Color("5ae88a"), Color("0a3a1a"), 2))  # podświetlenie pod kursorem
@@ -640,10 +640,10 @@ func _card(r: Array, st: String) -> Panel:
 		c.add_child(buy)
 	else:
 		var tag: String = {"owned": "W paczce" if r[0] in Game.parcels else "Posiadane", "cost": "Za mało $", "req": "Zablokowane"}[st]
-		var l := _label(c, tag, Vector2(0, 52), Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
+		var l := _label(c, tag, Vector2(0, 66), Color("4a8a4a") if st == "owned" else Color("7a7a8a"))
 		l.size.x = 160
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	c.mouse_entered.connect(func(): info.text = _desc(r, Game.can_buy_shop(r), true))
+	c.mouse_entered.connect(func(): info.text = "%s\n%s" % [r[6], _desc(r, Game.can_buy_shop(r), true).get_slice("\n", 0).get_slice("]  ", 1)])  # nazwa i cena są na karcie: tu opis i stan
 	return c
 
 
