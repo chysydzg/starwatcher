@@ -215,12 +215,10 @@ function lili(blink = false) {  // york: złota grzywka, wielkie sterczące uszy
   for (const x of [40, 41, 46, 47]) c.set(x, 66, gold[0]);                       // pyszczek
   for (let y = 66; y < 73; y++) for (let x = 42; x < 46; x++) if (!(y === 72 && (x === 42 || x === 45))) c.set(x, y, y === 66 ? [196, 80, 96] : [236, 120, 140]); // język wypada na środku
   for (let y = 68; y < 72; y++) c.set(43, y, [214, 96, 116]);
-  c.add("beard", or(...[[30, 70, 28, 79], [34, 72, 33, 81], [38, 73, 38, 80], [26, 66, 23, 75]].flatMap(([ax, ay, bx, by]) => [cap(ax, ay, bx, by, 2.2), cap(2 * CX - ax, ay, 2 * CX - bx, by, 2.2)])), gold, { group: "head" }); // broda z kosmyków
-  for (let k = 0; k < 14; k++) {  // pasma sierści: krótkie ukośne kreski, jasne na górze, ciemne niżej (lustrzanie)
-    const x = 25 + (k * 7) % 18, y = 50 + Math.floor(k / 3) * 5 + (k % 2), dk = y > 62 ? 1 : 0;
-    for (let i = 0; i < 3; i++) { c.set(x + i, y + i, strand[dk]); c.set(2 * CX - 1 - (x + i), y + i, strand[dk]); }
-  }
-  for (const [x, y] of [[39, 47], [40, 48], [41, 49], [42, 50], [38, 49], [39, 50]]) { c.set(x, y, strand[0]); c.set(2 * CX - 1 - x, y, strand[0]); } // grzywka
+  c.add("beard", or(...[[31, 70, 30, 77], [36, 72, 36, 78]].flatMap(([ax, ay, bx, by]) => [cap(ax, ay, bx, by, 2.2), cap(2 * CX - ax, ay, 2 * CX - bx, by, 2.2)])), gold, { group: "head" }); // dwa kosmyki brody
+  // jak w referencji: kilka jasnych pasm nad oczami (w stronę nosa) i ciemne pasma w uszach, nic więcej
+  for (const [x, y] of [[36, 50], [37, 51], [38, 52], [39, 53], [33, 52], [34, 53]]) { c.set(x, y, strand[0]); c.set(2 * CX - 1 - x, y, strand[0]); }
+  for (const [x, y] of [[24, 40], [25, 42], [25, 43], [26, 44]]) { c.set(x, y, strand[1]); c.set(2 * CX - 1 - x, y, strand[1]); }
   hat(c, 41, 14);
   return c.render();
 }

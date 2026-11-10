@@ -60,17 +60,29 @@ func _say_lines(lines: Array) -> void:
 	await d.finished
 
 
-## psy i Jania w pokoju: postać z arkusza 8x2 (36x54), stopy na `foot`
+## psy w pokoju: arkusz 10x2 klatek 44x64 (dogs.js), stopy na `foot`. Przód: machanie 0-3, chód 4-5, karton 6,
+## karton-chód 7-8; bok +10: machanie 10-13, chód 14-17, karton-chód 18-19
+const WAG_SEQ := [0, 1, 2, 3, 2, 1]
 func _dog(name: String, x: float, foot: float, sorter: Node2D) -> Sprite2D:
-	var s := _spr("cut_" + name, Vector2.ZERO, sorter, 8)
+	var s := _spr("cut_" + name, Vector2.ZERO, sorter, 10)
 	s.vframes = 2
-	s.offset = Vector2(0, -54)
+	s.offset = Vector2(-4, -64)
 	s.position = Vector2(x, foot)
+	s.set_meta("walking", false)
+	s.set_meta("carry", false)
 	return s
+
+
+## stojący pies macha ogonem (z kartonem w łapach stoi spokojnie)
+func _idle(s: Sprite2D, phase: float) -> void:
+	if not s.get_meta("walking"):
+		s.frame = 6 if s.get_meta("carry") else WAG_SEQ[int((st + phase) * 9.0) % WAG_SEQ.size()]
 
 
 func _walk(s: Sprite2D, to: Vector2, speed: float, carry := false) -> void:
 	var from := s.position
+	s.set_meta("walking", true)
+	s.set_meta("carry", carry)
 	var tw := create_tween()
 	var dur := from.distance_to(to) / speed
 	tw.tween_method(func(u: float):
@@ -79,13 +91,13 @@ func _walk(s: Sprite2D, to: Vector2, speed: float, carry := false) -> void:
 		var k := int(u * dur * 8.0)
 		if side:
 			s.flip_h = to.x < from.x
-			s.frame = (13 + k % 2) if carry else 9 + k % 4
+			s.frame = (18 + k % 2) if carry else 14 + k % 4
 		else:
-			s.frame = (5 + k % 2) if carry else 1 + k % 2
+			s.frame = (7 + k % 2) if carry else 4 + k % 2
 		if k % 2 == 0 and _cue("st%d_%d" % [s.get_instance_id(), k], 0.0):
 			Game.sfx("step%d" % (k % 4), randf_range(1.2, 1.4), -18.0), 0.0, 1.0, dur)
 	await tw.finished
-	s.frame = 4 if carry else 0
+	s.set_meta("walking", false)
 	s.flip_h = false
 
 
@@ -103,7 +115,10 @@ func _pack() -> void:
 	var lili := _dog("lili", 330, 420, so)
 	var mysz := _dog("myszka", 372, 420, so)
 	_cam(Vector2(330, 250))  # postacie w górnej połowie kadru: dół zasłania okienko dialogu
-	tick = func(): j.frame = 7 if fmod(st, 2.6) > 1.5 else 0
+	tick = func():
+		j.frame = 7 if fmod(st, 2.6) > 1.5 else 0
+		_idle(lili, 0.0)
+		_idle(mysz, 0.4)
 	await _show()
 	await get_tree().create_timer(0.8).timeout
 	Game.sfx("knock")
@@ -122,8 +137,8 @@ func _pack() -> void:
 	for b in so.get_children():  # psy biorą kartony
 		if b is Sprite2D and b.texture == Game.tex("parcel"):
 			b.visible = false
-	lili.frame = 4
-	mysz.frame = 4
+	lili.set_meta("carry", true)  # psy biorą kartony: stoją z nimi chwilę
+	mysz.set_meta("carry", true)
 	Game.sfx("paper", 1.0, -10.0)
 	await get_tree().create_timer(0.5).timeout
 	_walk(lili, Vector2(350, 420), 50.0, true)
