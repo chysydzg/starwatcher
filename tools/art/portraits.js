@@ -54,7 +54,7 @@ class Canvas {
   }
 }
 // kolejność warstw grup: obrys wewnętrzny rysuje część z przodu
-const ORDER = ["body", "ears", "head", "lop"];
+const ORDER = ["body", "ears", "head", "lop", "cap"];
 Canvas.prototype.front = function (a, b) { return ORDER.indexOf(a) > ORDER.indexOf(b) && ORDER.indexOf(b) >= 0; };
 
 const ell = (cx, cy, rx, ry) => (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
@@ -179,6 +179,65 @@ function jania(blink = false, cry = false, adult = false) {
   return c.render();
 }
 
+
+// ---- psy z U-Howl (przeprowadzka): ogrodniczki i czapeczki firmy w kolorze pomarańczowym, kremowe „U” na czapce
+const UH = ramp(3, { hue: 20, shift: 18, sat: 0.78, light: [0.42, 0.62] });      // pomarańcz U-Howl
+const UHV = ramp(2, { hue: 16, shift: 12, sat: 0.7, light: [0.3, 0.4] });        // daszek
+const CREAM = [250, 236, 206];
+const tri = (ax, ay, bx, by, cx, cy) => (x, y) => { const s = (px, py, qx, qy, rx, ry) => (px - rx) * (qy - ry) - (qx - rx) * (py - ry); const d1 = s(x, y, ax, ay, bx, by), d2 = s(x, y, bx, by, cx, cy), d3 = s(x, y, cx, cy, ax, ay); return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0)); };
+function overalls(c, top = 79) {
+  c.add("bib", (x, y) => y >= top && Math.abs(x - CX) <= 13, UH, { group: "body", raw: true });
+  c.add("straps", (x, y) => y >= top - 8 && y < top && Math.abs(Math.abs(x - CX) - 12) <= 1, UH, { group: "body", flat: true, raw: true });
+  for (const x of [31, 32, 55, 56]) c.set(x, top + 2, CREAM);                  // guziki
+  for (let x = 40; x < 48; x++) c.set(x, top + 5, UH[0]);                       // kieszonka
+}
+function hat(c, cy, rx) {  // czapeczka z daszkiem, przodem: kopuła i daszek, kremowe U na środku
+  c.add("cap", and(sup(CX, cy, rx, 8, 2.2), (x, y) => y <= cy + 1), UH, { group: "cap" });
+  c.add("visor", ell(CX, cy + 2, rx + 3, 2.6), UHV, { group: "cap", flat: true });
+  for (const [x, y] of [[-2, -5], [-2, -4], [-2, -3], [-2, -2], [-1, -1], [0, -1], [1, -2], [1, -3], [1, -4], [1, -5]]) c.set(CX + x, cy + y, CREAM);
+}
+function lili(blink = false) {  // york: złota grzywka, wielkie sterczące uszy, czarne oczka, różowy język na środku
+  const c = new Canvas();
+  const gold = ramp(3, { hue: 34, shift: 20, sat: 0.48, light: [0.42, 0.64] });
+  const goldL = ramp(2, { hue: 38, shift: 12, sat: 0.45, light: [0.7, 0.82] });
+  const silver = ramp(3, { hue: 30, shift: 14, sat: 0.1, light: [0.48, 0.66] });
+  const earIn = ramp(2, { hue: 18, shift: 10, sat: 0.4, light: [0.34, 0.44] });
+  c.add("body", sup(CX, 101, 26, 25, 2.2), silver, { group: "body" });
+  overalls(c, 80);
+  c.add("ears", tri(32, 50, 22, 50, 15, 18), gold, { group: "ears", mirror: true });
+  c.add("earsi", tri(29, 46, 23, 46, 19, 27), earIn, { group: "ears", flat: true, mirror: true });
+  c.add("head", or(sup(CX, 58, 19, 16, 2.4), ell(31, 66, 9, 8), ell(57, 66, 9, 8), ell(25, 60, 3.5, 6), ell(63, 60, 3.5, 6)), gold, { group: "head" });
+  c.add("muzzle", ell(CX, 67, 8.5, 6), goldL, { group: "head", flat: true });
+  for (const ex of [33, 51]) eye(c, ex, 56, 4, 5, [28, 18, 16], null, blink ? gold[1] : null);
+  for (let y = 61; y < 65; y++) for (let x = 41; x < 47; x++) if (!((x === 41 || x === 46) && (y === 61 || y === 64))) c.set(x, y, [26, 20, 22]); // czarny nos
+  c.set(42, 62, [110, 100, 104]);
+  for (const x of [40, 41, 46, 47]) c.set(x, 66, gold[0]);                       // pyszczek
+  for (let y = 66; y < 73; y++) for (let x = 42; x < 46; x++) if (!(y === 72 && (x === 42 || x === 45))) c.set(x, y, y === 66 ? [196, 80, 96] : [236, 120, 140]); // język wypada na środku
+  for (let y = 68; y < 72; y++) c.set(43, y, [214, 96, 116]);
+  for (const [x, y] of [[26, 49], [27, 48], [61, 49], [60, 48], [37, 47], [50, 47]]) c.set(x, y, goldL[1]); // kosmyki
+  hat(c, 41, 14);
+  return c.render();
+}
+function myszka(blink = false) {  // czarna z podpalaniem: opadające czarne uszy, rude brwi, siwy pyszczek, biała pierś
+  const c = new Canvas();
+  const blk = ramp(3, { hue: 224, shift: 12, sat: 0.12, light: [0.12, 0.26] });
+  const tan = ramp(2, { hue: 32, shift: 14, sat: 0.45, light: [0.62, 0.74] });
+  const grey = ramp(2, { hue: 40, shift: 10, sat: 0.08, light: [0.74, 0.88] });
+  c.add("body", sup(CX, 100, 30, 26, 2.2), blk, { group: "body" });
+  c.add("chest", ell(CX, 79, 10, 7), grey, { group: "body", flat: true });
+  overalls(c, 80);
+  c.add("head", or(sup(CX, 56, 21, 18, 2.4), ell(31, 64, 10, 9), ell(57, 64, 10, 9)), blk, { group: "head" });
+  c.add("lop", or(cap(28, 43, 23, 62, 5.2), cap(60, 43, 65, 62, 5.2)), blk, { group: "lop" }); // opadające uszy po bokach
+  c.add("cheek", or(ell(33, 66, 4.5, 4), ell(55, 66, 4.5, 4)), tan, { group: "head", flat: true });
+  c.add("muzzle", or(ell(41, 66, 5.5, 4.8), ell(47, 66, 5.5, 4.8)), grey, { group: "head", flat: true });
+  c.add("brow", or(ell(33, 48, 3.5, 2.2), ell(55, 48, 3.5, 2.2)), tan, { group: "head", flat: true, raw: true });
+  for (const ex of [31, 52]) eye(c, ex, 52, 5, 6, [34, 22, 18], [104, 66, 36], blink ? blk[1] : null);
+  for (let y = 59; y < 64; y++) for (let x = 40; x < 48; x++) if (!((x === 40 || x === 47) && (y === 59 || y === 63))) c.set(x, y, [24, 22, 26]); // nos
+  c.set(42, 60, [120, 120, 130]); c.set(43, 60, [120, 120, 130]);
+  for (const [x, y] of [[43, 64], [44, 64], [43, 65], [44, 65], [42, 66], [41, 67], [45, 66], [46, 67]]) c.set(x, y, [70, 64, 66]); // pyszczek
+  hat(c, 40, 15);
+  return c.render();
+}
 // arkusz 2 klatek: otwarte oczy, mrugnięcie (oddech robi okienko dialogu przesunięciem o 1 px)
 const M = maciej(), J = jania(), A = jania(false, false, true);
 P.save(P.pack([J, jania(true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania.png");
@@ -188,5 +247,8 @@ P.save(P.pack([maciej(false, false, true), maciej(true, false, true)], { cols: 2
 P.save(P.pack([maciej(false, true, true), maciej(true, true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej_old_cry.png");
 P.save(P.pack([A, jania(true, false, true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania_adult.png");
 P.save(P.pack([jania(false, true, true), jania(true, true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania_adult_cry.png");
+P.save(P.pack([lili(), lili(true)], { cols: 2, pad: 0 }), OUT + "/portrait_lili.png");
+P.save(P.pack([myszka(), myszka(true)], { cols: 2, pad: 0 }), OUT + "/portrait_myszka.png");
+P.save(P.sheet([{ buf: lili(), scale: 4, label: "LILI" }, { buf: myszka(), scale: 4, label: "MYSZKA" }, { buf: J, scale: 4, label: "JANIA" }]), __dirname + "/_dogs.png");
 P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");
 console.log("edge J", JSON.stringify(P.edgeCheck(J)).slice(0, 120), "M", JSON.stringify(P.edgeCheck(M)).slice(0, 120));

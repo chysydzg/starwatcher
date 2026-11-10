@@ -165,6 +165,15 @@ func _ready() -> void:
 	w._yawn()
 	await get_tree().create_timer(0.3).timeout
 	await shot("ziewanie")
+	Game.science["manifest"] = true  # Etap 2 gotowy: walizki w prawym dolnym rogu pokoju
+	Game.shop["certyfikat"] = true
+	Game.discovered["mars"] = true
+	w._refresh()
+	w.body.position = Vector2(470, 316)
+	await shot("walizki")
+	Game.science.erase("manifest")
+	Game.shop.erase("certyfikat")
+	Game.discovered.erase("mars")
 	Game.rain = false
 	Game.night = false
 	w._enter("room", true)

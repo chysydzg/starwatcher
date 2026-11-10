@@ -15,7 +15,8 @@ const SEASON_LOOPS := ["season_spring", "season_summer", "season_autumn", "seaso
 const REACH := 24.0   # jak blisko obiektu (od jego krawędzi) trzeba stanąć
 const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96, 88, 100), "drzwi": Rect2(518, 104, 46, 18),
 	"szafa": Rect2(568, 104, 62, 24), "plakat": Rect2(248, 104, 32, 18), "model": Rect2(132, 104, 34, 18),
-	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24)}
+	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24),
+	"bagaze": Rect2(500, 296, 62, 38)}
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -182,6 +183,12 @@ func _build_room() -> void:
 	props.lcd = _lcd_patch(desk)
 	props.poster = _sprite("poster_iwtb", Vector2(354, 24), room.get_child(0))  # nad komputerem, widoczny
 	props.radio = _sprite("radio", Vector2(588, 285) - props.room_box.position, props.room_box)
+	props.luggage = Sprite2D.new()  # walizki do przeprowadzki: prawy dolny róg, gdy Etap 2 gotowy
+	props.luggage.texture = Game.tex("luggage")
+	props.luggage.position = Vector2(504, 334)
+	props.luggage.offset = Vector2(0, -40)
+	props.luggage.centered = false
+	room_sort.add_child(props.luggage)
 	props.parcel = Sprite2D.new()
 	props.parcel.texture = Game.tex("parcel")
 	props.parcel.position = Vector2(292, 244)  # na środku pokoju, na dywanie
@@ -250,6 +257,10 @@ func _refresh() -> void:
 	props.poster.visible = Game.has("plakat")
 	props.radio.visible = Game.has("radio")
 	props.parcel.visible = not Game.parcels.is_empty() and not Game.arriving
+	props.luggage.visible = Game.stage_ready() and not Game.stage_done
+	if props.luggage.visible and not Game.tips.has("luggage"):
+		Game.tips.luggage = true
+		_toast("Walizki spakowane. Czas na przeprowadzkę!", "good")
 	props.balcony_telescope.visible = not Game.has("newton")
 	props.balcony_newton.visible = Game.has("newton")
 	props.balcony_parasol.visible = Game.has("parasol")
@@ -592,7 +603,7 @@ func _nearest() -> String:
 	var best := ""
 	var best_d := 1e9
 	for k in sp:
-		if (k == "paczka" and not props.parcel.visible) or (k == "radio" and not Game.has("radio")):
+		if (k == "paczka" and not props.parcel.visible) or (k == "radio" and not Game.has("radio")) or (k == "bagaze" and not props.luggage.visible):
 			continue
 		var r: Rect2 = sp[k]
 		var d := body.position.distance_to(body.position.clamp(r.position, r.end))
@@ -637,6 +648,10 @@ func _interact(k: String) -> void:
 				_sleep()
 			else:
 				_say("Jeszcze nie pora spać.")
+		"bagaze":
+			_ask("Rozpocząć przeprowadzkę nad jezioro?", func():
+				Game.save_game()
+				get_tree().change_scene_to_file("res://game/moving.tscn"))
 		"paczka":
 			Game.sfx("paper")
 			Game.unpack_all()
@@ -742,8 +757,6 @@ func _open(v: Control) -> void:
 			_tip("Aby zakończyć dzień, skorzystaj z łóżka."))
 	if v.has_signal("discovered"):
 		v.discovered.connect(func(): happy_t = 1.6; idle_t = 0.0)
-	if v.has_signal("stage_complete"):
-		v.stage_complete.connect(_stage_complete)
 
 
 # ---------------------------------------------------------------- sen i podsumowanie dnia
@@ -918,23 +931,6 @@ func _pause() -> void:
 		Game.save_game()
 		get_tree().paused = false
 		get_tree().change_scene_to_file("res://game/menu.tscn"))
-
-
-func _stage_complete() -> void:
-	busy = true
-	Game.stage_done = true
-	Game.save_game()
-	var p := _panel(Vector2(560, 190))
-	var l := Label.new()
-	l.text = "„PIERWSZY DUŻY KROK”\n\nJania pakuje teleskop w folię bąbelkową. Ciężarówka U-Howl\nwiezie ją nad jezioro, do starego budynku z kopułą.\n\nKoniec Etapu 1. Etap 2: Małe Centrum Naukowe – wkrótce."
-	l.position = Vector2(14, 10)
-	p.add_child(l)
-	var b := Button.new()
-	b.text = "DO MENU"
-	b.position = Vector2(460, 154)
-	b.pressed.connect(func(): get_tree().change_scene_to_file("res://game/menu.tscn"))
-	p.add_child(b)
-	b.grab_focus.call_deferred()
 
 
 # ---------------------------------------------------------------- komunikaty

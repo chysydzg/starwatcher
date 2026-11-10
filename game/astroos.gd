@@ -3,7 +3,6 @@ extends Control
 ## (górny pasek systemu zostaje). Programy: Dziennik, Giełda, Retro-Tech, Drzewko Badań, POMOC.TXT (GDD 8).
 
 signal closed
-signal stage_complete
 
 const HELP := """NOC (balkon)
 • Teleskop: zbliż celownik do świecącego obiektu, a gdy zacznie drżeć, kliknij.
@@ -68,8 +67,6 @@ func _ready() -> void:
 	var icons := Control.new()
 	add_child(icons)
 	var list := APPS.duplicate()
-	if Game.stage_ready():
-		list.append(["etap", "ETAP 2"])
 	for i in list.size():
 		var b := Button.new()
 		b.flat = true
@@ -220,10 +217,6 @@ func _draw_bar() -> void:
 # ---------------------------------------------------------------- okna
 func _launch(id: String) -> void:
 	Game.ding(1.4)
-	if id == "etap":
-		stage_complete.emit()
-		close()
-		return
 	if win:
 		win.queue_free()
 	app = id
