@@ -23,8 +23,9 @@ const COMET_GAP := 8
 const SEASONS := ["Wiosna", "Lato", "Jesień", "Zima"]
 const WEEKDAYS := ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]  # dzień 1 = poniedziałek
 const CATS := {"moon": "Księżyc", "const": "Konstelacje", "zodiac": "Znaki zodiaku", "nebula": "Mgławice",
-	"planet": "Planety", "deep": "Głębokie niebo", "comet": "Komety", "meteor": "Meteory"}
+	"planet": "Planety", "deep": "Głębokie niebo", "comet": "Komety", "meteor": "Meteory", "moons": "Księżyce planet", "blackhole": "Czarne dziury"}
 const MARKET_CATS := ["moon", "const", "zodiac", "nebula", "planet", "deep", "comet"]  # meteory: stała cena, bez notowań
+const MARKET_CATS2 := ["const", "zodiac", "nebula", "planet", "deep", "moons", "blackhole"]  # Etap 2: legenda Giełdy mieści 7
 const MOON_PHASES := ["Nów", "Przybywający sierp", "Pierwsza kwadra", "Przybywający garb", "Pełnia",
 	"Ubywający garb", "Ostatnia kwadra", "Ubywający sierp"]
 
@@ -119,6 +120,8 @@ func _build_sky() -> void:
 		if zod:
 			o.season = c[2]
 		SKY[c[0]] = o
+	for id in SKY2:  # ciała dużego teleskopu: dopiero od Etapu 2
+		SKY[id] = SKY2[id].merged({"stage": 2})
 
 
 # ---------------------------------------------------------------- drzewko naukowe PW (GDD 11)
@@ -182,7 +185,97 @@ const SHOP := [
 ]
 const SHOP_PATHS := ["Hardware i Optyka", "Komputer i Biurko", "Pokój i Komfort Jani"]
 
+# ---------------------------------------------------------------- Etap 2 (GDD 13): drzewka, pracownicy, satelity, nowe niebo
+# koszty z GDD x0,5: krótsze noce i ceny z Etapu 1 (balans do poprawki w testach)
+const SCIENCE2 := [
+	["kalibracja", "Kalibracja Kopuły", 250, 1, 0, "", "Celownik dużego teleskopu o 20% szybszy."],
+	["filtr_x", "Filtr Promieniowania X", 400, 1, 0, "", "Na niebie pojawiają się czarne dziury."],
+	["spektro", "Spektrometr Podstawowy", 300, 1, 1, "", "Analiza widmowa po wyostrzeniu planet, mgławic, galaktyk i czarnych dziur."],
+	["katalog", "Katalog Linii Absorpcyjnych", 450, 1, 1, "spektro", "Analizy +10% $."],
+	["mentoring", "Mentoring Arbjooze", 200, 1, 2, "", "Pracownicy w Trybie 1 dają +20% PW."],
+	["orbitalna", "Mechanika Orbitalna", 500, 1, 2, "", "Pozwala zlecić budowę satelity (Orbita w AstroOS)."],
+	["wielopunkt", "Wielopunktowa Kalibracja", 1000, 2, 0, "kalibracja", "Na niebie pojawiają się głębokie galaktyki."],
+	["zoom_orbity", "Zoom Bliskiej Orbity", 900, 2, 0, "orbitalna", "Księżyce planet do odkrycia."],
+	["filtry", "Precyzyjne Filtry Pasmowe", 1250, 2, 1, "katalog", "Szersze okno w analizie widmowej. Analizy +25% $."],
+	["auto_widmo", "Automatyczne Porównanie Widm", 1500, 2, 1, "filtry", "Wzorzec widma sam ustawia się blisko, wystarczy potwierdzić."],
+	["protokol", "Protokół Zgłoszeń", 750, 2, 2, "", "Pracownicy zgłaszają odkrycia o 50% częściej."],
+	["szkolenie", "Szkolenie Analityków", 1100, 2, 2, "", "Tryb 2 podnosi jakość pomiarów o dodatkowe 10%."],
+	["mapa_nieba", "Mapa Głębokiego Nieba", 3000, 3, 0, "wielopunkt", "Odległe gromady galaktyk (2x wartość galaktyk)."],
+	["spektro_bh", "Spektroskopia Czarnych Dziur", 3750, 3, 1, "filtr_x", "Analiza czarnej dziury warta 2x więcej."],
+	["siec_sat", "Sieć Satelitarna", 2500, 3, 2, "zoom_orbity", "+2 sloty orbitalne. Satelity komercyjne +25% $."],
+	["autonomia", "Autonomiczne Skanowanie Nocne", 3250, 3, 2, "mentoring", "Tryb 1 działa też za dnia (50%)."],
+	["wniosek", "Wniosek „Program Kosmiczny nad Jeziorem”", 15000, 3, 2, "", "Węzeł przełomowy (dowolne 4 węzły z 3. rzędu). Warunek Etapu 3."],
+]
+const SCIENCE2_PATHS := ["Głęboki Kosmos", "Spektroskopia i Analiza", "Zespół i Orbita"]
+const SHOP2 := [
+	["smar", "Smar do Mechanizmu Kopuły", 400, 1, 0, "", "Teleskop chodzi płynniej, celownik mocniej łapie obiekty."],
+	["okular_hr", "Okular Wysokiej Rozdzielczości", 1250, 1, 0, "", "Galaktyki i czarne dziury +20% $."],
+	["antena", "Antena Satelitarna na Dachu", 1500, 1, 1, "", "Łączność z satelitami. Bez niej nie ruszy budowa."],
+	["legowisko", "Legowisko dla Arbjooze", 300, 1, 2, "", "Arbjooze w Trybie 1 +15%."],
+	["ccd", "Chłodzona Kamera CCD", 3000, 2, 0, "okular_hr", "Jakość pomiaru nigdy poniżej 40%."],
+	["drugi_tel", "Drugi Teleskop Pomocniczy", 2250, 2, 0, "", "Pracownicy w Trybie 1 +30% PW."],
+	["montaz_sat", "Stanowisko Montażu Satelitów", 2500, 2, 1, "antena", "Budowa satelity trwa 1 dzień zamiast 2."],
+	["panele", "Panele Słoneczne Gen 2", 1750, 2, 1, "antena", "Satelity naukowe +25% PW."],
+	["pogoda", "Monitor Pogody Kosmicznej", 1500, 2, 1, "antena", "Ostrzega dzień wcześniej przed burzą słoneczną."],
+	["ekspres", "Ekspres do Kawy dla Zespołu", 600, 2, 2, "", "Wszyscy pracownicy +10% wydajności."],
+	["stacja", "Stacja Robocza z 2 Monitorami", 1250, 2, 2, "", "Dysk mieści 20 odkryć więcej."],
+	["umowa_tv", "Umowa Ramowa z AstroTV", 2000, 3, 1, "", "Abonament AstroTV +30%."],
+	["nas", "Macierz Serwerowa NAS / RAID", 750, 3, 2, "stacja", "Dysk mieści 50 odkryć więcej."],
+	["heavy", "Kontrakt Budowlany „U-Howl Heavy”", 50000, 3, 2, "wniosek", "Rozbudowa bazy nad jeziorem. Warunek Etapu 3."],
+]
+const SHOP2_PATHS := ["Kopuła i Teleskop", "Orbita i Satelity", "Centrum i Biuro"]
+# pracownicy: [rekrutacja $, pensja $/tydzień] dla 1. (Arbjooze) … 5.
+const HIRE := [[150, 125], [400, 250], [600, 350], [900, 425], [1250, 500]]
+const STAFF_MAX := 5
+const TRAITS := {"skrupulatny": ["Skrupulatny", "+25% PW w Trybie 1, lepsza analiza"], "szybki": ["Szybki", "+30% tempa pracy"],
+	"nocny_marek": ["Nocny Marek", "+50% w Trybie 1, -10% w Trybie 2"], "majsterkowicz": ["Majsterkowicz", "Tryb 3: +10 s nocy więcej"],
+	"bystre_oko": ["Bystre Oko", "Zgłoszenia odkryć +50%"]}
+const NAMES := ["Lisica Ola", "Szop Kazik", "Królik Bartek", "Niedźwiadek Tosia", "Bóbr Feliks", "Wiewiórka Zuzia", "Jeżyk Staś",
+	"Sowa Halinka", "Borsuk Tadek", "Kuna Ewelina", "Wydra Marcel", "Łasiczka Pola"]
+const MODES := ["Rutynowe Obserwacje", "Analiza Raportów", "Utrzymanie Sprzętu"]
+const KIND := {"Lisica": "lis", "Szop": "szop", "Królik": "krolik", "Niedźwiadek": "mis", "Bóbr": "bobr", "Wiewiórka": "wiewiorka",
+	"Jeżyk": "jez", "Sowa": "sowa", "Borsuk": "borsuk", "Kuna": "kuna", "Wydra": "wydra", "Łasiczka": "lasica"}  # sprite worker_<kind>.png
+const SAT_COST := 2000
+const SAT_USES := {"nauka": ["Badania naukowe", "+150 PW dziennie"], "astrotv": ["Wynajem AstroTV", "$120 dziennie"],
+	"satnet": ["Wynajem Sat-Net", "$300 dziennie, serwis co 3 dni"]}
+# ciała Etapu 2 (duży teleskop): planety z ciekawostką z analizy widmowej, księżyce, czarne dziury, galaktyki, gromady
+const SKY2 := {
+	"merkury": {"name": "Merkury", "cat": "planet", "req": "", "pw": 70, "price": 150, "col": "b8b0a8", "fact": "Kratery, brak atmosfery."},
+	"saturn": {"name": "Saturn", "cat": "planet", "req": "", "pw": 90, "price": 220, "col": "e8d098", "fact": "Pierścienie z lodu."},
+	"uran": {"name": "Uran", "cat": "planet", "req": "", "pw": 90, "price": 230, "col": "a8e8e8", "fact": "Przechylona oś obrotu."},
+	"neptun": {"name": "Neptun", "cat": "planet", "req": "", "pw": 100, "price": 250, "col": "5a8af0", "fact": "Najsilniejsze wiatry w Układzie."},
+	"fobos": {"name": "Fobos (Mars)", "cat": "moons", "req": "zoom_orbity", "pw": 60, "price": 140, "col": "a89888", "fact": "Rdzawy pył Marsa."},
+	"dejmos": {"name": "Dejmos (Mars)", "cat": "moons", "req": "zoom_orbity", "pw": 60, "price": 140, "col": "b0a090", "fact": "Rdzawy pył Marsa."},
+	"io": {"name": "Io (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 80, "price": 190, "col": "f0d860", "fact": "Wulkany siarkowe."},
+	"europa": {"name": "Europa (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 90, "price": 210, "col": "e8e0d0", "fact": "Lód, a pod nim ocean."},
+	"ganimedes": {"name": "Ganimedes (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 80, "price": 180, "col": "c8b8a8", "fact": "Największy księżyc."},
+	"kallisto": {"name": "Kallisto (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 70, "price": 170, "col": "8a8078", "fact": "Najbardziej pokryty kraterami."},
+	"tytan": {"name": "Tytan (Saturn)", "cat": "moons", "req": "zoom_orbity", "pw": 100, "price": 240, "col": "e0a858", "fact": "Gęsta atmosfera z metanem."},
+	"enceladus": {"name": "Enceladus (Saturn)", "cat": "moons", "req": "zoom_orbity", "pw": 90, "price": 220, "col": "f4f8ff", "fact": "Gejzery lodu."},
+	"miranda": {"name": "Miranda (Uran)", "cat": "moons", "req": "zoom_orbity", "pw": 80, "price": 200, "col": "c0c8d0", "fact": "Poszarpana, jakby sklejona z kawałków."},
+	"tryton": {"name": "Tryton (Neptun)", "cat": "moons", "req": "zoom_orbity", "pw": 100, "price": 240, "col": "e8d8d8", "fact": "Krąży „pod prąd”."},
+	"sgr_a": {"name": "Sagittarius A*", "cat": "blackhole", "req": "filtr_x", "pw": 200, "price": 700, "col": "ffb050", "fact": "Serce naszej Galaktyki."},
+	"cyg_x1": {"name": "Cygnus X-1", "cat": "blackhole", "req": "filtr_x", "pw": 180, "price": 600, "col": "ff9a50", "fact": "Zjada gwiazdę towarzyszkę."},
+	"m87": {"name": "M87*", "cat": "blackhole", "req": "filtr_x", "pw": 220, "price": 800, "col": "ffc060", "fact": "Pierwsza sfotografowana czarna dziura."},
+	"m104": {"name": "Galaktyka Sombrero", "cat": "deep", "req": "wielopunkt", "pw": 150, "price": 450, "col": "f0e0c0", "fact": "Ciemny pas pyłu."},
+	"m51": {"name": "Galaktyka Wir", "cat": "deep", "req": "wielopunkt", "pw": 150, "price": 460, "col": "c8d8ff", "fact": "Dwie zderzające się galaktyki."},
+	"m82": {"name": "Galaktyka Cygaro", "cat": "deep", "req": "wielopunkt", "pw": 140, "price": 430, "col": "ffd0b0", "fact": "Burza narodzin gwiazd."},
+	"virgo": {"name": "Gromada w Pannie", "cat": "deep", "req": "mapa_nieba", "pw": 260, "price": 900, "col": "e0d8ff", "fact": "Ponad tysiąc galaktyk."},
+	"coma": {"name": "Gromada Warkocza", "cat": "deep", "req": "mapa_nieba", "pw": 260, "price": 920, "col": "d8e8ff", "fact": "Ciemna materia trzyma ją razem."},
+	"plejady": {"name": "Plejady (skarb Byka)", "cat": "nebula", "req": "", "pw": 60, "price": 200, "col": "9ac8ff", "fact": "Młode, gorące gwiazdy."},
+	"laguna": {"name": "Mgławica Laguna (skarb Strzelca)", "cat": "nebula", "req": "", "pw": 60, "price": 210, "col": "ff8aa8", "fact": "Wodór świeci na różowo."},
+	"slimak": {"name": "Mgławica Ślimak (skarb Wodnika)", "cat": "nebula", "req": "", "pw": 60, "price": 220, "col": "8ae8d8", "fact": "Oko z gazu umierającej gwiazdy."},
+}
+
 # ---------------------------------------------------------------- stan
+var staff := []             # pracownicy: {name, kind, traits, mode (1-3), since, report}
+var candidates := []        # dzisiejsze CV (3)
+var sats := []              # satelity: {name, use, left (dni budowy), day}
+var reports := []           # zgłoszone przez pracowników odkrycia do weryfikacji teleskopem
+var debt := 0               # niezapłacone pensje: potrącane z kolejnych sprzedaży
+var solar := false          # dziś burza słoneczna (satelity bez tarczy tracą przychód)
+var solar_next := false
+var staff_acc := 0.0        # ułamki PW z pracy nocnej
 var day := 1
 var night := true
 var night_left := NIGHT_BASE
@@ -474,12 +567,16 @@ func moon_phase() -> int:
 
 
 func night_length() -> float:
-	return NIGHT_BASE + (15.0 if has("poduszka") else 0.0) + (20.0 if has("termos") else 0.0) + (10.0 if has("nocny1") else 0.0) + (15.0 if has("nocny2") else 0.0)
+	var crew := 0.0  # Tryb 3: każdy pracownik +15 s (Majsterkowicz +10 s więcej), razem maks. +45 s
+	for p in staff:
+		if p.mode == 3:
+			crew += 15.0 + (10.0 if p.traits.has("majsterkowicz") else 0.0)
+	return NIGHT_BASE + (15.0 if has("poduszka") else 0.0) + (20.0 if has("termos") else 0.0) + (10.0 if has("nocny1") else 0.0) + (15.0 if has("nocny2") else 0.0) + minf(crew, 45.0)
 
 
 func storage_cap() -> int:
 	var c := 5
-	for p in [["dd", 5], ["hd", 10], ["pudelko", 10]]:  # maks. 30 miejsc; większe dyski w Etapie 2
+	for p in [["dd", 5], ["hd", 10], ["pudelko", 10], ["stacja", 20], ["nas", 50]]:  # Etap 1: maks. 30 miejsc
 		if has(p[0]):
 			c += p[1]
 	return c
@@ -521,11 +618,17 @@ func _roll_sky() -> void:
 		fresh.shuffle()
 		old.shuffle()
 		return (fresh + old).slice(0, n)
-	var open := SKY.keys().filter(func(id): return SKY[id].req == "" or has(SKY[id].req))
+	var open := SKY.keys().filter(func(id): return (SKY[id].req == "" or has(SKY[id].req)) and SKY[id].get("stage", 1) <= stage)
 	sky_tonight = pick.call(open.filter(func(id): return SKY[id].cat == "const"), 5 if has("podstawowe") else 4)
 	sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == "zodiac" and SKY[id].season == season()), 1)
 	for cat in ["nebula", "planet", "deep"]:
-		sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == cat), 1)
+		sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == cat), 1 if stage < 2 else 2)
+	if stage >= 2:  # duży teleskop: księżyce planet i czarne dziury, a zgłoszenia pracowników czekają na weryfikację
+		for cat in ["moons", "blackhole"]:
+			sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat == cat), 2)
+		for id in reports:
+			if SKY.has(id) and not sky_tonight.has(id):
+				sky_tonight.append(id)
 	if has("newton"):  # większy teleskop: 10 obiektów więcej
 		sky_tonight += pick.call(open.filter(func(id): return SKY[id].cat in ["const", "zodiac", "nebula"] and not sky_tonight.has(id)), 10)
 
@@ -538,11 +641,20 @@ func obj_info(id: String) -> Dictionary:
 	var o: Dictionary = SKY[id].duplicate()
 	if o.has("pts"):
 		o.pw = o.pts.size() + o.bonus
+	if reports.has(id):  # zgłoszenie pracownika: weryfikacja warta podwójnie
+		o.pw *= 2
+		o.price *= 2
+		o.report = true
 	return o
 
 
 func is_rare(entry: Dictionary) -> bool:
-	return entry.cat in ["zodiac", "planet", "deep", "comet", "nebula"]
+	return entry.cat in ["zodiac", "planet", "deep", "comet", "nebula", "moons", "blackhole"]
+
+
+## czy obiekt ma analizę widmową (Spektrometr)
+func spectral(cat: String) -> bool:
+	return has("spektro") and cat in ["planet", "moons", "nebula", "deep", "blackhole"]
 
 
 ## wycena wg GDD: bazowa x jakość x popyt x (1 + bonusy) x instytut; zwraca rozbicie
@@ -554,20 +666,27 @@ func price(entry: Dictionary) -> Dictionary:
 			bonus += p[1]
 	var inst := 2.0 if has("licencja") and is_rare(entry) else 1.0
 	var dem: float = demand.get(entry.cat, 1.0)
+	if has("okular_hr") and entry.cat in ["deep", "blackhole"]:
+		bonus += 0.20
+	if entry.get("spec", false):  # analiza widmowa: +50%, katalog i filtry dokładają, czarna dziura x2 ze spektroskopią
+		inst *= (1.5 + (0.10 if has("katalog") else 0.0) + (0.25 if has("filtry") else 0.0)) * (2.0 if entry.cat == "blackhole" and has("spektro_bh") else 1.0)
 	var total: float = base * entry.quality / 100.0 * dem * (1.0 + bonus) * inst
 	return {"base": base, "quality": entry.quality, "demand": dem, "bonus": bonus, "inst": inst, "total": int(round(total))}
 
 
 ## zapis obserwacji do Dziennika; zwraca zdobyte PW albo -1 gdy brak miejsca
-func record(id: String, quality: int, points := 0, replace_oldest := false) -> int:
+func record(id: String, quality: int, points := 0, replace_oldest := false, spec := false) -> int:
 	var info := obj_info(id)
+	if has("ccd"):
+		quality = maxi(quality, 40)
 	var s := stored()
 	if s.size() >= storage_cap():
 		if not replace_oldest:
 			return -1
 		s[0].lost = true  # nadpisany w pamięci, ale zostaje w historii Dziennika
 	_id_seq += 1
-	journal.append({"uid": _id_seq, "id": id, "name": info.name, "cat": info.cat, "quality": quality, "base": float(info.price), "day": day, "sold": false})
+	journal.append({"uid": _id_seq, "id": id, "name": info.name, "cat": info.cat, "quality": quality, "base": float(info.price), "day": day, "sold": false, "spec": spec})
+	reports.erase(id)
 	tonight[id] = true
 	discovered[id] = true
 	if id == "moon":
@@ -575,7 +694,7 @@ func record(id: String, quality: int, points := 0, replace_oldest := false) -> i
 	if id == "comet":
 		comet.left = 0
 		comet.gap = COMET_GAP
-	var gained: float = info.pw
+	var gained: float = info.pw * (1.5 if spec else 1.0)
 	if points > 0:
 		gained += points * ((1 if has("nawyk1") else 0) + (2 if has("nawyk2") else 0))
 	return add_pw(gained)
@@ -587,7 +706,9 @@ func sell(entries: Array) -> int:
 		e.paid = price(e).total
 		sum += e.paid
 		e.sold = true
-	money += sum
+	var owed := mini(debt, sum)  # zaległe pensje schodzą z kolejnych sprzedaży
+	debt -= owed
+	money += sum - owed
 	today.sales = today.get("sales", 0) + sum
 	today.sales_n = today.get("sales_n", 0) + entries.size()
 	if has("wzor"):
@@ -657,14 +778,30 @@ func meteor_caught() -> Dictionary:
 	return {"pw": add_pw(25), "saved": saved}
 
 
+func market_cats() -> Array:
+	return MARKET_CATS2 if stage >= 2 else MARKET_CATS
+
+
+func science_rows(st := stage) -> Array:
+	return SCIENCE2 if st >= 2 else SCIENCE
+
+
+func shop_rows() -> Array:
+	return SHOP2 if stage >= 2 else SHOP
+
+
 func can_buy_science(row: Array) -> String:
 	if science.has(row[0]):
 		return "owned"
+	if SCIENCE2.has(row) and stage < 2:
+		return "tier"
 	if row[5] != "" and not science.has(row[5]):
 		return "req"
-	var tier1 := SCIENCE.filter(func(r): return r[3] == 1 and science.has(r[0])).size()
-	var tier2 := SCIENCE.filter(func(r): return r[3] == 2 and science.has(r[0])).size()
-	if row[3] == 2 and tier1 < 3 or row[3] == 3 and tier2 < 4:
+	var table: Array = SCIENCE2 if SCIENCE2.has(row) else SCIENCE
+	var tier1 := table.filter(func(r): return r[3] == 1 and science.has(r[0])).size()
+	var tier2 := table.filter(func(r): return r[3] == 2 and science.has(r[0])).size()
+	var tier3 := table.filter(func(r): return r[3] == 3 and science.has(r[0])).size()
+	if row[3] == 2 and tier1 < 3 or row[3] == 3 and tier2 < 4 or row[0] == "wniosek" and tier3 < 4:
 		return "tier"
 	return "ok" if pw >= row[2] else "cost"
 
@@ -682,7 +819,7 @@ func buy_science(row: Array) -> void:
 func can_buy_shop(row: Array) -> String:
 	if shop.has(row[0]) or row[0] in parcels:
 		return "owned"
-	if row[0] == "certyfikat" and not science.has("manifest"):
+	if row[0] == "certyfikat" and not science.has("manifest") or row[0] == "heavy" and not science.has("wniosek"):
 		return "hidden"
 	if row[5] != "" and not has(row[5]):
 		return "req"
@@ -708,19 +845,170 @@ func unpack_all(quiet := false) -> void:
 
 
 func _shop_name(id: String) -> String:
-	for r in SHOP:
+	for r in SHOP + SHOP2:
 		if r[0] == id:
 			return r[1]
 	return id
 
 
-## początek etapu: rano, w środku nowej bazy
+## początek etapu: rano, w środku nowej bazy; Etap 2: Arbjooze jest pierwszym pracownikiem (przyszedł sam)
 func start_stage(n: int) -> void:
 	stage = n
 	stage_done = false
 	location = "room"
 	night = false
+	if n == 2 and staff.is_empty():
+		staff.append({"name": "Arbjooze", "kind": "cat", "traits": ["bystre_oko"], "mode": 1, "since": day, "report": ""})
+		_roll_candidates()
 	night_left = night_length()
+
+
+## Etap 2 gotowy do przejścia: Wniosek, U-Howl Heavy, czarna dziura, 2 satelity na orbicie, 3 pracowników
+func stage2_goals() -> Array:
+	return [["Wniosek „Program Kosmiczny”", science.has("wniosek")], ["Kontrakt U-Howl Heavy", shop.has("heavy")],
+		["Skatalogowana czarna dziura", discovered.keys().any(func(k): return SKY.has(k) and SKY[k].cat == "blackhole")],
+		["2 satelity na orbicie", sats.filter(func(st): return st.left <= 0).size() >= 2], ["3 pracowników", staff.size() >= 3]]
+
+
+# ---------------------------------------------------------------- pracownicy (GDD 13)
+## wydajność pracownika w danym trybie: cechy, badania i zakupy
+func staff_eff(p: Dictionary, mode: int) -> float:
+	var e := 1.0 + (0.10 if has("ekspres") else 0.0) + (0.30 if p.traits.has("szybki") else 0.0)
+	if mode == 1:
+		e += (0.20 if has("mentoring") else 0.0) + (0.30 if has("drugi_tel") else 0.0) + (0.25 if p.traits.has("skrupulatny") else 0.0)
+		e += (0.50 if p.traits.has("nocny_marek") else 0.0) + (0.15 if p.kind == "cat" and has("legowisko") else 0.0)
+	elif mode == 2:
+		e += (0.10 if has("szkolenie") else 0.0) - (0.10 if p.traits.has("nocny_marek") else 0.0)
+	return e
+
+
+## noc (i dzień z Autonomicznym Skanowaniem): pracownicy w Trybie 1 dają ~1 PW/s
+func staff_tick(dt: float) -> void:
+	if staff.is_empty() or (not night and not has("autonomia")):
+		return
+	for p in staff:
+		if p.mode == 1:
+			staff_acc += dt * staff_eff(p, 1) * (1.0 if night else 0.5)
+	if staff_acc >= 1.0:
+		var whole := floorf(staff_acc)
+		staff_acc -= whole
+		today.staff_pw = today.get("staff_pw", 0) + add_pw(whole)
+
+
+func hire_cost(i := staff.size()) -> Array:
+	return HIRE[mini(i, HIRE.size() - 1)]
+
+
+func hire(c: Dictionary) -> String:
+	if staff.size() >= STAFF_MAX:
+		return "Limit pracowników w Etapie 2: %d." % STAFF_MAX
+	var cost: int = hire_cost()[0]
+	if money < cost:
+		return "Za mało $."
+	money -= cost
+	today.bought = today.get("bought", []) + [["Rekrutacja: " + c.name, cost, "$"]]
+	staff.append({"name": c.name, "kind": c.kind, "traits": c.traits, "mode": 1, "since": day, "report": "", "salary": hire_cost(staff.size())[1]})
+	candidates.erase(c)
+	changed.emit()
+	toast.emit("Nowy pracownik: " + c.name, "good")
+	return ""
+
+
+func _roll_candidates() -> void:
+	candidates = []
+	var names := NAMES.filter(func(n): return not staff.any(func(p): return p.name == n))
+	names.shuffle()
+	for i in 3:
+		var tr := TRAITS.keys()
+		tr.shuffle()
+		candidates.append({"name": names[i], "kind": KIND[names[i].get_slice(" ", 0)], "traits": tr.slice(0, randi_range(1, 2))})
+
+
+## rano: Tryb 2 poprawia pomiary, zgłoszenia z nocy, pensje co 7 dni, satelity; wiersze do podsumowania dnia
+func _staff_morning(out: Array) -> void:
+	var stored_now := stored()
+	var fixed := 0
+	for p in staff:
+		if p.mode == 2:  # do 8 wpisów na pracownika, +20–30% jakości
+			for e in stored_now.slice(fixed, fixed + 8):
+				e.quality = mini(100, int(e.quality * (1.2 + randf() * 0.1) * staff_eff(p, 2)))
+			fixed = mini(fixed + 8, stored_now.size())
+		if p.mode == 1 and p.report == "":  # w nocy obserwował niebo
+			var chance := 0.15 * (1.5 if has("protokol") else 1.0) * (1.5 if p.traits.has("bystre_oko") else 1.0)
+			if randf() < chance:
+				var rare := SKY.keys().filter(func(k): return is_rare(SKY[k]) and not discovered.has(k) and not reports.has(k) \
+					and (SKY[k].req == "" or has(SKY[k].req)) and SKY[k].get("stage", 1) <= stage)
+				if not rare.is_empty():
+					p.report = rare.pick_random()
+	if fixed > 0:
+		out.append(["Analiza raportów: %d wpisów" % fixed, 0, "", 0])
+	if not staff.is_empty() and day % 7 == 0:  # pensje: koniec tygodnia, proporcjonalnie do przepracowanych dni
+		var pay := 0
+		for i in staff.size():
+			var p: Dictionary = staff[i]
+			var days := mini(7, day - int(p.since) + 1)
+			pay += int(round(p.get("salary", hire_cost(i)[1]) * days / 7.0))
+		var paid := mini(pay, money)
+		money -= paid
+		debt += pay - paid
+		out.append(["Pensje zespołu", pay, "$", -1])
+	var sat_pw := 0
+	var sat_usd := 0
+	for st in sats:
+		if st.left > 0:
+			st.left -= 1
+			if st.left == 0:
+				toast.emit("Satelita %s na orbicie!" % st.name, "good")
+			continue
+		if solar:  # burza słoneczna: bez tarczy (Etap 3) dzień bez przychodu
+			continue
+		match st.use:
+			"nauka":
+				sat_pw += int(150 * (1.25 if has("panele") else 1.0))
+			"astrotv":
+				sat_usd += int(120 * (1.3 if has("umowa_tv") else 1.0) * (1.25 if has("siec_sat") else 1.0))
+			"satnet":
+				sat_usd += int(300 * (1.25 if has("siec_sat") else 1.0))
+				if (day - int(st.day)) % 3 == 2 and not staff.any(func(p): return p.mode == 3):
+					sat_usd -= 150  # serwis Sat-Net co 3 dni, chyba że ktoś jest w Trybie 3
+	if sat_pw > 0:
+		out.append(["  w tym satelity naukowe", add_pw(sat_pw), "PW", 1])
+	if sat_usd != 0:
+		money += sat_usd
+		out.append(["Wynajem satelitów", absi(sat_usd), "$", signi(sat_usd)])
+	if solar and not sats.is_empty():
+		out.append(["Burza słoneczna: satelity bez przychodu", 0, "", 0])
+	_roll_candidates()
+
+
+func sat_slots() -> int:
+	return 4 + (2 if has("siec_sat") else 0)
+
+
+func build_sat(commercial: bool) -> String:
+	if not has("orbitalna"):
+		return "Wymaga badania: Mechanika Orbitalna."
+	if not has("antena"):
+		return "Wymaga anteny satelitarnej na dachu."
+	if sats.size() >= sat_slots():
+		return "Brak wolnych slotów orbitalnych."
+	var cost := int(SAT_COST * (0.625 if commercial else 1.0))
+	if money < cost:
+		return "Za mało $."
+	money -= cost
+	today.bought = today.get("bought", []) + [["Budowa satelity", cost, "$"]]
+	sats.append({"name": "SW-%d" % (sats.size() + 1), "use": "astrotv" if commercial else "nauka", "commercial": commercial, "left": 1 if has("montaz_sat") else 2, "day": day, "cost": cost})
+	changed.emit()
+	return ""
+
+
+func sell_sat(st: Dictionary) -> int:
+	var v := int(st.cost * 1.8)
+	sats.erase(st)
+	money += v
+	today.sales = today.get("sales", 0) + v
+	changed.emit()
+	return v
 
 
 func stage_ready() -> bool:
@@ -743,9 +1031,15 @@ func start_night() -> void:
 ## „Idź spać”: zwraca dane do Podsumowania Dnia, przechodzi w poranek i robi autozapis
 func sleep() -> Dictionary:
 	_pay_report()  # raport poranny: wypłata trafia do podsumowania dnia
+	var extra := []
+	if stage >= 2:
+		_staff_morning(extra)
+		if today.get("staff_pw", 0) > 0:
+			extra.push_front(["  w tym praca nocna zespołu", today.staff_pw, "PW", 1])
 	today.opened = parcels.map(_shop_name)  # paczka spod drzwi otwiera się sama, gdy Jania idzie spać
 	unpack_all(true)
 	var summary := today.duplicate()
+	summary.extra = extra
 	summary.day = day
 	summary.calendar = calendar()
 	day += 1
@@ -763,6 +1057,11 @@ func sleep() -> Dictionary:
 	rain_next = randf() < RAIN_CHANCE
 	storm_next = rain_next and randf() < STORM_CHANCE
 	summary.forecast = "burza z piorunami, widoczność mocno utrudniona" if storm_next else ("deszcz, widoczność utrudniona" if rain_next else "pogodnie, dobra widoczność")
+	if stage >= 2:  # pogoda kosmiczna: burza słoneczna co jakiś czas; Monitor ostrzega dzień wcześniej
+		solar = solar_next
+		solar_next = randf() < 0.12
+		if solar_next and has("pogoda"):
+			summary.forecast += ". Jutro burza słoneczna!"
 	_roll_demand()
 	_roll_offer()
 	history.append(summary)
@@ -772,7 +1071,7 @@ func sleep() -> Dictionary:
 
 func _roll_demand() -> void:
 	demand.clear()
-	var cats := MARKET_CATS.duplicate()
+	var cats := market_cats().duplicate()
 	cats.shuffle()
 	for i in randi_range(1, 2):
 		demand[cats[i]] = snappedf(randf_range(1.2, 1.6), 0.05)
@@ -803,6 +1102,13 @@ func new_game() -> void:
 	stage_done = false
 	stage = 1
 	logo = ""
+	staff = []
+	candidates = []
+	sats = []
+	reports = []
+	debt = 0
+	solar = false
+	solar_next = false
 	demand_log.clear()
 	analysis = {"uids": [], "left": 0.0}
 	offer = {}
@@ -813,7 +1119,8 @@ func new_game() -> void:
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history", "stage", "logo"]
+	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history", "stage", "logo",
+	"staff", "candidates", "sats", "reports", "debt", "solar", "solar_next"]
 
 
 func has_save() -> bool:

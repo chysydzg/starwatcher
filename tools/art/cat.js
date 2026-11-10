@@ -1,7 +1,7 @@
 // Arbjooze (GDD: pierwszy pracownik): szarobury pręgowany kotek, biały pyszczek, pierś i „skarpetki”, zielone oczy,
 // różowy nosek, biały kitel badacza. Lewa przednia łapka to proteza (tu: chwytak). Referencja autora: zdjęcie kota.
-// Klatka 40x58, stopy na dole. Arkusz 5x2: rząd 0 przód [stoi, mruga, chód 1-2, macha chwytakiem],
-// rząd 1 bok w prawo [stoi, chód 1-4]. Lewo = odbicie w grze (proteza zostaje na „bliższej” łapie).
+// Klatka 40x58, stopy na dole. Arkusz 5x3: rząd 0 przód [stoi, mruga, chód 1-2, macha chwytakiem],
+// rząd 1 bok w prawo [stoi, chód 1-4], rząd 2 przód z protezą przy pracy [lupa, rysik, młoteczek, kubeczek]. Lewo = odbicie w grze (proteza zostaje na „bliższej” łapie).
 const P = require(process.env.CODIXEL);
 const { ink } = require("./kit.js");
 const FW = 40, FH = 58, CX = 19.5, K = 0.92, COLS = 5;
@@ -13,7 +13,7 @@ const STEEL = P.hueRamp(3, { hue: 220, shift: 16, sat: 0.12, light: [0.56, 0.9] 
 const EYE = [132, 200, 64], EYED = [70, 130, 40], PUPIL = [26, 20, 22], SHINE = [250, 250, 240], NOSE = [236, 150, 164], EARIN = [222, 160, 168];
 const TOP = { light: [0, -0.62, 0.78] };
 
-function frame(dir, walk, wave = false, blink = false) {
+function frame(dir, walk, wave = false, blink = false, tool = "") {  // tool: lupa / rysik / mlotek / kubek zamiast chwytaka
   const X = (x) => (x - 16) * K + CX, Y = (y) => FH - 2 - (48 - y) * K;
   const E = (x, y, rx, ry) => P.ell(X(x), Y(y), rx * K, ry * K);
   const C = (ax, ay, bx, by, ra, rb = ra) => P.cap(X(ax), Y(ay), X(bx), Y(by), ra * K, rb * K);
@@ -40,6 +40,14 @@ function frame(dir, walk, wave = false, blink = false) {
     S([C(8, 29 + bob, 7, 36 + st, 2.2, 2.0)], COAT);                                            // prawa ręka (rękaw) + biała łapka
     S([E(7, 37 + st + bob, 2, 1.7)], WHITE);
     if (wave) { S([C(24, 29 + bob, 27, 22 + bob, 2.2, 2.0)], COAT); gripper(27.4, 20.2 + bob, true); }
+    else if (tool) {  // proteza podniesiona do pracy: narzędzie przed sobą
+      S([C(24, 29 + bob, 25, 34, 2.2, 2.0)], COAT); S([E(25, 35, 2.2, 1.8)], STEEL);
+      const px = Math.round(X(25)), py = Math.round(Y(35));
+      if (tool === "lupa") { for (let a = 0; a < 6.28; a += 0.3) b.pset(Math.round(px + 1 + Math.cos(a) * 3), Math.round(py - 4 + Math.sin(a) * 3), STEEL[0]); for (const [dx, dy] of [[0, -4], [1, -4], [2, -4], [1, -5], [1, -3]]) b.pset(px + dx, py + dy, [190, 230, 250]); }
+      else if (tool === "mlotek") { for (let y = -6; y < 0; y++) b.pset(px + 1, py + y, [150, 100, 60]); for (let x = -1; x < 4; x++) { b.pset(px + x, py - 7, STEEL[0]); b.pset(px + x, py - 6, STEEL[1]); } }
+      else if (tool === "kubek") { for (let y = -5; y < 0; y++) for (let x = 0; x < 4; x++) b.pset(px + x, py + y, x === 0 || x === 3 || y === -1 ? [220, 220, 228] : [250, 248, 240]); b.pset(px + 1, py - 7, [230, 230, 240]); b.pset(px + 2, py - 8, [230, 230, 240]); }
+      else if (tool === "rysik") { for (let k = 0; k < 6; k++) b.pset(px + 1 + Math.floor(k / 2), py - 1 - k, k < 5 ? [70, 90, 160] : [240, 240, 240]); }
+    }
     else { S([C(24, 29 + bob, 25, 36 - st, 2.2, 2.0)], COAT); gripper(25, 37 - st + bob, false); }
     S([C(10.5, 17 + bob, 8.6, 8.5 + bob, 3.2, 0.6), C(21.5, 17 + bob, 23.4, 8.5 + bob, 3.2, 0.6)], TAB);  // uszy
     S([C(10.6, 15.5 + bob, 9.5, 11 + bob, 1.4, 0.3), C(21.4, 15.5 + bob, 22.5, 11 + bob, 1.4, 0.3)], [EARIN, EARIN, EARIN], { dark: 1 });
@@ -84,6 +92,8 @@ function frame(dir, walk, wave = false, blink = false) {
 const out = process.argv[2];
 const front = [frame(0, -1), frame(0, -1, false, true), frame(0, 0), frame(0, 1), frame(0, -1, true)];
 const side = [frame(1, -1), ...[0, 1, 2, 3].map((k) => frame(1, k))];
-P.save(P.pack([...front, ...side], { cols: COLS, pad: 0 }), `${out}/arbjooze.png`);
-P.save(P.sheet([...front, ...side].map((buf) => ({ buf, scale: 5 })), { cols: COLS }), __dirname + "/_cat.png");
+const tools = ["lupa", "rysik", "mlotek", "kubek"].map((tl) => frame(0, -1, false, false, tl));  // rząd 2: protezy przy pracy (GDD)
+tools.push(new P.Buf(tools[0].w, tools[0].h));
+P.save(P.pack([...front, ...side, ...tools], { cols: COLS, pad: 0 }), `${out}/arbjooze.png`);
+P.save(P.sheet([...front, ...side, ...tools].map((buf) => ({ buf, scale: 5 })), { cols: COLS }), __dirname + "/_cat.png");
 console.log("arbjooze.png", FW, FH, COLS);

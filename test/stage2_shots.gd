@@ -33,10 +33,52 @@ func _ready() -> void:
 	w._enter("pokoik", true)
 	await get_tree().create_timer(1.0).timeout
 	shot("e2_pokoik")
-	Game.night = true  # noc w obserwatorium: oświetlenie i muzyka nocna
+	w._enter("room", true)
+	Game.money = 20000
+	Game.pw = 20000
+	for id in ["spektro", "orbitalna", "filtr_x", "mentoring", "kalibracja", "katalog"]:
+		Game.science[id] = true
+	Game.shop["antena"] = true
+	Game.build_sat(false)
+	Game.hire(Game.candidates[0])
+	Game.hire(Game.candidates[0])
+	Game.staff[0].report = "saturn"
+	Game.staff[2].report = "uran"
+	Game.changed.emit()
+	await get_tree().create_timer(0.5).timeout
+	shot("e2_report")
+	w._interact("komputer")
+	await get_tree().create_timer(1.0).timeout
+	for a in ["zespol", "orbita", "badania", "sklep", "pomoc", "gielda"]:
+		w.viewport._launch(a)
+		await get_tree().create_timer(0.6).timeout
+		shot("e2_os_" + a)
+	w.viewport.close()
+	await get_tree().create_timer(0.5).timeout
+	Game.reports = ["saturn"]
+	Game.start_night()
 	w._enter("room", true)
 	await get_tree().create_timer(2.0).timeout
 	shot("e2_noc")
+	Game.tips["tut_tel"] = true
+	w._interact("teleskop")
+	await get_tree().create_timer(1.5).timeout
+	shot("e2_tel")
+	var tel = w.viewport
+	for tg in tel.targets:  # namierz pierwszy obiekt z analizą widmową i pokaż pasek widma
+		if Game.spectral(tg.info.cat):
+			tel.target = tg
+			tel.cam = tg.pos
+			tel.f = tg.sweet
+			tel.state = tel.S.FOCUS
+			await get_tree().create_timer(0.5).timeout
+			shot("e2_tel_focus")
+			tel._after_focus()
+			await get_tree().create_timer(0.6).timeout
+			shot("e2_tel_widmo")
+			break
+	tel.close()
+	await get_tree().create_timer(0.5).timeout
 	w._enter("pokoik", true)
 	await get_tree().create_timer(2.0).timeout
 	shot("e2_noc_pokoik")

@@ -128,6 +128,18 @@ icon("icon_pomoc", 24, 30, (s) => { // kartka tekstowa z „?”
   for (let y = 15; y < 27; y += 3) s.rect(3, y, 20, y + 1, [150, 150, 160]);
   for (const [x, y] of [[9, 3], [10, 2], [11, 2], [12, 2], [13, 3], [13, 4], [12, 5], [11, 6], [11, 7], [11, 10]]) s.rect(x, y, x + 1, y + 2, BLUE[1]);
 });
+icon("icon_zespol", 30, 28, (s) => { // dwie postacie w kitlach: kotek z uszami i królik
+  const coat = [236, 238, 244], fur = [150, 130, 110], rab = [224, 150, 90];
+  s.rect(2, 16, 14, 28, coat); s.rect(7, 16, 9, 28, [200, 204, 214]);
+  s.rect(3, 6, 13, 15, fur); s.rect(3, 3, 5, 6, fur); s.rect(11, 3, 13, 6, fur); s.rect(6, 9, 7, 10, [120, 200, 70]); s.rect(9, 9, 10, 10, [120, 200, 70]);
+  s.rect(16, 18, 28, 28, coat); s.rect(21, 18, 23, 28, [200, 204, 214]);
+  s.rect(17, 9, 27, 17, rab); s.rect(18, 0, 20, 9, rab); s.rect(24, 0, 26, 9, rab); s.rect(20, 12, 21, 13, DARK); s.rect(23, 12, 24, 13, DARK);
+});
+icon("icon_orbita", 30, 28, (s) => { // planeta z orbitą i satelitą
+  for (let a = 0; a < 6.28; a += 0.02) s.pset(Math.round(15 + Math.cos(a) * 14), Math.round(14 + Math.sin(a) * 6), [180, 200, 240]);
+  for (let y = 0; y < 28; y++) for (let x = 0; x < 30; x++) { const d = Math.hypot(x - 15, y - 14); if (d < 8.5) s.pset(x, y, d < 5 && x < 14 ? [110, 200, 110] : [70, 130, 230]); }
+  s.rect(22, 3, 26, 7, [230, 230, 236]); s.rect(18, 4, 22, 6, R.gold[2]); s.rect(26, 4, 30, 6, R.gold[2]);
+});
 icon("icon_etap", 30, 30, (s) => { // złota gwiazda ETAP 2
   const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 6 : 15; pts.push([15 + Math.cos(a) * r, 16 + Math.sin(a) * r]); }
   s.poly(pts, R.gold[1]); s.poly(pts.map(([x, y]) => [15 + (x - 15) * 0.55 - 1, 16 + (y - 16) * 0.55 - 2]), R.gold[2]);

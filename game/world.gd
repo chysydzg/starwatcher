@@ -32,6 +32,8 @@ const ROOM_LIGHTS := [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82),
 const LAB_LIGHTS := [[Vector2(470, 170), "e8f0ff", 0.7, 1.8], [Vector2(412, 82), "e8f0ff", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
 	[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(472, 80), "8affb0", 0.5, 1.0], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]
 const CAT_DESK := Vector2(168, 284)  # stopy Arbjooze za jego biurkiem (biurko zasłania nogi)
+## biurka pozostałych pracowników (lewy górny róg biurka): lewa ściana i pod platformą teleskopu
+const DESKS := [Vector2(30, 200), Vector2(30, 290), Vector2(384, 296), Vector2(476, 296)]
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -79,8 +81,9 @@ const TIRED := "Późno już, nie mam sił.\nPora spać."
 var toasts := []
 var tip := ""
 var base := false          # Etap 2: wnętrze obserwatorium zamiast pokoju (ten sam układ, inne tło i meble)
-var cat: Sprite2D          # Arbjooze (arbjooze.png: 5x2 klatek 40x58; przód 0-4, bok 5-9)
+var cat: Sprite2D          # Arbjooze (arbjooze.png: 5x3 klatek 40x58; przód 0-4, bok 5-9, protezy 10-13)
 var cat_wave := false
+var workers := []          # [biurko, sprite] pracowników 2-5 (worker_<rodzaj>.png, 4 klatki machania)
 
 
 func _ready() -> void:
@@ -222,7 +225,7 @@ func _build_room() -> void:
 		cat = Sprite2D.new()
 		cat.texture = Game.tex("arbjooze")
 		cat.hframes = 5
-		cat.vframes = 2
+		cat.vframes = 3
 		cat.centered = false
 		cat.offset = Vector2(-20, -56)
 		cat.position = CAT_DESK
@@ -230,6 +233,18 @@ func _build_room() -> void:
 		cat.set_meta("walking", false)
 		room_sort.add_child(cat)
 	_colliders("room", room)
+	if base:
+		for d in DESKS:
+			var wd := _sprite("base_catdesk", Vector2(d.x, d.y + 41), room_sort)  # sortowanie po podstawie biurka
+			wd.offset = Vector2(0, -41)
+			var w := Sprite2D.new()
+			w.centered = false
+			w.hframes = 4
+			w.offset = Vector2(-22, -62)
+			w.position = d + Vector2(33, 24)
+			room_sort.add_child(w)
+			workers.append([wd, w])
+		_place_workers()
 	for l in (LAB_LIGHTS if base else ROOM_LIGHTS):
 		lights.append(_light(room, l))
 	pc_light = lights[2]
@@ -310,6 +325,11 @@ func _refresh() -> void:
 	props.radio.visible = Game.has("radio")
 	props.parcel.visible = not Game.parcels.is_empty() and not Game.arriving
 	props.luggage.visible = Game.stage == 1 and Game.stage_ready() and not Game.stage_done
+	if base:
+		_place_workers()
+	if Game.stage == 2 and not Game.tips.has("stage2_done") and Game.stage2_goals().all(func(g): return g[1]):
+		Game.tips.stage2_done = true
+		_toast("Cel Etapu 2 osiągnięty! Wielka Rozbudowa (Etap 3) już wkrótce.", "good")
 	if props.luggage.visible and not Game.tips.has("luggage"):
 		Game.tips.luggage = true
 		_toast("Walizki spakowane. Czas na przeprowadzkę!", "good")
@@ -593,9 +613,17 @@ func _process(dt: float) -> void:
 	if viewport == null and not busy:
 		_move()
 	_animate(dt)
+	if Game.stage >= 2:
+		Game.staff_tick(dt)
+		for i in workers.size():  # pracownicy machają ogonami, każdy w swoim rytmie
+			workers[i][1].frame = [0, 1, 2, 3, 2, 1][int((t + i * 0.7) * 6.0) % 6] if fmod(t + i * 1.9, 5.0) < 1.0 else 0
 	if cat and not cat.get_meta("walking"):  # Arbjooze stoi przodem i czasem mruga; macha chwytakiem na powitanie
 		cat.flip_h = false
-		cat.frame = 4 if cat_wave else (1 if fmod(t + 1.3, 4.2) < 0.15 else 0)
+		var mode: int = int(Game.staff[0].mode) if not Game.staff.is_empty() and Game.tips.has("arbjooze") else 0
+		var tool: int = [0, 10, 11, 12][mode]  # proteza do pracy: lupa (obserwacje), rysik (raporty), młoteczek (sprzęt)
+		if mode > 0 and fmod(t, 14.0) > 11.0:
+			tool = 13  # przerwa: kubeczek z mleczkiem
+		cat.frame = 4 if cat_wave else (tool if tool > 0 else (1 if fmod(t + 1.3, 4.2) < 0.15 else 0))
 	glow.queue_redraw()
 	pc_light.energy = (1.1 if Game.night else 0.45) * (0.86 + 0.08 * sin(t * 2.1) + 0.04 * sin(t * 13.0) + (0.12 if fmod(t, 7.0) < 2.5 else 0.0))
 	hud.queue_redraw()
@@ -658,6 +686,12 @@ func _animate(dt: float) -> void:
 
 
 func _spots() -> Dictionary:
+	if base and Game.location == "room":
+		var d := BASE_SPOTS.duplicate()
+		for i in workers.size():
+			if workers[i][0].visible:
+				d["pracownik%d" % (i + 1)] = Rect2(DESKS[i].x, DESKS[i].y + 4, 66, 38)
+		return d
 	return {"balcony": BALCONY_SPOTS, "pokoik": POKOIK_SPOTS}.get(Game.location, BASE_SPOTS if base else ROOM_SPOTS)
 
 
@@ -786,9 +820,9 @@ func _interact(k: String) -> void:
 		"kwiatek":
 			_say("Rośnie jak na drożdżach.")
 		"arbjooze":
-			_talk([[{"who": "arbjooze", "text": "Szefowo! Mleczko wypite, notatki gotowe. Gwiazdy mogą przychodzić."}],
-				[{"who": "arbjooze", "text": "Ta proteza to chwytak. Mam jeszcze lupę, młoteczek i kubeczek. Na każdą okazję!"}],
-				[{"who": "arbjooze", "text": "W nocy przypilnuję pomocniczego teleskopu. Kocie oczy widzą więcej."}]][randi() % 3])
+			_cat_desk()
+		"pracownik1", "pracownik2", "pracownik3", "pracownik4":
+			_worker_desk(int(k.right(1)))
 		"spektrograf":
 			_say("Spektrograf. Rozszczepi światło gwiazd na tęczę.")
 		"serwery":
@@ -801,6 +835,114 @@ func _interact(k: String) -> void:
 			Game.sfx("switch")
 			lamps[k].on = not lamps[k].on
 			lamps[k].light.energy = _lamp_e(k)  # pstryczek działa od razu, bez przenikania
+
+
+## pracownicy 2-5 przy swoich biurkach (zatrudnieni w AstroOS); puste biurka czekają na kolejnych
+func _place_workers() -> void:
+	for i in workers.size():
+		var has_one := i + 1 < Game.staff.size()
+		workers[i][0].visible = has_one
+		workers[i][1].visible = has_one
+		if has_one:
+			workers[i][1].texture = Game.tex("worker_" + Game.staff[i + 1].kind)
+
+
+## pracownik przy biurku: zgłoszenie [!] albo tryb pracy i krótka rozmowa
+func _worker_desk(i: int) -> void:
+	var p: Dictionary = Game.staff[i]
+	if p.report != "":
+		var id: String = p.report
+		p.report = ""
+		Game.reports.append(id)
+		_toast("%s: Szefowo, w nocy coś błysnęło! To chyba %s." % [p.name, Game.SKY[id].name], "info")
+		_toast("Niepotwierdzony sygnał: %s. Nocą sprawdź go teleskopem." % Game.SKY[id].name, "info")
+		return
+	busy = true
+	var pn := _panel(Vector2(300, 112))
+	var close := func(): pn.get_parent().queue_free(); busy = false
+	var l := Label.new()
+	l.text = "%s · %s" % [p.name, Game.MODES[int(p.mode) - 1]]
+	l.position = Vector2(14, 10)
+	pn.add_child(l)
+	for m in 3:
+		var b := Button.new()
+		b.text = "TRYB %d" % (m + 1)
+		b.position = Vector2(14 + m * 92, 40)
+		b.custom_minimum_size = Vector2(86, 26)
+		b.disabled = int(p.mode) == m + 1
+		b.pressed.connect(func():
+			p.mode = m + 1
+			close.call()
+			_toast("%s: %s." % [p.name, Game.MODES[m]], "info"))
+		pn.add_child(b)
+		if m == 0:
+			b.grab_focus.call_deferred()
+	var x := Button.new()
+	x.text = "ZAMKNIJ"
+	x.position = Vector2(14, 78)
+	x.custom_minimum_size = Vector2(272, 24)
+	x.pressed.connect(close)
+	pn.add_child(x)
+
+
+## biurko Arbjooze: najpierw zgłoszenie [!], potem menu: tryb pracy, pogłaskanie, rozmowa
+func _cat_desk() -> void:
+	var me: Dictionary = Game.staff[0] if not Game.staff.is_empty() else {}
+	if me.is_empty():
+		return
+	if me.report != "":
+		var id: String = me.report
+		me.report = ""
+		Game.reports.append(id)
+		await _talk([{"who": "arbjooze", "text": "Szefowo! Podczas nocnego skanowania zauważyłem dziwny błysk... To chyba %s! Sprawdzisz dziś w nocy?" % Game.SKY[id].name},
+			{"who": "jania", "text": "Niepotwierdzony sygnał. Dziś w nocy go namierzę."}])
+		_toast("Niepotwierdzony sygnał: %s. Nocą sprawdź go teleskopem." % Game.SKY[id].name, "info")
+		return
+	busy = true
+	var p := _panel(Vector2(300, 150))
+	var close := func(): p.get_parent().queue_free(); busy = false
+	var l := Label.new()
+	l.text = "Arbjooze · %s" % Game.MODES[int(me.mode) - 1]
+	l.position = Vector2(14, 10)
+	p.add_child(l)
+	for m in 3:
+		var b := Button.new()
+		b.text = "TRYB %d" % (m + 1)
+		b.position = Vector2(14 + m * 92, 40)
+		b.custom_minimum_size = Vector2(86, 26)
+		b.disabled = int(me.mode) == m + 1
+		b.pressed.connect(func():
+			me.mode = m + 1
+			close.call()
+			_toast("Arbjooze: %s." % Game.MODES[m], "info"))
+		p.add_child(b)
+	for i in 2:
+		var b := Button.new()
+		b.text = ["POGŁASZCZ", "ROZMOWA"][i]
+		b.position = Vector2(14 + i * 138, 80)
+		b.custom_minimum_size = Vector2(132, 26)
+		b.pressed.connect(func():
+			close.call()
+			if i == 0:
+				cat_wave = true
+				Game.tips.petted = true
+				_toast("Mrrrr... Arbjooze mruczy z zadowolenia.", "good")
+				await get_tree().create_timer(1.2).timeout
+				cat_wave = false
+			else:
+				_talk([[{"who": "arbjooze", "text": "Szefowo! Mleczko wypite, notatki gotowe. Gwiazdy mogą przychodzić."}],
+					[{"who": "arbjooze", "text": "Ta proteza to chwytak. Mam jeszcze lupę, młoteczek i kubeczek. Na każdą okazję!"}],
+					[{"who": "arbjooze", "text": "W nocy pilnuję pomocniczego teleskopu. Kocie oczy widzą więcej."}],
+					[{"who": "arbjooze", "text": "Wypłata co siedem dni, pamiętam! Ale pracuję dla gwiazd."}]][randi() % 4]))
+		p.add_child(b)
+		if i == 0:
+			b.grab_focus.call_deferred()
+	var x := Button.new()
+	x.text = "ZAMKNIJ"
+	x.position = Vector2(14, 116)
+	x.custom_minimum_size = Vector2(272, 24)
+	x.pressed.connect(close)
+	p.add_child(x)
 
 
 ## dialog w świecie: okienko z portretem, Jania stoi
@@ -963,6 +1105,7 @@ func _sleep() -> void:
 		rows.append([b[0], b[1], b[2], -1])
 	for n in s.get("opened", []):
 		rows.append(["Paczka: " + n, 0, "", 0])
+	rows.append_array(s.get("extra", []))  # Etap 2: zespół, pensje, satelity
 	const VIS := 10  # więcej wierszy (dużo zakupów): przewijanie zamiast ucinania okna
 	var h := 52 + clampi(rows.size(), 1, VIS) * 18 + 46
 	var p := _panel(Vector2(400, h))
@@ -1003,7 +1146,7 @@ func _sleep() -> void:
 		v.add_theme_color_override("font_color", Color("a8d8f4") if r[3] == 0 else Color("ff8a7a") if r[3] < 0 else (Color("ffcf6b") if r[2] == "$" else Color("6affa0")))
 		list.add_child(a)
 		list.add_child(v)
-		var fmt: String = "otwarta" if r[3] == 0 else ("+" if r[3] > 0 else "-") + ("$%d" if r[2] == "$" else "%d PW")
+		var fmt: String = ("otwarta" if r[0].begins_with("Paczka") else "") if r[3] == 0 else ("+" if r[3] > 0 else "-") + ("$%d" if r[2] == "$" else "%d PW")
 		finals.append([a, v, fmt if r[3] == 0 else fmt % r[1]])
 		var tw := p.create_tween()  # wiersz pojawia się, a kwota „nabija się” od zera
 		anims.append(tw)
@@ -1331,6 +1474,17 @@ func _draw_hud() -> void:
 		y += 18
 	if viewport:
 		return
+	if base and Game.location == "room":  # zgłoszenia [!] nad głowami zespołu
+		var heads := [cat.position + Vector2(0, -60)] if cat and cat.visible else [Vector2.ZERO]
+		for w in workers:
+			heads.append(w[1].position + Vector2(0, -62))
+		for i in mini(heads.size(), Game.staff.size()):
+			if Game.staff[i].report == "" or heads[i] == Vector2.ZERO:
+				continue
+			var bp: Vector2 = (heads[i] + Vector2(-9, -18 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor()
+			n.draw_rect(Rect2(bp - Vector2(1, 1), Vector2(20, 18)), Color("1a1426"))
+			n.draw_rect(Rect2(bp, Vector2(18, 16)), Color("ffcf4a"))
+			_txt_on(n, bp + Vector2(5, 13), "!", Color("1a1426"))
 	if not speech.is_empty():  # monolog Jani nad głową
 		var lines := _wrap(speech.text, 200)
 		for i in lines.size():

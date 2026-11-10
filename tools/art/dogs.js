@@ -20,6 +20,7 @@ const WAG = [-1, -0.6, 0.6, 1];  // z przodu ogon zawsze wystaje zza bioder, raz
 
 // dir 0 przód / 1 bok; walk: -1 stoi, 0..3 faza chodu; wag: -1..1 wychylenie ogona
 function frame(d, dir, walk, carry, wag) {
+  const SU = d.suit || UH;  // ubranie: ogrodniczki U-Howl albo kitel pracownika laboratorium
   const K = d.K, X = (x) => (x - 16) * K + CX, Y = (y) => FH - 2 - (48 - y) * K;
   const E = (x, y, rx, ry) => P.ell(X(x), Y(y), rx * K, ry * K);
   const C = (ax, ay, bx, by, ra, rb = ra) => P.cap(X(ax), Y(ay), X(bx), Y(by), ra * K, rb * K);
@@ -36,36 +37,36 @@ function frame(d, dir, walk, carry, wag) {
   if (dir === 2) { // tyłem: plecy w ogrodniczkach (szelki), tył głowy i czapeczki, ogon na środku wystaje ze spodni
     const walking = walk >= 0, bob = walking ? -1 : 0, st = walk === 0 ? 1 : walk === 1 ? -1 : 0;
     S([E(11, 45 - Math.max(st, 0), 3.6, 2), E(21, 45 - Math.max(-st, 0), 3.6, 2)], d.muz, { dark: 0.85 });
-    S([C(12, 39, 12, 43, 3.2), C(20, 39, 20, 43, 3.2), E(16, 35 + bob, 7.4, 6.4)], UH);
+    S([C(12, 39, 12, 43, 3.2), C(20, 39, 20, 43, 3.2), E(16, 35 + bob, 7.4, 6.4)], SU);
     S([C(8, 30 + bob, 7, 37 - st, 2.1, 1.9), C(24, 30 + bob, 25, 37 + st, 2.1, 1.9)], d.body);
     S([E(7, 38 - st + bob, 2, 1.7), E(25, 38 + st + bob, 2, 1.7)], d.muz, { dark: 0.85 });
     fill(CX, Y(28.4 + bob), 6 * K, 3.4 * K, d.body[1]);
     const by = Math.round(Y(30 + bob)), sx = px(3);
-    for (let y = Math.round(Y(26.5 + bob)); y < by + px(2); y++) { b.pset(L - sx, y, UH[2]); b.pset(Rr + sx, y, UH[2]); } // szelki
+    for (let y = Math.round(Y(26.5 + bob)); y < by + px(2); y++) { b.pset(L - sx, y, SU[2]); b.pset(Rr + sx, y, SU[2]); } // szelki
     const tl = d.tail === "long" ? 8 : 5.5;  // ogon: z dziury w spodniach, w górę, macha na boki
     S([C(16, 36 + bob, 16 + wag * (d.tail === "long" ? 5 : 3), 36 + bob - tl, tailR, tailR * 0.8)], d.tail === "long" ? d.body : d.head);
     if (d.ears === "up") S([C(10.5, 17 + bob, 6.8, 8 + bob, 3.0, 0.8), C(21.5, 17 + bob, 25.2, 8 + bob, 3.0, 0.8)], d.head, { dark: 0.9 });
     S([E(16, 21 + bob, 9, 7.4), E(10, 24 + bob, 3.6, 3), E(22, 24 + bob, 3.6, 3)], d.head, { ambient: 0.4, dark: 0.92 });
     if (d.ears === "lop") S([C(9.5, 16 + bob, 6.5, 20 + bob, 2.4, 1.8), C(22.5, 16 + bob, 25.5, 20 + bob, 2.4, 1.8)], d.head, { dark: 0.85 });
     const cy = Math.round(Y(14.4 + bob)), cw = px(6), ch = px(3);
-    for (let dd = 0; dd < cw; dd++) { const top = cy - ch + (dd >= cw - 2 ? 1 : 0) + (dd === cw - 1 ? 1 : 0); for (let y = top; y <= cy + 1; y++) sym(dd, y, y === top ? UH[3] : UH[2]); }
-    sym(0, cy + 1, CREAM); sym(1, cy + 1, CREAM);  // pasek regulacji z tyłu czapki
+    if (d.cap !== false) for (let dd = 0; dd < cw; dd++) { const top = cy - ch + (dd >= cw - 2 ? 1 : 0) + (dd === cw - 1 ? 1 : 0); for (let y = top; y <= cy + 1; y++) sym(dd, y, y === top ? UH[3] : UH[2]); }
+    if (d.cap !== false) sym(0, cy + 1, CREAM); sym(1, cy + 1, CREAM);  // pasek regulacji z tyłu czapki
   } else if (dir === 0) {
     const walking = walk >= 0, bob = walking ? -1 : 0, st = walk === 0 ? 1 : walk === 1 ? -1 : 0;
     // ogon za ciałem: wychodzi ze spodni nad biodrem i wychyla się na boki
     const tx = 16 + wag * 12.8, ty = 37 - tailL * 0.6 * (1 - 0.3 * Math.abs(wag));  // koniec ogona za łapką, nie za ręką
     S([C(16, 36 + bob, tx, ty + bob, tailR, tailR * 0.8)], d.tail === "long" ? d.body : d.head, { dark: 0.9 });
     S([E(11, 45 - Math.max(st, 0), 3.6, 2), E(21, 45 - Math.max(-st, 0), 3.6, 2)], d.muz);       // stopy
-    S([C(12, 39, 12, 43, 3.2), C(20, 39, 20, 43, 3.2), E(16, 35 + bob, 7.4, 6.4)], UH);       // nogawki i brzuch
+    S([C(12, 39, 12, 43, 3.2), C(20, 39, 20, 43, 3.2), E(16, 35 + bob, 7.4, 6.4)], SU);       // nogawki i brzuch
     if (!carry) {
       S([C(8, 30 + bob, 7, 37 + st, 2.1, 1.9), C(24, 30 + bob, 25, 37 - st, 2.1, 1.9)], d.body);
       S([E(7, 38 + st + bob, 2, 1.7), E(25, 38 - st + bob, 2, 1.7)], d.muz);
     }
     const by = Math.round(Y(30 + bob)), bw = px(4);
-    for (let dd = 0; dd < bw; dd++) for (let y = by; y < by + px(5); y++) sym(dd, y, y === by + px(5) - 1 ? UH[1] : UH[3]);
+    for (let dd = 0; dd < bw; dd++) for (let y = by; y < by + px(5); y++) sym(dd, y, y === by + px(5) - 1 ? SU[1] : SU[3]);
     sym(bw - 1, by, CREAM);
     fill(CX, Y(28.4 + bob), 6 * K, 3 * K, d.body[1]);
-    for (let y = by - px(2); y < by; y++) sym(bw - 1, y, UH[2]);
+    for (let y = by - px(2); y < by; y++) sym(bw - 1, y, SU[2]);
     if (d.ears === "up") S([C(10.5, 17 + bob, 6.8, 8 + bob, 3.0, 0.8), C(21.5, 17 + bob, 25.2, 8 + bob, 3.0, 0.8)], d.head);
     S([E(16, 21 + bob, 9, 7.4), E(10, 24 + bob, 3.6, 3), E(22, 24 + bob, 3.6, 3)], d.head, { ambient: 0.5 });
     if (d.ears === "lop") S([C(9.5, 16 + bob, 6.5, 20 + bob, 2.4, 1.8), C(22.5, 16 + bob, 25.5, 20 + bob, 2.4, 1.8)], d.head, { dark: 0.85 });
@@ -80,9 +81,9 @@ function frame(d, dir, walk, carry, wag) {
     else { sym(1, ny + 3, [70, 64, 66]); sym(2, ny + 3, [70, 64, 66]); }
     // czapeczka: kopuła i daszek (szerokość z głową)
     const cy = Math.round(Y(14.4 + bob)), cw = px(6), ch = px(3);
-    for (let dd = 0; dd < cw; dd++) { const top = cy - ch + (dd >= cw - 2 ? 1 : 0) + (dd === cw - 1 ? 1 : 0); for (let y = top; y <= cy; y++) sym(dd, y, y === top ? UH[3] : UH[2]); }
-    for (let dd = 0; dd < cw + 1; dd++) sym(dd, cy + 1, UHV[1]);
-    sym(0, cy - 1, CREAM);
+    if (d.cap !== false) for (let dd = 0; dd < cw; dd++) { const top = cy - ch + (dd >= cw - 2 ? 1 : 0) + (dd === cw - 1 ? 1 : 0); for (let y = top; y <= cy; y++) sym(dd, y, y === top ? UH[3] : UH[2]); }
+    if (d.cap !== false) for (let dd = 0; dd < cw + 1; dd++) sym(dd, cy + 1, UHV[1]);
+    if (d.cap !== false) sym(0, cy - 1, CREAM);
     if (carry) { // karton obejmowany oburącz: ręce po bokach, łapki na bocznych ściankach kartonu
       S([C(8, 30 + bob, 7.6, 34 + bob, 2.1, 1.9), C(24, 30 + bob, 24.4, 34 + bob, 2.1, 1.9)], d.body);
       box(X(8.4), Y(29 + bob), 15.2 * K, 11 * K);
@@ -94,10 +95,10 @@ function frame(d, dir, walk, carry, wag) {
     // ogon z tyłu spodni, macha góra-dół
     const ta = (d.tail === "long" ? 0.55 : 1.0) + wag * 0.35;
     S([C(9.5, 37 + sb, 9.5 - Math.cos(ta) * tailL, 37 + sb - Math.sin(ta) * tailL, tailR, tailR * 0.8)], d.tail === "long" ? d.body : d.head, { dark: 0.9 });
-    S([C(14.5, 39 + sb, far, 43, 2.1)], UH, { dark: 0.75 });
+    S([C(14.5, 39 + sb, far, 43, 2.1)], SU, { dark: 0.75 });
     S([E(far + 1.6, 45, 3.2, 1.4)], d.muz, { dark: 0.8 });
-    S([E(15, 35 + sb, 6.4, 6.4)], UH);
-    S([C(15.5, 39 + sb, near, 43, 2.3)], UH);
+    S([E(15, 35 + sb, 6.4, 6.4)], SU);
+    S([C(15.5, 39 + sb, near, 43, 2.3)], SU);
     S([E(near + 1.8, 45, 3.4, 1.5)], d.muz);
     S([E(16, 28.6 + sb, 4.6, 2.6)], d.body);
     if (d.ears === "up") S([C(13, 16 + sb, 11, 8.5 + sb, 2.8, 0.8)], d.head);
@@ -111,8 +112,8 @@ function frame(d, dir, walk, carry, wag) {
     b.pset(nx, ny, NOSE); b.pset(nx - 1, ny, NOSE); b.pset(nx, ny + 1, NOSE);
     if (d.tongue) { b.pset(nx - 2, ny + 2, TONGUE); b.pset(nx - 2, ny + 3, TONGUE); }
     const cy = Math.round(Y(14.6 + sb)), cx0 = Math.round(X(9.5)), cw = px(11), ch = px(3);  // czapeczka, daszek do przodu
-    for (let x = 0; x < cw; x++) for (let y = cy - (x > 1 && x < cw - 2 ? ch : ch - 1); y <= cy; y++) b.pset(cx0 + x, y, y <= cy - ch + 1 ? UH[3] : UH[2]);
-    for (let x = cw - 2; x < cw + px(4); x++) b.pset(cx0 + x, cy + 1, UHV[1]);
+    if (d.cap !== false) for (let x = 0; x < cw; x++) for (let y = cy - (x > 1 && x < cw - 2 ? ch : ch - 1); y <= cy; y++) b.pset(cx0 + x, y, y <= cy - ch + 1 ? UH[3] : UH[2]);
+    if (d.cap !== false) for (let x = cw - 2; x < cw + px(4); x++) b.pset(cx0 + x, cy + 1, UHV[1]);
     if (carry) { // z boku: karton przed sobą, bliższa ręka obejmuje go od dołu
       box(X(18), Y(28 + sb), 12 * K, 10 * K);
       S([C(16, 30 + sb, 19, 37 + sb, 2.1, 1.9)], d.body);
@@ -139,4 +140,31 @@ for (const [name, d] of Object.entries(DOGS)) {
   sheets.push(...front.slice(0, 9).map((b) => ({ buf: b, scale: 3 })), ...side.slice(0, 9).map((b) => ({ buf: b, scale: 3 })));
 }
 P.save(P.sheet(sheets, { cols: 9 }), __dirname + "/_dogs_sprites.png");
+// pracownicy obserwatorium (Etap 2, GDD: króliki, liski, szopy...): ta sama budowa co psy, biały kitel bez czapki;
+// arkusz 4 klatek przodem (machanie ogonem), stoją przy biurkach
+const COAT = P.hueRamp(4, { hue: 214, shift: 16, sat: 0.08, light: [0.6, 0.95] });
+const H = (hue, sat, l0, l1) => P.hueRamp(4, { hue, shift: 20, sat, light: [l0, l1] });
+const M = (hue, sat, l0, l1) => P.hueRamp(2, { hue, shift: 10, sat, light: [l0, l1] });
+const WORKERS = {
+  lis: { head: H(22, 0.7, 0.32, 0.62), muz: M(40, 0.1, 0.82, 0.94), ears: "up", tail: "long" },
+  szop: { head: H(230, 0.08, 0.26, 0.56), muz: M(220, 0.06, 0.78, 0.9), tan: M(230, 0.1, 0.12, 0.2), ears: "up", tail: "long" },
+  krolik: { head: H(32, 0.35, 0.42, 0.72), muz: M(40, 0.2, 0.84, 0.94), ears: "up", tail: "short" },
+  mis: { head: H(26, 0.45, 0.22, 0.46), muz: M(32, 0.4, 0.56, 0.7), ears: "lop", tail: "short" },
+  bobr: { head: H(20, 0.4, 0.2, 0.42), muz: M(30, 0.3, 0.5, 0.64), ears: "lop", tail: "long" },
+  wiewiorka: { head: H(16, 0.7, 0.3, 0.56), muz: M(36, 0.3, 0.82, 0.92), ears: "up", tail: "long" },
+  jez: { head: H(30, 0.25, 0.26, 0.5), muz: M(34, 0.25, 0.7, 0.84), ears: "lop", tail: "short" },
+  sowa: { head: H(28, 0.35, 0.3, 0.58), muz: M(40, 0.3, 0.78, 0.9), ears: "up", tail: "short" },
+  borsuk: { head: H(220, 0.05, 0.3, 0.62), muz: M(220, 0.04, 0.86, 0.96), tan: M(220, 0.05, 0.1, 0.18), ears: "lop", tail: "short" },
+  kuna: { head: H(24, 0.45, 0.24, 0.48), muz: M(38, 0.45, 0.76, 0.88), ears: "up", tail: "long" },
+  wydra: { head: H(26, 0.3, 0.24, 0.46), muz: M(32, 0.2, 0.62, 0.76), ears: "lop", tail: "long" },
+  lasica: { head: H(24, 0.55, 0.36, 0.62), muz: M(42, 0.2, 0.86, 0.96), ears: "up", tail: "long" },
+};
+const wsheet = [];
+for (const [k, w] of Object.entries(WORKERS)) {
+  const d = { K: 0.92, body: w.head, suit: COAT, cap: false, ...w };
+  const fr = WAG.map((g) => frame(d, 0, -1, false, g));
+  P.save(P.pack(fr, { cols: 4, pad: 0 }), `${out}/worker_${k}.png`);
+  wsheet.push({ buf: fr[0], scale: 3, label: k.toUpperCase() });
+}
+P.save(P.sheet(wsheet, { cols: 6 }), __dirname + "/_workers.png");
 console.log("cut_lili.png cut_myszka.png", FW, FH, COLS);

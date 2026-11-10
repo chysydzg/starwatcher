@@ -18,17 +18,27 @@ DZIEŃ (komputer)
 • Esc zamyka okno, drugie Esc wyłącza komputer.
 
 CEL ETAPU: Manifest Naukowy (5000 PW), Certyfikat Terenu ($5000), min. 1 planeta, potem złota gwiazda INICJUJ ETAP 2 na pulpicie."""
+const HELP2 := """OBSERWATORIUM (Etap 2)
+• Duży teleskop w kopule: nocą planety, księżyce, czarne dziury i galaktyki.
+• Analiza widmowa (Spektrometr): po wyostrzeniu przesuń wzorzec na ciemne linie widma i kliknij. Analizowane odkrycia są warte więcej.
+• Zespół: zatrudniaj pracowników i ustawiaj im tryb pracy. Tryb 1: nocą PW same, czasem zgłoszenie [!]. Tryb 2: rano lepsza jakość pomiarów. Tryb 3: dłuższa noc.
+• Zgłoszenie [!]: porozmawiaj przy biurku, a następnej nocy znajdź obiekt teleskopem (2x PW i $).
+• Pensje zespołu są wypłacane co 7 dni.
+• Orbita: satelity naukowe dają PW, wynajęte dają $. Burza słoneczna zabiera dzień przychodu.
+• Pokoik Jani: drzwi po lewej stronie laboratorium. Do łóżka idzie się nocą."""
 
 const APPS := [["dziennik", "Dziennik"], ["gielda", "Giełda"], ["sklep", "Retro-Tech"], ["badania", "Badania"], ["pomoc", "POMOC.TXT"]]
+const APPS2 := [["zespol", "Zespół"], ["orbita", "Orbita"]]  # Etap 2: HR i Zespół, Sieć Orbitalna
 const TITLES := {"dziennik": "Dziennik Odkryć", "gielda": "Giełda i Centrum Naukowe", "sklep": "Retro-Tech & Astro Store",
-	"badania": "Badania", "pomoc": "POMOC.TXT – Notatnik"}
+	"badania": "Badania", "pomoc": "POMOC.TXT – Notatnik", "zespol": "HR i Zespół", "orbita": "Sieć Orbitalna"}
 const BAR := 22            # górny pasek systemu
 const TB := 20             # pasek tytułu okna
 const INK := Color("1a1626")
 const MKT_Q := 330.0  # prawe krawędzie kolumn Jakość / Cena w portfelu giełdy
 const MKT_P := 420.0
 const PATH_COL := [Color("2fb8e8"), Color("f4b830"), Color("a45ae8")]
-const CAT_COL := {"moon": "f4e8b0", "const": "5ab0ff", "zodiac": "ff8a5a", "nebula": "e86ad8", "planet": "ffcf4a", "deep": "9a9aff", "comet": "6af0c8"}
+const CAT_COL := {"moon": "f4e8b0", "const": "5ab0ff", "zodiac": "ff8a5a", "nebula": "e86ad8", "planet": "ffcf4a", "deep": "9a9aff", "comet": "6af0c8",
+	"moons": "c8c8d8", "blackhole": "ff9a40"}
 const SHOP_ICONS := ["cat_optyka", "cat_komputer", "cat_pokoj"]
 const SHOP_SHORT := ["Optyka", "Komputer", "Pokój"]
 const GLYPHS := ["glyph_optyka", "glyph_analiza", "glyph_kosmos"]
@@ -49,6 +59,8 @@ var hover := -1            # węzeł drzewka pod kursorem
 var nodes := []            # [pozycja, wiersz SCIENCE] drzewka
 var t := 0.0
 var legend_rows := []      # [CheckBox, kategoria] legendy Giełdy: długie nazwy przewijają się
+var apps := APPS.duplicate()
+var tree_stage := 1        # który etap pokazuje drzewko (zakładki 1-3)
 
 
 func _ready() -> void:
@@ -66,7 +78,10 @@ func _ready() -> void:
 	add_child(wall)
 	var icons := Control.new()
 	add_child(icons)
-	var list := APPS.duplicate()
+	if Game.stage >= 2:
+		apps = APPS.slice(0, 4) + APPS2 + APPS.slice(4)
+	tree_stage = mini(Game.stage, 2)
+	var list := apps
 	for i in list.size():
 		var b := Button.new()
 		b.flat = true
@@ -75,7 +90,7 @@ func _ready() -> void:
 		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.custom_minimum_size = Vector2(92, 64)
-		b.position = Vector2(10, BAR + 4 + i * 66) if i < 5 else Vector2(106, BAR + 4)
+		b.position = Vector2(10 + int(i / 5.0) * 96, BAR + 4 + (i % 5) * 66)
 		b.add_theme_color_override("font_color", Color.WHITE)
 		b.add_theme_color_override("font_hover_color", Color("fff2a0"))
 		b.add_theme_color_override("font_outline_color", INK)
@@ -234,8 +249,8 @@ func _launch(id: String) -> void:
 		elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			if Rect2(616, 0, 24, TB).has_point(e.position):
 				_close_app()
-			elif _tab_at(e.position) >= 0 and APPS[_tab_at(e.position)][0] != app:
-				_launch(APPS[_tab_at(e.position)][0]))
+			elif _tab_at(e.position) >= 0 and apps[_tab_at(e.position)][0] != app:
+				_launch(apps[_tab_at(e.position)][0]))
 	_rebuild()
 
 
@@ -256,7 +271,7 @@ func _tab_at(p: Vector2) -> int:
 	if p.y > TB or p.x < tabs_x:
 		return -1
 	var i := int((p.x - tabs_x) / 24)
-	return i if i < APPS.size() else -1
+	return i if i < apps.size() else -1
 
 
 func _close_app() -> void:
@@ -279,14 +294,14 @@ func _draw_frame() -> void:
 	var title: String = TITLES[app]
 	win.draw_string(Game.font_os, Vector2(46, 15), title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, INK)
 	tabs_x = 46 + Game.font_os.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 10
-	for i in APPS.size():  # karty programów: przełączanie bez wychodzenia na pulpit
+	for i in apps.size():  # karty programów: przełączanie bez wychodzenia na pulpit
 		var r := Rect2(tabs_x + i * 24, 1, 22, TB - 2)
-		var on: bool = APPS[i][0] == app
+		var on: bool = apps[i][0] == app
 		win.draw_rect(r, Color.WHITE if on else (Color("ececf2") if i == tab_hover else Color("c4c4ce")))
 		_frame(win, r, INK if on else Color("8a8a9c"))
-		var ic := Game.tex("os/tab_" + APPS[i][0])
+		var ic := Game.tex("os/tab_" + apps[i][0])
 		win.draw_texture(ic, r.position + ((r.size - ic.get_size()) / 2).floor(), Color(1, 1, 1, 1.0 if on or i == tab_hover else 0.7))
-	var x0 := tabs_x + APPS.size() * 24 + 8
+	var x0 := tabs_x + apps.size() * 24 + 8
 	for k in 3:  # „uchwyt” paska tytułu
 		win.draw_rect(Rect2(x0, 6 + k * 3, 610 - x0, 1), Color("8a8a9c"))
 		win.draw_rect(Rect2(x0, 7 + k * 3, 610 - x0, 1), Color.WHITE)
@@ -398,7 +413,7 @@ func _breakdown(e: Dictionary) -> String:
 # ---------------------------------------------------------------- Giełda (ticker, wykres popytu, portfel)
 func _gielda() -> void:
 	if not Game.tips.has("chart"):  # pierwszy raz: pierwsza kategoria; potem pamiętamy wybór gracza
-		Game.tips.chart = {Game.MARKET_CATS[0]: true}
+		Game.tips.chart = {Game.market_cats()[0]: true}
 	body.draw.connect(_draw_market)
 	_label(body, "NOTOWANIA", Vector2(6, 156), Color("ffcf4a"))
 	var legend := VBoxContainer.new()
@@ -406,7 +421,7 @@ func _gielda() -> void:
 	legend.add_theme_constant_override("separation", 0)
 	body.add_child(legend)
 	legend_rows.clear()
-	for c in Game.MARKET_CATS:
+	for c in Game.market_cats():
 		var cb := CheckBox.new()
 		cb.button_pressed = Game.tips.chart.get(c, false)
 		cb.text = _legend_text(c, cb.button_pressed)
@@ -515,7 +530,7 @@ func _draw_market() -> void:
 	n.draw_rect(Rect2(0, 0, 640, 20), Color("050c14"))
 	var items := []
 	var cycle := 0.0
-	for c in Game.MARKET_CATS:
+	for c in Game.market_cats():
 		var d := _change(c)
 		var a := "%s %d " % [Game.CATS[c].to_upper(), int(round(_dem(-1, c) * 100))]
 		var b := "%+d%%   " % d
@@ -547,7 +562,7 @@ func _draw_market() -> void:
 		n.draw_string(Game.font_os, r.position + Vector2(120, 80), "Za mało notowań", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("6a8aa8"))
 		return
 	var step := (r.size.x - 40) / (hist.size() - 1)
-	for c in Game.MARKET_CATS:
+	for c in Game.market_cats():
 		if Game.tips.chart.get(c, false):
 			_line(n, r, hist, c, step, lo, hi, Color(CAT_COL[c]), 2.0)
 	n.draw_string(Game.font_os, Vector2(r.end.x - 116, r.end.y - 4), "dziś", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color("6a8aa8"))
@@ -571,7 +586,7 @@ func _sklep() -> void:
 	for i in 3:
 		var b := Button.new()
 		b.icon = Game.tex("os/" + SHOP_ICONS[i])
-		b.text = SHOP_SHORT[i]
+		b.text = (["Kopuła", "Orbita", "Biuro"] if Game.stage >= 2 else SHOP_SHORT)[i]
 		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.position = Vector2(6, 6 + i * 92)  # równe odstępy, ten sam rozmiar
@@ -588,7 +603,7 @@ func _sklep() -> void:
 		b.pressed.connect(func(): shop_cat = i; _rebuild())
 		body.add_child(b)
 	_label(body, "$ %d" % Game.money, Vector2(10, 296), Color("ffcf4a"))
-	_label(body, Game.SHOP_PATHS[shop_cat], Vector2(116, 2), Color("1a3a8a"))
+	_label(body, (Game.SHOP2_PATHS if Game.stage >= 2 else Game.SHOP_PATHS)[shop_cat], Vector2(116, 2), Color("1a3a8a"))
 	_info(Rect2(116, 274, 518, 46), Color("2a3a5a"))
 	var sc := ScrollContainer.new()
 	sc.position = Vector2(114, 24)
@@ -600,7 +615,7 @@ func _sklep() -> void:
 	grid.add_theme_constant_override("h_separation", 5)
 	grid.add_theme_constant_override("v_separation", 5)
 	sc.add_child(grid)
-	for r in Game.SHOP:
+	for r in Game.shop_rows():
 		if r[4] != shop_cat:
 			continue
 		var st: String = Game.can_buy_shop(r)
@@ -650,7 +665,7 @@ func _desc(r: Array, st: String, is_shop: bool) -> String:
 
 
 func _name_of(id: String) -> String:
-	for r in Game.SCIENCE + Game.SHOP:
+	for r in Game.SCIENCE + Game.SHOP + Game.SCIENCE2 + Game.SHOP2:
 		if r[0] == id:
 			return r[1]
 	return id
@@ -662,7 +677,7 @@ func _badania() -> void:
 	body.mouse_filter = Control.MOUSE_FILTER_STOP
 	body.gui_input.connect(_tree_input)
 	var groups := {}
-	for r in Game.SCIENCE:
+	for r in Game.science_rows(tree_stage):
 		var k: Vector2i = Vector2i(r[4], r[3])
 		groups[k] = groups.get(k, []) + [r]
 	for k in groups:
@@ -685,6 +700,11 @@ func _tree_input(e: InputEvent) -> void:
 		for i in 3:
 			if _stage_tab(i).has_point(e.position):
 				stage_hover = i
+	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and stage_hover >= 0:
+		if stage_hover < mini(Game.stage, 2) and stage_hover + 1 != tree_stage:  # zakładki odblokowanych etapów
+			tree_stage = stage_hover + 1
+			hover = -1
+			_rebuild()
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and hover >= 0:
 		var r: Array = nodes[hover][1]
 		if Game.can_buy_science(r) == "ok":
@@ -732,7 +752,7 @@ func _draw_tree() -> void:
 	n.draw_string(Game.font_os, root.position + Vector2(15, 22), "Poziom Wiedzy", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, INK)  # 25 px: równe kreski VT323
 	n.draw_string(Game.font_os, root.position + Vector2(0, 46), "%d PW" % Game.pw, HORIZONTAL_ALIGNMENT_CENTER, root.size.x, 25, INK)
 	for p in 3:
-		n.draw_string(Game.font_os, Vector2(10 + p * 210, 313), Game.SCIENCE_PATHS[p], HORIZONTAL_ALIGNMENT_CENTER, 200, Game.OS_FS, PATH_COL[p])
+		n.draw_string(Game.font_os, Vector2(10 + p * 210, 313), (Game.SCIENCE2_PATHS if tree_stage >= 2 else Game.SCIENCE_PATHS)[p], HORIZONTAL_ALIGNMENT_CENTER, 200, Game.OS_FS, PATH_COL[p])
 	for i in nodes.size():
 		var c: Vector2 = nodes[i][0]
 		var r: Array = nodes[i][1]
@@ -754,18 +774,19 @@ func _draw_tree() -> void:
 		if st in ["req", "tier"]:  # kłódka
 			n.draw_rect(Rect2(c + Vector2(6, 6), Vector2(9, 7)), Color("c8c8d8"))
 			n.draw_arc(c + Vector2(10.5, 6), 3, PI, TAU, 6, Color("c8c8d8"), 1.5)
-	for i in 3:  # zakładki etapów: dziś tylko Etap 1, dalsze wyszarzone
+	for i in 3:  # zakładki etapów: odblokowane można przełączać, dalsze wyszarzone
 		var r := _stage_tab(i)
-		var on := i == 0
+		var on := i + 1 == tree_stage
+		var open := i < mini(Game.stage, 2)
 		n.draw_rect(r.grow(1), INK)
 		n.draw_rect(r, Color("ffcf4a") if on else Color("3a405e"))
 		n.draw_rect(Rect2(r.position, Vector2(r.size.x, 2)), Color("ffe08a") if on else Color("4a5276"))
-		n.draw_string(Game.font_os, r.position + Vector2(0, 17), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - (8 if not on else 0), Game.OS_FS, INK if on else Color("8a90b0"))
-		if not on:  # kłódka
+		n.draw_string(Game.font_os, r.position + Vector2(0, 17), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - (8 if not open else 0), Game.OS_FS, INK if on else Color("8a90b0"))
+		if not open:  # kłódka
 			n.draw_rect(Rect2(r.end.x - 11, r.position.y + 10, 7, 6), Color("8a90b0"))
 			n.draw_rect(Rect2(r.end.x - 10, r.position.y + 6, 5, 4), Color("8a90b0"), false, 1.0)
 	if stage_hover >= 0:
-		var msg := "Etap %d%s" % [stage_hover + 1, "" if stage_hover == 0 else " - Niedostępne"]
+		var msg := "Etap %d%s" % [stage_hover + 1, "" if stage_hover < mini(Game.stage, 2) else " - Niedostępne"]
 		var w := Game.font_os.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x + 12
 		var p := Vector2(_stage_tab(2).end.x - w, 34)
 		n.draw_rect(Rect2(p, Vector2(w, 22)).grow(1), Color("e8ecf8"))
@@ -798,6 +819,126 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 	n.draw_string(Game.font_os, p + Vector2(0, 162), why, HORIZONTAL_ALIGNMENT_CENTER, w, Game.OS_FS, Color("8ae8a0") if st == "ok" else Color("c8c8d8"))
 
 
+# ---------------------------------------------------------------- HR i Zespół (Etap 2)
+func _zespol() -> void:
+	_bg(Color("eef0e6"))
+	_label(body, "ZESPÓŁ  %d/%d" % [Game.staff.size(), Game.STAFF_MAX], Vector2(10, 4), Color("2a4a2a"))
+	if Game.debt > 0:
+		_label(body, "Zaległe pensje: $%d (zejdą z kolejnych sprzedaży)" % Game.debt, Vector2(250, 4), Color("c83a2a"))
+	for i in Game.staff.size():
+		var p: Dictionary = Game.staff[i]
+		var y := 28 + i * 34
+		var row := Panel.new()
+		row.position = Vector2(8, y)
+		row.size = Vector2(624, 32)
+		row.add_theme_stylebox_override("panel", _box(Color("ffffff"), Color("8a9a8a")))
+		body.add_child(row)
+		_label(row, p.name + ("  [!]" if p.report != "" else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" else INK)
+		_label(row, ", ".join(p.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(166, 5), Color("4a6a4a"))
+		_num(row, "$%d/tydz." % p.get("salary", Game.hire_cost(i)[1]), 430, 5, Color("6a6a7a"))
+		for m in 3:
+			var on: bool = int(p.mode) == m + 1
+			var b := _button("%d" % (m + 1), func():
+				p.mode = m + 1
+				Game.changed.emit()
+				_rebuild())
+			b.position = Vector2(440 + m * 30, 4)
+			b.size = Vector2(26, 24)
+			if on:
+				b.add_theme_stylebox_override("normal", _box(Color("8ad88a"), Color("1a5a1a"), 2))
+			b.mouse_entered.connect(func(): info.text = "Tryb %d: %s. %s" % [m + 1, Game.MODES[m], ["Nocą generuje PW, czasem zgłasza odkrycie [!].", "Rano poprawia jakość do 8 pomiarów w pamięci.", "Noc trwa 15 s dłużej, serwisuje Sat-Net."][m]])
+			row.add_child(b)
+		_label(row, ["Obserwacje", "Raporty", "Sprzęt"][int(p.mode) - 1], Vector2(534, 5), Color("2a5a2a"))
+	var cy := 30 + maxi(1, Game.staff.size()) * 34 + 6
+	_label(body, "KANDYDACI (nowe CV każdego dnia)" if Game.staff.size() < Game.STAFF_MAX else "Zespół w komplecie.", Vector2(10, cy), Color("2a4a2a"))
+	for i in Game.candidates.size() if Game.staff.size() < Game.STAFF_MAX else 0:
+		var c: Dictionary = Game.candidates[i]
+		var card := Panel.new()
+		card.position = Vector2(8 + i * 210, cy + 24)
+		card.size = Vector2(202, 116)
+		card.add_theme_stylebox_override("panel", _box(Color("fffbe8"), Color("a89a6a")))
+		body.add_child(card)
+		_label(card, c.name, Vector2(6, 2))
+		_label(card, "\n".join(c.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(6, 22), Color("6a5a2a"))
+		var cost: Array = Game.hire_cost()
+		_label(card, "$%d + $%d/tydz." % cost, Vector2(6, 66), Color("2a7a3a"))
+		var hb := _button("ZATRUDNIJ", func():
+			var why := Game.hire(c)
+			if why != "":
+				info.text = why
+			else:
+				Game.ding(1.3)
+				bar.queue_redraw()
+				_rebuild())
+		hb.position = Vector2(6, 86)
+		hb.size = Vector2(190, 26)
+		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or Game.money < cost[0]
+		card.add_child(hb)
+		card.mouse_entered.connect(func(): info.text = "  ".join(c.traits.map(func(k): return Game.TRAITS[k][0] + ": " + Game.TRAITS[k][1])))
+	_info(Rect2(10, 298, 620, 20), Color("2a3a2a"))
+	info.text = "Tryb pracy zmienisz przyciskami 1-3. Pensje są wypłacane co 7 dni."
+
+
+# ---------------------------------------------------------------- Sieć Orbitalna (Etap 2)
+func _orbita() -> void:
+	_bg(Color("10183a"))
+	var stars := Control.new()
+	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stars.draw.connect(func():
+		for i in 60:
+			stars.draw_rect(Rect2((i * 97) % 640, (i * 53) % 318, 1, 1), Color(1, 1, 1, 0.5))
+		stars.draw_circle(Vector2(560, 120), 46, Color("3a7ae8"))
+		stars.draw_circle(Vector2(548, 108), 18, Color("5ab85a")))
+	body.add_child(stars)
+	var built := Game.sats.filter(func(st): return st.left <= 0).size()
+	_label(body, "SLOTY ORBITALNE  %d/%d   (na orbicie: %d)" % [Game.sats.size(), Game.sat_slots(), built], Vector2(10, 4), Color("c8d8ff"))
+	var warn := "Dziś burza słoneczna: satelity bez przychodu." if Game.solar else ("Jutro burza słoneczna!" if Game.solar_next and Game.has("pogoda") else "")
+	_label(body, warn, Vector2(10, 24), Color("ffb050"))
+	for k in 2:
+		var com := k == 1
+		var cost := int(Game.SAT_COST * (0.625 if com else 1.0))
+		var b := _button(("SATELITA KOMERCYJNY  $%d" if com else "SATELITA BADAWCZY  $%d") % cost, func():
+			var why := Game.build_sat(com)
+			info.text = why if why != "" else "Budowa ruszyła. Satelita poleci za %d dni." % (1 if Game.has("montaz_sat") else 2)
+			if why == "":
+				Game.ding(1.3)
+				bar.queue_redraw()
+				_rebuild())
+		b.position = Vector2(10 + k * 230, 46)
+		b.size = Vector2(222, 26)
+		body.add_child(b)
+	for i in Game.sats.size():
+		var st: Dictionary = Game.sats[i]
+		var y := 84 + i * 32
+		_label(body, st.name, Vector2(14, y + 4), Color("ffffff"))
+		if st.left > 0:
+			_label(body, "w budowie: jeszcze %d dni" % int(st.left), Vector2(90, y + 4), Color("a8b8d8"))
+			continue
+		var uses := ["astrotv", "satnet"] if st.get("commercial", false) else ["nauka", "astrotv", "satnet"]
+		for j in uses.size():
+			var u: String = uses[j]
+			var b := _button(Game.SAT_USES[u][0], func():
+				st.use = u
+				_rebuild())
+			b.position = Vector2(90 + j * 128, y)
+			b.size = Vector2(124, 26)
+			if st.use == u:
+				b.add_theme_stylebox_override("normal", _box(Color("8ad88a"), Color("1a5a1a"), 2))
+			b.mouse_entered.connect(func(): info.text = Game.SAT_USES[u][0] + ": " + Game.SAT_USES[u][1])
+			body.add_child(b)
+		var sell := _button("SPRZEDAJ $%d" % int(st.cost * 1.8), func():
+			Game.sell_sat(st)
+			Game.ding(1.1)
+			bar.queue_redraw()
+			_rebuild())
+		sell.position = Vector2(480, y)
+		sell.size = Vector2(124, 26)
+		body.add_child(sell)
+	_info(Rect2(10, 280, 620, 38), Color("c8d8ff"))
+	if not Game.has("orbitalna") or not Game.has("antena"):
+		info.text = "Do budowy potrzebne: badanie Mechanika Orbitalna i Antena Satelitarna na Dachu."
+
+
 # ---------------------------------------------------------------- POMOC.TXT (konsola)
 func _pomoc() -> void:
 	_bg(Color("1f4a34"))
@@ -810,7 +951,10 @@ func _pomoc() -> void:
 		b.size = Vector2(bw - 8, 24)
 		body.add_child(b)
 	var v := _scroll(body, Rect2(10, 38, 624, 280))
-	var l := _label(v, "AstroOS: Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))
+	var goals := ""
+	if Game.stage >= 2:
+		goals = "CEL ETAPU 2:\n" + "\n".join(Game.stage2_goals().map(func(g): return ("[x] " if g[1] else "[ ] ") + g[0])) + "\n\n" + HELP2 + "\n\n"
+	var l := _label(v, "AstroOS: Pomoc\n(c) Centrum Naukowe. Wszelkie prawa zastrzeżone.\n\n" + goals + HELP + "\n\n> _", Vector2.ZERO, Color("f0e6c0"))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(604, 0)
 

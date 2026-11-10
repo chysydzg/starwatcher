@@ -6,7 +6,7 @@ signal closed
 signal discovered
 signal all_done
 
-enum S { SCAN, FOCUS, CONNECT, FULL, RESULT }
+enum S { SCAN, FOCUS, CONNECT, FULL, RESULT, SPECTRUM }
 const C := Vector2(320, 180)
 const R := 172.0
 const STAR_SCALE := 3.0          # rozstaw gwiazd konstelacji na ekranie
@@ -56,13 +56,15 @@ var _mouse_aim := C  # tam chce celownik gracz; sam celownik dochodzi tam z opor
 var hum: AudioStreamPlayer  # buczenie wykrywacza: szybsze i głośniejsze bliżej ukrytego obiektu
 var _all_told := false
 var _sh := Vector2.ZERO
+var spec := {}        # analiza widmowa (Etap 2): linie absorpcyjne, położenie wzorca i celu
+var spec_ok := false  # ostatnia analiza trafiona: zapis z analizą widmową
 
 
 func _ready() -> void:
 	size = Vector2(640, 360)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	zoom = 1.0 / 1.3 if Game.has("newton") else 1.0  # Newton: pole widzenia +30%
-	if Game.has("newton"):
+	zoom = 1.0 / 1.3 if _big() else 1.0  # Newton: pole widzenia +30%
+	if _big():
 		sky_size = Vector2(1700, 900)
 	_rng.seed = Game.day * 977
 	_build_sky()
@@ -111,7 +113,7 @@ func _build_sky() -> void:
 
 func _build_frame() -> void:
 	var img := Image.create(640, 360, false, Image.FORMAT_RGBA8)
-	var ring := Color("5d6478") if Game.has("newton") else Color("b08a3c")
+	var ring := Color("5d6478") if _big() else Color("b08a3c")
 	var ring_d := ring.darkened(0.45)
 	for y in 360:
 		for x in 640:
@@ -122,7 +124,7 @@ func _build_frame() -> void:
 				img.set_pixel(x, y, ring_d.darkened(0.4))
 			elif d > R:
 				img.set_pixel(x, y, ring.lightened(0.15) if d < R + 2 else (ring if d < R + 4 else ring_d))
-	if not Game.has("czyszczacy"):  # brudna soczewka: kurz jak natrysk – ziarniste skupiska drobinek, gęste w środku, rzadkie na brzegach
+	if not Game.has("czyszczacy") and Game.stage < 2:  # brudna soczewka: kurz jak natrysk – ziarniste skupiska drobinek, gęste w środku, rzadkie na brzegach
 		for i in 10:
 			var c0 := C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(0, R - 30)
 			var rx := _rng.randf_range(14, 46)
@@ -136,7 +138,7 @@ func _build_frame() -> void:
 		for i in 320:  # pojedyncze pyłki po całej soczewce
 			var q := Vector2i(C + Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(4, R - 4))
 			img.set_pixelv(q, Color(0.66, 0.6, 0.5, _rng.randf_range(0.3, 0.65)))
-	if not Game.has("achromat"):  # pęknięcie „pajączek”: punkt uderzenia, promienie i poszarpane pierścienie (tylko kawałek soczewki)
+	if not Game.has("achromat") and Game.stage < 2:  # pęknięcie „pajączek”: punkt uderzenia, promienie i poszarpane pierścienie (tylko kawałek soczewki)
 		var hit := C + Vector2(92, -66)
 		var spokes := []
 		var a0 := _rng.randf() * TAU
@@ -212,8 +214,13 @@ func to_sky(s: Vector2) -> Vector2:
 
 
 ## opór celownika: tani teleskop chodzi ciężko i z opóźnieniem; statyw, montaż, kursor i mikro-ruchy go „smarują”
+## Newton albo duży teleskop w kopule (Etap 2): szersze pole, czysta optyka, widzi przez chmury
+func _big() -> bool:
+	return Game.has("newton") or Game.stage >= 2
+
+
 func steer() -> float:
-	return 2.2 * (1.6 if Game.has("statyw") else 1.0) * (1.6 if Game.has("montaz") else 1.0) * (1.3 if Game.has("kursor1") else 1.0) * (1.5 if Game.has("mikro") else 1.0)
+	return 2.2 * (1.6 if Game.has("statyw") else 1.0) * (1.6 if Game.has("montaz") else 1.0) * (1.3 if Game.has("kursor1") else 1.0) * (1.5 if Game.has("mikro") else 1.0) * (1.4 if Game.has("smar") else 1.0)
 
 
 func wobble() -> Vector2:
@@ -243,7 +250,7 @@ func hit_radius(tg: Dictionary) -> float:
 
 ## przyciąganie celownika (Precyzyjny Kursor, montaż): przy szukaniu obiektów i przy łączeniu gwiazd
 func snap() -> float:
-	return (1.2 if Game.has("kursor1") else 1.0) * (1.35 if Game.has("montaz") else 1.0)
+	return (1.2 if Game.has("kursor1") else 1.0) * (1.35 if Game.has("montaz") else 1.0) * (1.2 if Game.has("smar") else 1.0)
 
 
 ## 0..1: jak blisko celownik jest najbliższego nieodkrytego obiektu (radar SYGNAŁ i buczenie)
@@ -276,7 +283,7 @@ func quality() -> int:
 	# var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
 	var q := 100.0 - maxf(0.0, absf(focus_offset()) - green()) * 250.0
 	if Game.rain and _clouded(target.pos):
-		q = minf(q, 75 if Game.has("newton") else 45)  # Newton (większe lustro) widzi przez chmury lepiej
+		q = minf(q, 75 if _big() else 45)  # Newton (większe lustro) widzi przez chmury lepiej
 	return int(clampf(q, 10, 100))
 
 
@@ -285,7 +292,7 @@ func _clouded(p: Vector2) -> bool:
 
 
 func speed_mult() -> float:
-	return (1.2 if Game.has("kawa") else 1.0) * (1.1 if Game.has("radio") else 1.0)
+	return (1.2 if Game.has("kawa") else 1.0) * (1.1 if Game.has("radio") else 1.0) * (1.2 if Game.has("kalibracja") else 1.0)
 
 
 # ---------------------------------------------------------------- logika
@@ -374,6 +381,10 @@ func _process(dt: float) -> void:
 				_after_focus()
 		else:
 			sharp_t = 0.0
+	if state == S.SPECTRUM:  # wzorzec widma idzie za celownikiem w poziomie (z Automatycznym Porównaniem stoi sam)
+		cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
+		if not Game.has("auto_widmo"):
+			spec.off = clampf((aim.x - C.x) / (R - 6) * 0.45, -0.45, 0.45)
 	if Game.has("meteory") and state != S.FULL:
 		next_meteor -= dt
 		if next_meteor <= 0 and meteor.is_empty():
@@ -409,7 +420,7 @@ func focus_offset() -> float:
 
 ## połowa zielonego pola (Czyste Soczewki i radio je poszerzają, brudna soczewka zwęża)
 func green() -> float:
-	return target.get("width", 0.02) * 1.5 * (1.0 + (0.3 if Game.has("czyste1") else 0.0) + (0.3 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0) * (1.0 if Game.has("czyszczacy") else 0.8)
+	return target.get("width", 0.02) * 1.5 * (1.0 + (0.3 if Game.has("czyste1") else 0.0) + (0.3 if Game.has("czyste2") else 0.0)) * (1.1 if Game.has("radio") else 1.0) * (1.0 if Game.has("czyszczacy") or Game.stage >= 2 else 0.8)
 
 
 ## siła bujania znacznika (Stabilizacja Obrazu I i II)
@@ -425,7 +436,10 @@ func _gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed:
 		match e.button_index:
 			MOUSE_BUTTON_RIGHT:
-				if state in [S.FOCUS, S.CONNECT]:
+				if state == S.SPECTRUM:  # pominięcie analizy: zapis bez widma
+					spec_ok = false
+					_finish()
+				elif state in [S.FOCUS, S.CONNECT]:
 					_leave()
 				else:
 					_lock_or_confirm()
@@ -513,6 +527,10 @@ func _lock_or_confirm() -> void:
 				_center("Za rozmyte")
 				return
 			_after_focus()
+		S.SPECTRUM:
+			spec_ok = absf(spec.off - spec.goal) < 0.035 + (0.025 if Game.has("filtry") else 0.0)
+			Game.sfx("chimes" if spec_ok else "miss", 1.0, -4.0)
+			_finish()
 		S.RESULT:
 			state = S.SCAN
 
@@ -528,8 +546,20 @@ func _after_focus() -> void:
 			for i in target.info.pts.size():
 				lit[i] = true
 			_finish()
+	elif Game.spectral(target.info.cat):
+		_start_spectrum()
 	else:
 		_finish()
+
+
+## analiza widmowa: trzy ciemne linie absorpcyjne; gracz przesuwa wzorzec (celownikiem w poziomie) i klika
+func _start_spectrum() -> void:
+	var goal := _rng.randf_range(-0.3, 0.3)
+	spec = {"lines": [_rng.randf_range(0.15, 0.3), _rng.randf_range(0.42, 0.58), _rng.randf_range(0.7, 0.85)], "goal": goal,
+		"off": goal + (0.01 if Game.has("auto_widmo") else 0.0)}
+	spec_ok = false
+	state = S.SPECTRUM
+	_center("Analiza widmowa: nałóż wzorzec na ciemne linie i kliknij. %s pomija." % ("PPM" if not Game.pad else "[B]"), 3.0)
 
 
 func _click_star() -> void:
@@ -553,7 +583,7 @@ func _click_star() -> void:
 func _finish(replace := false) -> void:
 	var q := quality()
 	var pts: int = target.info.pts.size() if target.info.has("pts") else 0
-	var gained := Game.record(target.id, q, pts, replace)
+	var gained := Game.record(target.id, q, pts, replace, spec_ok)
 	if gained < 0:
 		state = S.FULL
 		_full_dialog()
@@ -562,7 +592,9 @@ func _finish(replace := false) -> void:
 	Game.sfx("floppy")  # zapis odkrycia na dyskietkę
 	discovered.emit()
 	var info: Dictionary = target.info
-	_show(("Znak zodiaku: " if info.cat == "zodiac" else "Odkryto: ") + info.name, "jakość %d%%   +%d PW" % [q, gained])
+	_show(("Znak zodiaku: " if info.cat == "zodiac" else ("Zgłoszenie potwierdzone: " if info.get("report", false) else "Odkryto: ")) + info.name,
+		"jakość %d%%   +%d PW" % [q, gained] + ("   widmo: " + info.get("fact", "") if spec_ok else ""))
+	spec_ok = false
 	target = {}
 
 
@@ -686,7 +718,7 @@ func _draw() -> void:
 		var s := to_screen(tg.pos)
 		if s.distance_to(C) < R + 60:
 			_draw_target(tg, s)
-	var ca := 0.5 if Game.has("newton") else 1.0  # Newton: chmury bardziej przezroczyste
+	var ca := 0.5 if _big() else 1.0  # Newton: chmury bardziej przezroczyste
 	for c in clouds:  # kłęby: ciemne, gęste, z jaśniejszym wierzchem; zasłaniają gwiazdy pod spodem
 		var s := to_screen(c[0])
 		for k in 7:
@@ -728,7 +760,7 @@ func _draw() -> void:
 	var m := Game.margin + Vector2(4, 4)  # szeroki ekran: chmury nie wychodzą poza ramkę 640x360 (+4 na wstrząs)
 	for r in [Rect2(-m.x, -m.y, m.x, 360 + m.y * 2), Rect2(640, -m.y, m.x, 360 + m.y * 2), Rect2(0, -m.y, 640, m.y), Rect2(0, 360, 640, m.y)]:
 		draw_rect(r, Color("0d0a16"))
-	var ring := Color("5d6478") if Game.has("newton") else Color("b08a3c")
+	var ring := Color("5d6478") if _big() else Color("b08a3c")
 	for i in 60:  # radełko pierścienia ostrości obraca się razem z kółkiem myszy
 		var dir := Vector2.from_angle(i * TAU / 60.0 + ring_a)
 		for k in range(5, 12):
@@ -737,6 +769,8 @@ func _draw() -> void:
 	_draw_crosshair()
 	draw_set_transform(Vector2.ZERO)
 	_draw_panels()
+	if state == S.SPECTRUM:
+		_draw_spectrum()
 
 
 func _draw_target(tg: Dictionary, s: Vector2) -> void:
@@ -790,10 +824,29 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 				var o := Vector2(sin(k * 2.4) * 13, cos(k * 1.7) * 9) * zoom
 				draw_circle(s + o, (12 - k * 0.6) * zoom, Color(col, 0.16 * a))
 			_glint(s, col, 3.5, a)
+		"moons":
+			draw_circle(s, 6.0 * zoom, Color(col, 0.15 * a))
+			draw_circle(s, 3.5 * zoom, col)
+			draw_circle(s + Vector2(-1, -1) * zoom, 1.5 * zoom, Color(1, 1, 1, 0.5))
+		"blackhole":
+			draw_set_transform(s + _sh, -0.3, Vector2(1.0, 0.32))  # dysk akrecyjny: spłaszczony pierścień
+			for k in 4:
+				draw_arc(Vector2.ZERO, (18 - k * 2) * zoom, 0, TAU, 32, Color(col, (0.25 + k * 0.15) * a), 2.0)
+			draw_set_transform(_sh)
+			draw_circle(s, 9.0 * zoom, Color(col, 0.5 * a))
+			draw_circle(s, 7.0 * zoom, Color("06040c"))
 		"planet":
-			var r := (10.0 if tg.id == "jowisz" else 6.0) * zoom
+			var r := (10.0 if tg.id in ["jowisz", "saturn"] else 7.0 if tg.id in ["uran", "neptun"] else 6.0) * zoom
 			draw_circle(s, r + 4, Color(col, 0.15 * a))
+			if tg.id == "saturn":  # pierścienie: za tarczą i przed nią
+				draw_set_transform(s + _sh, -0.25, Vector2(1.0, 0.3))
+				draw_arc(Vector2.ZERO, r * 1.8, PI, TAU, 24, Color("d8c088"), 3.0)
+				draw_set_transform(_sh)
 			draw_circle(s, r, col)
+			if tg.id == "saturn":
+				draw_set_transform(s + _sh, -0.25, Vector2(1.0, 0.3))
+				draw_arc(Vector2.ZERO, r * 1.8, 0, PI, 24, Color("e8d098"), 3.0)
+				draw_set_transform(_sh)
 			if tg.id == "jowisz":
 				for k in [-4, 1, 5]:
 					_px(s.x - r + 2, s.y + k * zoom, r * 2 - 4, 2, Color("a8704a"))
@@ -843,6 +896,23 @@ func _draw_crosshair() -> void:
 	for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
 		draw_line(p + d * 5, p + d * 11, c)
 	_px(p.x, p.y, 1, 1, c)
+
+
+## pasek widma pod okularem: tęcza, ciemne linie absorpcyjne obiektu i białe znaczniki wzorca
+func _draw_spectrum() -> void:
+	var r := Rect2(170, 318, 300, 18)
+	draw_rect(r.grow(3), Color("0d0a16"))
+	for x in int(r.size.x):
+		draw_rect(Rect2(r.position.x + x, r.position.y, 1, r.size.y), Color.from_hsv(0.78 - 0.78 * x / r.size.x, 0.75, 0.95))
+	var hit := absf(spec.off - spec.goal) < 0.035 + (0.025 if Game.has("filtry") else 0.0)
+	for l in spec.lines:
+		var gx: float = r.position.x + (l + spec.goal * 0.5) * r.size.x
+		draw_rect(Rect2(floorf(gx) - 1, r.position.y, 3, r.size.y), Color("120c18"))
+		var tx: float = r.position.x + (l + spec.off * 0.5) * r.size.x
+		var c := Color("8affa0") if hit else Color.WHITE
+		draw_rect(Rect2(floorf(tx) - 1, r.position.y - 6, 3, 5), c)
+		draw_rect(Rect2(floorf(tx) - 1, r.end.y + 1, 3, 5), c)
+	_text(Vector2(320, r.position.y - 10), "ANALIZA WIDMOWA", Color("ffcf6b"), true)
 
 
 func _draw_panels() -> void:
