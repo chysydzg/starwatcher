@@ -613,6 +613,51 @@ func _nearest() -> String:
 	return best
 
 
+## panel kodów do testów: Ctrl + LPM + PPM. Tylko w buildzie debug (eksport release go nie ma).
+## shortcut: chroni go tylko OS.is_debug_build(); przed wydaniem usunąć _input i _cheats razem z tym komentarzem
+func _input(e: InputEvent) -> void:
+	if not OS.is_debug_build() or busy or viewport:
+		return
+	if e is InputEventMouseButton and e.pressed and e.ctrl_pressed \
+			and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		get_viewport().set_input_as_handled()
+		_cheats()
+
+
+func _cheats() -> void:
+	busy = true
+	var p := _panel(Vector2(240, 214))
+	var box := VBoxContainer.new()
+	box.position = Vector2(14, 8)
+	box.custom_minimum_size = Vector2(212, 0)
+	p.add_child(box)
+	var title := Label.new()
+	title.text = "KODY (TEST)"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var close := func():
+		p.get_parent().queue_free()
+		busy = false
+	var add := func(text: String, f: Callable):
+		var b := Button.new()
+		b.text = text
+		b.pressed.connect(f)
+		box.add_child(b)
+		return b
+	add.call("+1000 $", func(): Game.money += 1000; Game.changed.emit())
+	add.call("+1000 PW", func(): Game.pw += 1000; Game.changed.emit())
+	add.call("+10000 $ I +10000 PW", func(): Game.money += 10000; Game.pw += 10000; Game.changed.emit())
+	add.call("NASTĘPNY ETAP (SCENKA)", func():  # zawsze: spełnia wymagania i odpala przeprowadzkę
+		Game.science["manifest"] = true
+		Game.shop["certyfikat"] = true
+		Game.discovered["mars"] = true
+		Game.save_game()
+		Game.hush()
+		get_tree().change_scene_to_file("res://game/moving.tscn"))
+	var c: Button = add.call("ZAMKNIJ", close)
+	c.grab_focus.call_deferred()
+
+
 func _unhandled_input(e: InputEvent) -> void:
 	if busy or viewport:
 		return
@@ -651,6 +696,7 @@ func _interact(k: String) -> void:
 		"bagaze":
 			_ask("Rozpocząć przeprowadzkę nad jezioro?", func():
 				Game.save_game()
+				Game.hush()  # muzyka i otoczenie pokoju milkną, scenka ma swój utwór
 				get_tree().change_scene_to_file("res://game/moving.tscn"))
 		"paczka":
 			Game.sfx("paper")

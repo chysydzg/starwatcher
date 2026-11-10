@@ -26,7 +26,7 @@ func _ready() -> void:
 	fx.draw.connect(func(): if fx_draw.is_valid(): fx_draw.call())
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	Game.loop("music/day", -14.0, "Music")
+	Game.loop("music/moving", -8.0, "Music")  # utwór autora (moving_out.mp3), zmasterowany na -16 LUFS jak pozostałe
 	_run()
 
 
@@ -270,7 +270,7 @@ func _end() -> void:
 		return
 	ended = true
 	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
-	Game.loop("music/day", -INF)
+	Game.loop("music/moving", -INF)
 	Game.stage_done = true
 	Game.save_game()
 	var ui := CanvasLayer.new()

@@ -9,8 +9,8 @@ const UHV = P.hueRamp(2, { hue: 16, shift: 12, sat: 0.7, light: [0.28, 0.38] });
 const BOX = P.hueRamp(3, { hue: 34, shift: 14, sat: 0.42, light: [0.5, 0.72] });
 const CREAM = [250, 236, 206], EYE = [30, 20, 18], SHINE = [250, 244, 236], NOSE = [26, 20, 22], TONGUE = [236, 120, 140];
 const DOGS = {
-  lili: { K: 0.92, head: P.hueRamp(4, { hue: 34, shift: 22, sat: 0.5, light: [0.38, 0.7] }), body: P.hueRamp(3, { hue: 30, shift: 14, sat: 0.1, light: [0.46, 0.66] }),
-    muz: P.hueRamp(2, { hue: 38, shift: 12, sat: 0.45, light: [0.7, 0.82] }), ears: "up", tongue: true },
+  lili: { K: 0.92, head: P.hueRamp(4, { hue: 24, shift: 22, sat: 0.52, light: [0.3, 0.64] }), body: P.hueRamp(3, { hue: 30, shift: 14, sat: 0.1, light: [0.46, 0.66] }),
+    muz: P.hueRamp(2, { hue: 34, shift: 12, sat: 0.45, light: [0.66, 0.8] }), ears: "up", tongue: true, shaggy: true },
   myszka: { K: 1.08, head: P.hueRamp(4, { hue: 224, shift: 12, sat: 0.12, light: [0.1, 0.3] }), body: P.hueRamp(3, { hue: 224, shift: 12, sat: 0.12, light: [0.12, 0.28] }),
     muz: P.hueRamp(2, { hue: 40, shift: 10, sat: 0.08, light: [0.74, 0.88] }), tan: P.hueRamp(2, { hue: 32, shift: 14, sat: 0.45, light: [0.6, 0.74] }), ears: "lop" },
 };
@@ -40,11 +40,15 @@ function frame(d, dir, f, carry) {
     sym(3, by, CREAM);
     fill(CX, Y(28.4 + bob), 6, 3, d.body[1]);
     for (const y of [by - 2, by - 1]) sym(3, y, UH[2]);
-    if (d.ears === "up") S([C(10, 18 + bob, 5, 6 + bob, 3.2, 1), C(22, 18 + bob, 27, 6 + bob, 3.2, 1)], d.head); // sterczące, w bok
+    if (d.ears === "up") S([C(10.5, 17 + bob, 6.8, 8 + bob, 3.0, 0.8), C(21.5, 17 + bob, 25.2, 8 + bob, 3.0, 0.8)], d.head); // trójkątne, sterczące
     S([E(16, 21 + bob, 9, 7.4), E(10, 24 + bob, 3.6, 3), E(22, 24 + bob, 3.6, 3)], d.head, { ambient: 0.5 });
-    if (d.ears === "lop") S([C(8.5, 18 + bob, 7, 28 + bob, 2.8, 2.2), C(23.5, 18 + bob, 25, 28 + bob, 2.8, 2.2)], d.head, { dark: 0.85 }); // opadają po bokach
+    if (d.ears === "lop") S([C(9.5, 16 + bob, 6.5, 20 + bob, 2.4, 1.8), C(22.5, 16 + bob, 25.5, 20 + bob, 2.4, 1.8)], d.head, { dark: 0.85 }); // małe, załamane do przodu
     const ey = Math.round(Y(20 + bob)), ny = Math.round(Y(23.4 + bob));
     fill(CX, Y(25 + bob), 4.4, 2.6, d.muz[1]);
+    if (d.shaggy) { // długa sierść yorka: kosmyki brody pod policzkami i grzywka na czole
+      for (const [dd, y0, n] of [[3, 26.6, 3], [5, 26.2, 3], [7, 25.4, 2]]) for (let k = 0; k < n; k++) sym(dd, Math.round(Y(y0 + bob)) + k, k === n - 1 ? d.head[1] : d.head[3]);
+      for (const dd of [1, 3]) { sym(dd, Math.round(Y(15.8 + bob)), d.head[3]); sym(dd, Math.round(Y(16.8 + bob)), d.head[2]); }
+    }
     if (d.tan) { sym(4, ey - 2, d.tan[1]); sym(5, ey - 2, d.tan[1]); sym(6, ey + 3, d.tan[0]); sym(7, ey + 2, d.tan[0]); }
     if (f === 3 && false) { } else for (const dd of [4, 5]) for (let y = ey; y < ey + 3; y++) sym(dd, y, EYE);
     b.pset(13, ey, SHINE); b.pset(22, ey, SHINE);
@@ -56,9 +60,10 @@ function frame(d, dir, f, carry) {
     for (let dd = 0; dd < 6; dd++) for (let y = cy - 3 + (dd > 3 ? 1 : 0) + (dd > 4 ? 1 : 0); y <= cy; y++) sym(dd, y, y === cy - 3 + (dd > 3 ? 1 : 0) + (dd > 4 ? 1 : 0) ? UH[3] : UH[2]);
     for (let dd = 0; dd < 7; dd++) sym(dd, cy + 1, UHV[1]);
     sym(0, cy - 1, CREAM);
-    if (carry) { // karton trzymany przed sobą oburącz
-      box(9, Math.round(Y(29 + bob)), 18, 11);
-      S([E(9, 34 + bob, 2, 1.7), E(23, 34 + bob, 2, 1.7)], d.muz);
+    if (carry) { // karton obejmowany oburącz: ręce po bokach, łapki na bocznych ściankach kartonu
+      S([C(8, 30 + bob, 7.6, 34 + bob, 2.1, 1.9), C(24, 30 + bob, 24.4, 34 + bob, 2.1, 1.9)], d.body);
+      box(10, Math.round(Y(29 + bob)), 16, 11);
+      S([E(7.9, 35 + bob, 1.6, 2), E(24.1, 35 + bob, 1.6, 2)], d.muz);
     }
   } else {
     const walkF = f >= 1, ph = (f - 1) % 4, sb = walkF && (ph === 1 || ph === 3) ? -1 : 0;
@@ -69,9 +74,9 @@ function frame(d, dir, f, carry) {
     S([C(15.5, 39 + sb, near, 43, 2.3)], UH);
     S([E(near + 1.8, 45, 3.4, 1.5)], d.muz);
     S([E(16, 28.6 + sb, 4.6, 2.6)], d.body);
-    if (d.ears === "up") S([C(13, 17 + sb, 9, 6 + sb, 3, 1)], d.head);
+    if (d.ears === "up") S([C(13, 16 + sb, 11, 8.5 + sb, 2.8, 0.8)], d.head);
     S([E(15, 21 + sb, 7.5, 7), E(21, 23.5 + sb, 4.4, 3.2)], d.head);
-    if (d.ears === "lop") S([C(12, 18 + sb, 11, 28 + sb, 2.8, 2.2)], d.head, { dark: 0.85 });
+    if (d.ears === "lop") S([C(12, 16 + sb, 10.5, 20.5 + sb, 2.4, 1.8)], d.head, { dark: 0.85 });
     fill(X(22), Y(25 + sb), 3.4, 2.2, d.muz[1]);
     const ey = Math.round(Y(19.8 + sb)), ex = Math.round(X(18.5)), nx = Math.round(X(25)), ny = Math.round(Y(23 + sb));
     for (let y = ey; y < ey + 3; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
@@ -82,9 +87,10 @@ function frame(d, dir, f, carry) {
     const cy = Math.round(Y(14.6 + sb)), cx0 = Math.round(X(9.5));  // czapeczka, daszek do przodu
     for (let x = 0; x < 11; x++) for (let y = cy - (x > 1 && x < 9 ? 3 : 2); y <= cy; y++) b.pset(cx0 + x, y, y <= cy - 2 ? UH[3] : UH[2]);
     for (let x = 9; x < 15; x++) b.pset(cx0 + x, cy + 1, UHV[1]);
-    if (carry) {
+    if (carry) { // z boku: karton przed sobą, bliższa ręka obejmuje go od dołu
       box(Math.round(X(18)), Math.round(Y(28 + sb)), 12, 10);
-      S([E(26, 33 + sb, 2, 1.7)], d.muz);
+      S([C(16, 30 + sb, 19, 37 + sb, 2.1, 1.9)], d.body);
+      S([E(20.5, 37.4 + sb, 2, 1.6)], d.muz);
     } else {
       const sw = !walkF ? 0 : [-3, 0, 3, 0][ph];
       S([C(16, 30 + sb, 16 + sw, 37 + sb, 2.1, 1.9)], d.body);

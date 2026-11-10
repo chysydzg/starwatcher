@@ -198,14 +198,15 @@ function hat(c, cy, rx) {  // czapeczka z daszkiem, przodem: kopuła i daszek, k
 }
 function lili(blink = false) {  // york: złota grzywka, wielkie sterczące uszy, czarne oczka, różowy język na środku
   const c = new Canvas();
-  const gold = ramp(3, { hue: 34, shift: 20, sat: 0.48, light: [0.42, 0.64] });
-  const goldL = ramp(2, { hue: 38, shift: 12, sat: 0.45, light: [0.7, 0.82] });
+  const gold = ramp(3, { hue: 24, shift: 22, sat: 0.5, light: [0.34, 0.58] });  // rudo-brązowy york (referencja autora)
+  const goldL = ramp(2, { hue: 30, shift: 12, sat: 0.45, light: [0.62, 0.76] });
+  const strand = [[214, 160, 120], [96, 52, 34]];  // jasne i ciemne kosmyki długiej sierści
   const silver = ramp(3, { hue: 30, shift: 14, sat: 0.1, light: [0.48, 0.66] });
   const earIn = ramp(2, { hue: 18, shift: 10, sat: 0.4, light: [0.34, 0.44] });
   c.add("body", sup(CX, 101, 26, 25, 2.2), silver, { group: "body" });
   overalls(c, 80);
-  c.add("ears", tri(32, 50, 22, 50, 15, 18), gold, { group: "ears", mirror: true });
-  c.add("earsi", tri(29, 46, 23, 46, 19, 27), earIn, { group: "ears", flat: true, mirror: true });
+  c.add("ears", tri(34, 46, 22, 49, 18, 27), gold, { group: "ears", mirror: true });   // trójkątne, o połowę mniejsze
+  c.add("earsi", tri(31, 45, 24, 47, 21, 33), earIn, { group: "ears", flat: true, mirror: true });
   c.add("head", or(sup(CX, 58, 19, 16, 2.4), ell(31, 66, 9, 8), ell(57, 66, 9, 8), ell(25, 60, 3.5, 6), ell(63, 60, 3.5, 6)), gold, { group: "head" });
   c.add("muzzle", ell(CX, 67, 8.5, 6), goldL, { group: "head", flat: true });
   for (const ex of [33, 51]) eye(c, ex, 56, 4, 5, [28, 18, 16], null, blink ? gold[1] : null);
@@ -214,7 +215,12 @@ function lili(blink = false) {  // york: złota grzywka, wielkie sterczące uszy
   for (const x of [40, 41, 46, 47]) c.set(x, 66, gold[0]);                       // pyszczek
   for (let y = 66; y < 73; y++) for (let x = 42; x < 46; x++) if (!(y === 72 && (x === 42 || x === 45))) c.set(x, y, y === 66 ? [196, 80, 96] : [236, 120, 140]); // język wypada na środku
   for (let y = 68; y < 72; y++) c.set(43, y, [214, 96, 116]);
-  for (const [x, y] of [[26, 49], [27, 48], [61, 49], [60, 48], [37, 47], [50, 47]]) c.set(x, y, goldL[1]); // kosmyki
+  c.add("beard", or(...[[30, 70, 28, 79], [34, 72, 33, 81], [38, 73, 38, 80], [26, 66, 23, 75]].flatMap(([ax, ay, bx, by]) => [cap(ax, ay, bx, by, 2.2), cap(2 * CX - ax, ay, 2 * CX - bx, by, 2.2)])), gold, { group: "head" }); // broda z kosmyków
+  for (let k = 0; k < 14; k++) {  // pasma sierści: krótkie ukośne kreski, jasne na górze, ciemne niżej (lustrzanie)
+    const x = 25 + (k * 7) % 18, y = 50 + Math.floor(k / 3) * 5 + (k % 2), dk = y > 62 ? 1 : 0;
+    for (let i = 0; i < 3; i++) { c.set(x + i, y + i, strand[dk]); c.set(2 * CX - 1 - (x + i), y + i, strand[dk]); }
+  }
+  for (const [x, y] of [[39, 47], [40, 48], [41, 49], [42, 50], [38, 49], [39, 50]]) { c.set(x, y, strand[0]); c.set(2 * CX - 1 - x, y, strand[0]); } // grzywka
   hat(c, 41, 14);
   return c.render();
 }
@@ -227,7 +233,7 @@ function myszka(blink = false) {  // czarna z podpalaniem: opadające czarne usz
   c.add("chest", ell(CX, 79, 10, 7), grey, { group: "body", flat: true });
   overalls(c, 80);
   c.add("head", or(sup(CX, 56, 21, 18, 2.4), ell(31, 64, 10, 9), ell(57, 64, 10, 9)), blk, { group: "head" });
-  c.add("lop", or(cap(28, 43, 23, 62, 5.2), cap(60, 43, 65, 62, 5.2)), blk, { group: "lop" }); // opadające uszy po bokach
+  c.add("lop", or(cap(29, 40, 21, 47, 4.6), cap(59, 40, 67, 47, 4.6)), blk, { group: "lop" }); // małe uszy załamane do przodu i w bok // opadające uszy po bokach
   c.add("cheek", or(ell(33, 66, 4.5, 4), ell(55, 66, 4.5, 4)), tan, { group: "head", flat: true });
   c.add("muzzle", or(ell(41, 66, 5.5, 4.8), ell(47, 66, 5.5, 4.8)), grey, { group: "head", flat: true });
   c.add("brow", or(ell(33, 48, 3.5, 2.2), ell(55, 48, 3.5, 2.2)), tan, { group: "head", flat: true, raw: true });

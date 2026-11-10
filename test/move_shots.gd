@@ -16,7 +16,7 @@ func _ready() -> void:
 	Game.use_test_save()
 	await get_tree().process_frame
 	Game.new_game()
-	var m := load("res://game/moving.tscn").instantiate()
+	var m: Node = load("res://game/moving.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(m)
 	for k in 40:
 		await get_tree().create_timer(1.0).timeout
