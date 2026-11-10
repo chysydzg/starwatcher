@@ -77,8 +77,8 @@ func _build() -> void:
 
 
 func _continue() -> void:
-	if Game.load_game():
-		get_tree().change_scene_to_file("res://game/world.tscn")
+	if Game.load_game():  # po przeprowadzce, a przed wyborem logo: od razu wybór logo
+		get_tree().change_scene_to_file("res://game/logo.tscn" if Game.stage_done and Game.stage == 1 else "res://game/world.tscn")
 
 
 func _start() -> void:

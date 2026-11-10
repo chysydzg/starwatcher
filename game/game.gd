@@ -213,6 +213,8 @@ var comet := {"left": 0, "gap": 0, "seed": 0}
 var tips := {}
 var location := "balcony"
 var stage_done := false
+var stage := 1               # etap gry (GDD: 1 pokój, 2 centrum nad jeziorem, ...)
+var logo := ""               # logo obserwatorium (logo.gd), wybrane raz
 var settings := {"fullscreen": false, "crt": true, "vol": {"Music": 8, "SFX": 8, "Ambient": 8}}  # głośności 0–10 (GDD: osobne suwaki)
 var pad := false           # ostatnie urządzenie: pad?
 var font: FontFile          # UI
@@ -712,6 +714,15 @@ func _shop_name(id: String) -> String:
 	return id
 
 
+## początek etapu: rano, w środku nowej bazy
+func start_stage(n: int) -> void:
+	stage = n
+	stage_done = false
+	location = "room"
+	night = false
+	night_left = night_length()
+
+
 func stage_ready() -> bool:
 	return science.has("manifest") and shop.has("certyfikat") and discovered.keys().any(func(k): return SKY.has(k) and SKY[k].cat == "planet")
 
@@ -790,6 +801,8 @@ func new_game() -> void:
 	comet = {"left": 0, "gap": 0, "seed": 0}
 	location = "balcony"
 	stage_done = false
+	stage = 1
+	logo = ""
 	demand_log.clear()
 	analysis = {"uids": [], "left": 0.0}
 	offer = {}
@@ -800,7 +813,7 @@ func new_game() -> void:
 
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "parcels", "journal", "discovered",
-	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history"]
+	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history", "stage", "logo"]
 
 
 func has_save() -> bool:
@@ -829,6 +842,7 @@ func load_game() -> bool:
 					set(k, d[k])
 			parcels.append_array(d.get("pending", []))  # zapis sprzed natychmiastowych paczek
 			day = int(day)
+			stage = int(stage)
 			money = int(money)
 			pw = int(pw)
 			_id_seq = int(_id_seq)

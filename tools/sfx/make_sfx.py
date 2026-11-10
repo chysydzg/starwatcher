@@ -96,6 +96,14 @@ def chord(notes, sound='mallet/celesta', step=0.0):
     return dsp.stack([(b(sound, pitch=p, seed=i + 1), i * step, -2 * i) for i, p in enumerate(notes)], peak_db=-1)
 
 
+def tadam(kind='a'):  # „ty-dy-dy-dym”: cztery szybkie nuty w górę i dłuższy akord na końcu (napis OBSERWATORIUM)
+    run, gap = (['G5', 'C6', 'E6', 'G6'], 0.09) if kind == 'a' else (['C6', 'E6', 'G6', 'B6'], 0.075)
+    hits = [(b('mallet/celesta', pitch=p, seed=i + 1), i * gap, -4) for i, p in enumerate(run)]
+    end = len(run) * gap + 0.05
+    hits += [(b('mallet/celesta', pitch=p, seed=9 + i), end, 0) for i, p in enumerate(['C6', 'E6', 'G6', 'C7'])]
+    return dsp.stack(hits, peak_db=-1)
+
+
 def space_hum(r, seconds=24.0):  # "szum kosmosu": dark rumbling noise and slow detuned drones, nothing insect-high
     hum = dsp.butter(dsp.noise(seconds, r, 'brown'), 'low', 500) * am(seconds, r, 0.06, 0.5)
     t = dsp.t_of(dsp.n_of(seconds))
@@ -470,6 +478,7 @@ def main():
     save('thunder', thunder(r), -3)
     save('tick', b('fit/tick/domino'), -12)
     save('chord', chord(['C6', 'E6', 'G6', 'C7'], step=0.04))
+    save('tadam', tadam('a'), -3)
     save('pop', b('pro_pop/bloop'), -8)
     save('switch', b('fit/snap/switch_flip'), -6)
     save('paper', paper(r), -8)

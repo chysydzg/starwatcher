@@ -136,7 +136,7 @@ function sitting(fr, f) {
 const jbb = P.bounds(jania.frames[16]);
 const jb = (f) => P.crop(jania.frames[16 + (f ? 7 : 0)], jbb.x, jbb.y - 1, jbb.w, jbb.h + 1);  // rząd 2 = tył; 7. kolumna = oddech
 // obserwatorium po drugiej stronie jeziora: białe, odnowione, kopuła otwarta, gruby teleskop wystaje przez szczelinę
-function observatory(closed = false, empty = false) {  // closed: teleskop wyjęty, okna i drzwi zabite deskami; empty: odnowione, kopuła otwarta i pusta (żuraw wstawia teleskop)
+function observatory(closed = false, empty = false, lit = 4, open = true) {  // lit: ile okien świeci (remont), open: szczelina kopuły otwarta  // closed: teleskop wyjęty, okna i drzwi zabite deskami; empty: odnowione, kopuła otwarta i pusta (żuraw wstawia teleskop)
   const b = new P.Buf(80, 64);
   const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
   const steel = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.14, light: [0.3, 0.78] });
@@ -146,18 +146,18 @@ function observatory(closed = false, empty = false) {  // closed: teleskop wyję
   const dome = new P.Buf(80, 64);
   P.solid(dome, [P.ell(40, 35, 17, 16)], white, { light: [-0.5, -0.7, 0.5] });                               // kopuła: tylko półkula nad dachem
   for (let y = 0; y < 35; y++) for (let x = 0; x < 80; x++) { const u = dome.get(x, y); if (u >>> 24) b.px[y * 80 + x] = u; }
-  for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
+  if (open) for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
   if (!closed && !empty) {
     P.solid(b, [P.cap(40, 31, 55, 11, 2.4, 5.2)], steel, { light: [-0.5, -0.7, 0.5] });                      // teleskop: stożek rozszerza się ku obiektywowi
     P.solid(b, [P.cap(55, 11, 56.5, 9, 5.4, 5.4)], white, { light: [-0.5, -0.7, 0.5] });                     // pierścień obiektywu
   }
-  for (const wx of [10, 20, 52, 62]) {                                                                       // okna: świecą się albo są ciemne
+  for (const [i, wx] of [10, 20, 52, 62].entries()) {                                                         // okna: świecą się albo są ciemne
     for (let y = 43; y < 50; y++) for (let x = wx; x < wx + 7; x++) b.pset(x, y, steel[1]);
-    for (let y = 44; y < 49; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, closed ? night : y > 46 ? warmD : warm);
+    for (let y = 44; y < 49; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, closed || !(lit === 4 || (lit === 1 && i === 1)) ? night : y > 46 ? warmD : warm);
     for (let y = 44; y < 49; y++) b.pset(wx + 3, y, steel[1]);
   }
   for (let y = 50; y < 64; y++) for (let x = 35; x < 46; x++) b.pset(x, y, x === 35 || x === 45 || y === 50 ? steel[1] : steel[2]); // drzwi
-  if (!closed) { b.pset(43, 57, warm); for (let x = 38; x < 43; x++) b.pset(x, 48, warm); }                  // klamka, lampka nad drzwiami
+  if (!closed) { b.pset(43, 57, warm); if (lit === 4) for (let x = 38; x < 43; x++) b.pset(x, 48, warm); }                  // klamka, lampka nad drzwiami
   const WOOD = [[138, 106, 72], [168, 132, 90], [70, 50, 38]];
   const plank = (x0, y0, x1, y1) => {  // deska 2 px: jasny wierzch, ciemny spód
     const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
@@ -264,6 +264,8 @@ P.save(strip([0, 1, 2, 3, 4].map((f) => T.frame(1, f, { carry: true }))), out + 
 P.save(observatory(), out + "/cut_observatory.png");
 P.save(observatory(true), out + "/cut_observatory_closed.png");
 P.save(observatory(false, true), out + "/cut_observatory_empty.png");
+P.save(observatory(false, true, 0, false), out + "/cut_obs_white.png");    // remont: pomalowane, okna ciemne, kopuła zamknięta
+P.save(observatory(false, true, 1, false), out + "/cut_obs_one.png");      // remont: świeci jedno okno
 P.save(crane(), out + "/cut_crane.png");
 P.save(truck(), out + "/cut_truck.png");
 P.save(P.pack([0, 1, 2, 3].map(wheel), { cols: 4, pad: 0 }), out + "/cut_wheel.png");

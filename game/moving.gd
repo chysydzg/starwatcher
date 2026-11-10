@@ -7,7 +7,9 @@ extends "res://game/cutscene.gd"
 const TRUCK_Y := 176.0                 # ten sam brzeg co wywrotka z intro (dół kół na linii jeziora)
 const VIEW_CAM := Vector2(190, 168)    # zoom 2: cały budynek z odbiciem w wodzie, żuraw mieści się w kadrze
 const REPAIR_AT := Vector2(147, 162)   # cut_repair_k (repair.js) leży dokładnie na szarym budynku z balcony_view
-const SIGN_AT := Vector2(236, 174)     # szyld na dwóch słupkach na brzegu, na prawo od budynku
+const OBS_AT := Vector2(146, 143)      # obserwatorium z intro (cutscene.js): odnowione, szeroka szczelina kopuły
+const TRUCK_PARK := 226.0              # U-Howl stoi przy budynku od przyjazdu do ostatniego dialogu
+const TITLE := "OBSERWATORIUM"
 ## pora dnia: niebo (góra, dół), mnożnik koloru widoku, kolor odbicia w wodzie, słońce (x, y; 0 = brak)
 const TOD := {
 	"dawn": [Color("4a4a8a"), Color("f0a8a0"), Color(1.2, 1.0, 1.05), Vector3(0.35, 0.3, 0.45), Vector2(70, 120)],
@@ -21,6 +23,7 @@ var truck_x := -80.0                   # lewy brzeg ciężarówki (scena drogi i
 var truck_moving := false
 var tint := Color.WHITE                # mnożnik koloru bieżącej pory dnia (ciężarówka, żuraw)
 var puffs := []                        # spaliny: [pozycja wylotu w chwili wydmuchu, czas]
+var engine := true                     # silnik pracuje (spaliny); zaparkowana ciężarówka stoi cicho
 
 
 func _ready() -> void:
@@ -51,6 +54,7 @@ func _run() -> void:
 		mirror_extra = []
 		truck_moving = false
 		puffs.clear()
+		engine = true
 		await build.call()
 		await create_tween().tween_property(fade, "color:a", 1.0, 0.6).finished
 		if fx.is_inside_tree():
@@ -198,12 +202,16 @@ func _site() -> void:
 
 # ---------------------------------------------------------------- 4. remont: szybkie ujęcia przez czerń, co ujęcie inna pora
 ## dnia (raz pada), coraz mniej desek, biała farba, okna, drzwi; na końcu żuraw opuszcza teleskop w kopułę
-const SHOTS := [["dawn", 0], ["noon", 1], ["rain", 2], ["sunset", 3], ["dusk", 4], ["night", 5]]
+const SHOTS := [["dawn", "cut_repair_0"], ["noon", "cut_repair_1"], ["rain", "cut_repair_2"],
+	["sunset", "cut_obs_white"], ["dusk", "cut_obs_one"], ["night", "cut_observatory_empty"]]
 var shot_t := 0.0
 var next_hit := 0.0
 var hammering := false
 func _repair() -> void:
 	_cam(VIEW_CAM)
+	truck_x = TRUCK_PARK
+	engine = false
+	fx_draw = _draw_truck
 	Game.loop("site_work", -6.0)
 	tick = func():
 		shot_t += get_process_delta_time()
@@ -213,7 +221,7 @@ func _repair() -> void:
 	for i in SHOTS.size():
 		var shot := Node2D.new()
 		sc.add_child(shot)
-		_scenery(shot, SHOTS[i][0], "cut_repair_%d" % SHOTS[i][1], REPAIR_AT)
+		_scenery(shot, SHOTS[i][0], SHOTS[i][1], REPAIR_AT if i < 3 else OBS_AT)
 		Game.loop("rain_balcony", -12.0 if SHOTS[i][0] == "rain" else -INF)
 		shot_t = 0.0
 		next_hit = 0.25
@@ -228,7 +236,7 @@ func _repair() -> void:
 	hammering = false
 	var shot := Node2D.new()  # noc: żuraw opuszcza teleskop w otwartą kopułę
 	sc.add_child(shot)
-	_scenery(shot, "night", "cut_repair_5", REPAIR_AT)
+	_scenery(shot, "night", "cut_observatory_empty", OBS_AT)
 	_spr("cut_crane", Vector2(88, 80), shot).modulate = Color(0.78, 0.78, 0.9)
 	shot_t = 0.0
 	fx_draw = _draw_crane
@@ -237,10 +245,11 @@ func _repair() -> void:
 	Game.loop("site_work", -INF)
 
 
-## hak żurawia nad kopułą (x 187) opuszcza wiszący teleskop aż do szczeliny
+## hak żurawia nad kopułą (x 186) opuszcza wiszący teleskop aż do szczeliny; obok stoi U-Howl
 func _draw_crane() -> void:
-	var tx := 187.0
-	var hy := lerpf(110.0, 146.0, smoothstep(0.4, 3.4, shot_t))
+	_draw_truck()
+	var tx := 186.0
+	var hy := lerpf(110.0, 140.0, smoothstep(0.4, 3.4, shot_t))
 	var dim := Color(0.78, 0.78, 0.9)
 	var dark := Color(0.12, 0.12, 0.16)
 	var at := Vector2(tx - 17, hy + 5).floor()
@@ -250,31 +259,59 @@ func _draw_crane() -> void:
 	fx.draw_line(Vector2(tx, hy + 3), at + Vector2(8, 4), dark, 1.0)  # zawiesia
 	fx.draw_line(Vector2(tx, hy + 3), at + Vector2(27, 3), dark, 1.0)
 	fx.draw_texture(Game.tex("cut_scope"), at, dim)
-	mirror_extra = [[Game.tex("cut_crane"), Rect2(), Vector2(88, 80), dim], [Game.tex("cut_scope"), Rect2(), at, dim]]
+	mirror_extra += [[Game.tex("cut_crane"), Rect2(), Vector2(88, 80), dim], [Game.tex("cut_scope"), Rect2(), at, dim]]
 	if _cue("clank", 3.4):  # teleskop siada w kopule
 		Game.sfx("clank", 1.0, -10.0)
 
 
-# ---------------------------------------------------------------- 5. finał: noc, teleskop na miejscu, szyld „OBSERWATORIUM”
+# ---------------------------------------------------------------- 5. finał: noc, teleskop na miejscu, napis falą nad kopułą,
+## U-Howl odjeżdża po ostatnim dialogu
 func _finale() -> void:
-	_scenery(sc, "night", "cut_repair_6", REPAIR_AT - Vector2(0, 12))
-	var board := _spr("cut_sign", SIGN_AT, null, 3)
-	mirror_extra = [[board.texture, Rect2(0, 0, 118, 34), SIGN_AT]]
-	_cam(Vector2(248, 200))  # budynek i szyld nad okienkiem dialogu, pod nimi odbicie
-	tick = func():  # szyld łapie po kilku mrugnięciach, potem żarówki migają na zmianę
-		var on := st > 2.4 or (st > 1.2 and fmod(st, 0.33) < 0.18)
-		board.frame = (1 + int(st * 3.0) % 2) if on else 0
-		mirror_extra[0][1] = Rect2(board.frame * 118, 0, 118, 34)
-		if _cue("buzz", 1.2):
-			Game.sfx("switch", 1.0, -8.0)
+	_scenery(sc, "night", "cut_observatory", OBS_AT)
+	_cam(Vector2(210, 200))  # obserwatorium i ciężarówka nad okienkiem dialogu, pod nimi odbicie
+	truck_x = TRUCK_PARK
+	engine = false
+	var leave := -1.0  # czas sceny, w którym ciężarówka rusza
+	tick = func():
+		if leave >= 0.0:
+			var td := st - leave
+			truck_moving = td > 0.8
+			truck_x = TRUCK_PARK + (8.0 * pow(maxf(0.0, td - 0.8), 2.0) if td < 3.3 else 50.0 + 40.0 * (td - 3.3))
+		if _cue("title", 1.0):
+			Game.sfx("tadam", 1.0, -4.0)
+	fx_draw = func():
+		_draw_truck()
+		_draw_title()
 	await _show()
-	await get_tree().create_timer(3.4).timeout
+	await get_tree().create_timer(3.0).timeout
 	await _say_lines([
 		{"who": "lili", "text": "I elegancko! Wszystko działa! Wooof!"},
 		{"who": "myszka", "text": "Powodzenia, Jania! Pamiętaj, że na nas możesz liczyć! Auuuuuuuuuu!"},
 		{"who": "jania", "text": "Dziękuję Wam! Tata byłby ze mnie dumny..."},
 	])
-	await get_tree().create_timer(1.0).timeout
+	leave = st
+	engine = true
+	Game.sfx("engine_start", 1.0, -8.0)
+	await get_tree().create_timer(0.8).timeout
+	Game.sfx("truck_drive", 1.0, -8.0)
+	await get_tree().create_timer(3.4).timeout
+
+
+## „OBSERWATORIUM” nad kopułą czcionką gry: litery wypływają po kolei falą z dołu, potem lekko falują
+func _draw_title() -> void:
+	var w := Game.font.get_string_size(TITLE, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
+	var x := floorf(OBS_AT.x + 41.0 - w / 2.0)
+	for i in TITLE.length():
+		var a := st - 1.0 - i * 0.06  # wiek litery
+		if a < 0.0:
+			break
+		var ch := TITLE[i]
+		var rise := 10.0 * pow(1.0 - minf(a / 0.35, 1.0), 2.0)  # wypływa z dołu
+		var p := Vector2(x, roundf(134.0 + rise + 1.5 * sin(st * 3.0 - i * 0.55)))
+		for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			fx.draw_string(Game.font, p + d, ch, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(0.05, 0.03, 0.08, minf(a / 0.2, 1.0)))
+		fx.draw_string(Game.font, p, ch, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS, Color(1.0, 0.86, 0.5, minf(a / 0.2, 1.0)))
+		x += Game.font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 
 
 ## widok przez jezioro o danej porze dnia: niebo, słońce, gwiazdy; widok z szarym budynkiem (balcony_view)
@@ -315,7 +352,8 @@ func _scenery(parent: Node, tod: String, building := "", at := Vector2.ZERO) -> 
 ## ciężarówka U-Howl z obracającymi się kołami (cut_wheel), spalinami z rury z tyłu i odbiciem w jeziorze
 func _draw_truck() -> void:
 	var pos := Vector2(floorf(truck_x), TRUCK_Y + (1.0 if truck_moving and fmod(st, 0.2) < 0.1 else 0.0))
-	_draw_exhaust_puffs(pos + Vector2(0, 26), 0.12 if truck_moving else 0.3)
+	if engine:
+		_draw_exhaust_puffs(pos + Vector2(0, 26), 0.12 if truck_moving else 0.3)
 	fx.draw_texture(Game.tex("cut_uhowl"), pos, tint)
 	var wf := int(truck_x / 2.43) % 4 if truck_moving else 0
 	mirror_extra = [[Game.tex("cut_uhowl"), Rect2(), pos, tint]]
@@ -353,23 +391,5 @@ func _end() -> void:
 	Game.hush()  # muzyka, plac budowy i deszcz (także przy pominięciu)
 	Game.stage_done = true
 	Game.save_game()
-	var ui := CanvasLayer.new()
-	ui.layer = 30
-	add_child(ui)
-	var bg := ColorRect.new()
-	bg.color = Color.BLACK
-	Game.cover(bg)
-	ui.add_child(bg)
-	var l := Label.new()
-	l.text = "PIERWSZY DUŻY KROK\n\nKoniec Etapu 1.\nEtap 2: Małe Centrum Naukowe, wkrótce."
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.size = Vector2(640, 120)
-	l.position = Vector2(0, 120)
-	ui.add_child(l)
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	var b := Button.new()
-	b.text = "DO MENU"
-	b.position = Vector2(280, 250)
-	b.pressed.connect(func(): get_tree().change_scene_to_file("res://game/menu.tscn"))
-	ui.add_child(b)
-	b.grab_focus.call_deferred()
+	fade.color.a = 1.0
+	get_tree().change_scene_to_file.call_deferred("res://game/logo.tscn")

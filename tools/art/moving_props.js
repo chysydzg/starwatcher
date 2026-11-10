@@ -20,12 +20,11 @@ const DARK = [40, 36, 46];
   s.rect(0, 25, 3, 27, [96, 98, 108]); s.rect(0, 25, 1, 26, [140, 142, 150]);  // rura wydechowa z tyłu (spaliny rysuje gra)
   slab(s, 45, 9, 62, 27, UH, 0.95, 0.55);                    // kabina
   s.rect(46, 9, 58, 10, UH[3]);
-  s.rect(51, 12, 60, 18, [150, 196, 230]); s.rect(51, 12, 60, 13, [200, 228, 246]); // szyba
+  s.rect(51, 12, 62, 18, [150, 196, 230]); s.rect(51, 12, 62, 13, [200, 228, 246]); // szyba aż do przodu kabiny (przednia szyba)
   s.rect(48, 13, 49, 26, UH[0]);                             // drzwi
   s.rect(52, 20, 55, 21, UH[0]);                             // klamka
   s.rect(61, 19, 63, 21, [255, 230, 140]);                   // reflektor
   s.rect(60, 23, 64, 28, [120, 124, 136]);                   // zderzak
-  for (const wx of [7, 41]) for (let y = 19; y < 30; y++) for (let x = wx - 1; x < wx + 16; x++) if (Math.hypot(x - wx - 7, y - 26) < 8.5) s.pset(x, y, DARK); // nadkola
   P.save(ink(s), out + "/cut_uhowl.png");
 }
 { // ---- bagaże: duża brązowa walizka stojąca, niebieska leżąca na zielonej torbie, karton z taśmą
@@ -42,15 +41,9 @@ const DARK = [40, 36, 46];
   s.rect(44, 26, 58, 28, R.beige[3]); s.rect(50, 26, 52, 40, [200, 170, 110]);
   P.save(ink(s), out + "/luggage.png");
 }
-{ // ---- neon nad obserwatorium: różowe litery w ciemnej ramce (gra miga nim przy włączaniu)
-  const t = "OBSERWATORIUM", w = P.textWidth(t) + 6, s = new P.Buf(w, 11);
-  s.rect(0, 0, w, 11, [30, 24, 44]); s.rect(1, 1, w - 1, 10, [44, 34, 62]);
-  P.text(s, 3, 3, t, [255, 120, 200]);
-  P.save(ink(s), out + "/cut_neon.png");
-}
 { // ---- „HA HA” nad głową Jani w scenie (jasne litery z ciemnym cieniem)
   const s = new P.Buf(20, 13);
   for (const [t, x, y] of [["HA", 0, 0], ["HA", 9, 7]]) { P.text(s, x + 1, y + 1, t, [60, 30, 30]); P.text(s, x, y, t, [255, 236, 170]); }
   P.save(s, out + "/cut_haha.png");
 }
-console.log("cut_uhowl.png luggage.png cut_neon.png");
+console.log("cut_uhowl.png luggage.png cut_haha.png");
