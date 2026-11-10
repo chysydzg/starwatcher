@@ -23,8 +23,11 @@ VOICE = {
     'Gm9': [58, 62, 65, 69], 'Ebmaj7': [55, 58, 63, 67], 'Bbmaj7': [57, 62, 65, 69], 'Bbmaj7/D': [57, 62, 65, 69],
     'F': [57, 60, 65], 'Fsus4': [58, 60, 65], 'Gm7': [58, 62, 65, 67], 'Cm9': [51, 55, 58, 62], 'Cm7': [51, 55, 58, 63],
     'D7sus4': [55, 57, 60, 62], 'D7': [54, 57, 60, 62],
+    # E-dur (przeprowadzka)
+    'E6': [56, 59, 61, 66], 'C#m7': [52, 56, 59, 61], 'A6': [61, 64, 66, 71], 'B7sus4': [54, 57, 59, 64],
+    'B7': [57, 61, 63, 66], 'G#m7': [54, 56, 59, 63], 'F#m7': [52, 57, 61, 64], 'E6/G#': [56, 59, 61, 66],
 }
-ROOT = {'D': 38, 'E': 40, 'F#': 42, 'G': 43, 'A': 45, 'B': 35, 'C': 36, 'Eb': 39, 'Bb': 34, 'F': 41}
+ROOT = {'D': 38, 'E': 40, 'F#': 42, 'G': 43, 'A': 45, 'B': 35, 'C': 36, 'Eb': 39, 'Bb': 34, 'F': 41, 'C#': 37, 'G#': 44}
 
 
 def root_of(sym):
@@ -462,9 +465,132 @@ def intro():
     s.save('intro')
 
 
+# ---------------------------------------------------------------- PRZEPROWADZKA (cutscenka): E-dur, 145 BPM, 40 taktów (~66 s)
+def moving():
+    """Wzorzec autora (moving_out.mp3): radosne ukulele / funk, pizzicato, marimba, pozytywka, ~145 BPM, E-dur.
+    Tu wszystko w stylu pętli gry: sample SNES, miękkie bębny 12-bit, lekki swing, taśma i winyl."""
+    A = [[(0, 'E6')], [(0, 'C#m7')], [(0, 'A6')], [(0, 'B7sus4'), (2, 'B7')],
+         [(0, 'E6')], [(0, 'G#m7')], [(0, 'A6'), (2, 'F#m7')], [(0, 'B7')]]
+    B = [[(0, 'A6')], [(0, 'G#m7')], [(0, 'F#m7')], [(0, 'B7')],
+         [(0, 'A6')], [(0, 'G#m7'), (2, 'C#m7')], [(0, 'F#m7')], [(0, 'B7sus4'), (2, 'B7')]]
+    C = [[(0, 'C#m7')], [(0, 'G#m7')], [(0, 'A6')], [(0, 'E6/G#')],
+         [(0, 'F#m7')], [(0, 'G#m7')], [(0, 'F#m7')], [(0, 'B7')]]
+    prog = A + B + A + C + A
+    sec = [{'id': 'a', 'start_bar': 0, 'bars': 8, 'intent': 'packing up: marimba theme over strummed nylon (ukulele role)'},
+           {'id': 'b', 'start_bar': 8, 'bars': 8, 'intent': 'pizzicato answer, IV-iii-ii-V, drums tighten'},
+           {'id': 'a2', 'start_bar': 16, 'bars': 8, 'intent': 'theme back, glockenspiel doubles, handclaps: the truck rolls'},
+           {'id': 'c', 'start_bar': 24, 'bars': 8, 'intent': 'bridge: music box over half-time drums, a warm look back'},
+           {'id': 'a3', 'start_bar': 32, 'bars': 8, 'intent': 'full theme with pizzicato counterline, turnaround to the loop'}]
+    s = Song('Star Watcher - Przeprowadzka', 145, 40, sec,
+             'Moving-day cutscene bed (text dialogue, no voices). Inspired by the user reference only in tempo, key, '
+             'mood and instrument roles (cheerful ukulele/funk, pizzicato, marimba, music box); SNES-style samples '
+             'and lo-fi glue like the other game loops.')
+    s.chords(prog)
+    SW = {'ratio': 0.58, 'unit': 0.5}
+    s.track('marimba', 'melody', {'level_dbfs': -19, 'highpass': 200, 'lowpass': 8000, 'reverb_db': -15, 'pan': -0.1,
+                                  'delay': {'beats': 0.75, 'feedback': 0.22, 'send_db': -20, 'lowpass': 3500, 'ping_pong': True}},
+            program=12)
+    s.track('pizz', 'melody', {'level_dbfs': -21, 'highpass': 150, 'lowpass': 7000, 'reverb_db': -12, 'pan': 0.3}, program=45)
+    s.track('glock', 'texture', {'level_dbfs': -28, 'highpass': 400, 'lowpass': 9000, 'reverb_db': -12, 'pan': 0.35}, program=9)
+    s.track('box', 'melody', {'level_dbfs': -21, 'highpass': 300, 'lowpass': 6000, 'reverb_db': -10, 'pan': -0.2}, program=10)
+    s.track('uke', 'harmony', {'level_dbfs': -25.5, 'highpass': 180, 'lowpass': 7000, 'reverb_db': -18, 'pan': 0.4,
+                               'eq': [[300, -3]]}, program=24)
+    s.track('keys', 'harmony', {'level_dbfs': -30, 'highpass': 100, 'lowpass': 5000, 'reverb_db': -16, 'pan': -0.35,
+                                'eq': [[250, -3]], 'effects': [{'type': 'chorus', 'depth': 0.5}]}, program=4)
+    s.track('bass', 'bass', {'level_dbfs': -23, 'highpass': 35, 'lowpass': 2000}, program=33)  # analyze r1: bas -2 dB pod tematem
+    s.track('sub', 'bass', {'level_dbfs': -26,  # r1: dół 11,7 dB pod lofi
+                             'highpass': 25, 'lowpass': 300}, engine='synth', synth={'preset': 'sub_bass'})
+    s.track('drums', 'drums', {'level_dbfs': -17, 'highpass': 40, 'lowpass': 13000, 'reverb_db': -20,
+                               'effects': [{'type': 'bitcrush', 'bits': 12, 'downsample': 2, 'mix': 0.5}], 'saturate': 0.2},
+            drums=True)
+    for k in ('uke', 'bass', 'drums', 'marimba', 'pizz', 'glock'):
+        s.t[k]['performance']['swing'] = SW
+    theme = [
+        [(0, .5, 71), (.5, .5, 73), (1, .5, 76), (1.5, 1, 75), (2.5, .5, 73), (3, 1, 71)],
+        [(0, .5, 68), (.5, .5, 71), (1, 1, 73), (2, .5, 76), (2.5, 1.5, 73)],
+        [(0, .5, 69), (.5, .5, 71), (1, .5, 73), (1.5, .5, 76), (2, 1, 80), (3, .5, 78), (3.5, .5, 76)],
+        [(0, 1.5, 78), (1.5, .5, 76), (2, 1, 75), (3, 1, 71)],
+        [(0, .5, 71), (.5, .5, 73), (1, .5, 76), (1.5, 1, 78), (2.5, .5, 76), (3, 1, 80)],
+        [(0, .75, 78), (.75, .75, 75), (1.5, .5, 71), (2, 2, 75)],
+        [(0, .5, 73), (.5, .5, 76), (1, 1, 81), (2, .5, 78), (2.5, .5, 76), (3, 1, 73)],
+        [(0, 2, 75), (2, .5, 71), (2.5, .5, 73), (3, 1, 75)],
+    ]
+    answer = [
+        [(0, 1, 76), (1, 1, 73), (2, 2, 69)], [(0, 1, 75), (1, 1, 71), (2, 2, 68)],
+        [(0, 1, 73), (1, .5, 69), (1.5, .5, 73), (2, 2, 76)], [(0, 1.5, 75), (1.5, .5, 73), (2, 2, 71)],
+        [(0, 1, 76), (1, 1, 80), (2, 2, 81)], [(0, 1, 80), (1, 1, 78), (2, 2, 76)],
+        [(0, 1, 78), (1, 1, 76), (2, 1, 73), (3, 1, 69)], [(0, 2, 71), (2, 1, 75), (3, 1, 78)],
+    ]
+    bridge = [
+        [(0, 2, 76), (2, 1, 73), (3, 1, 71)], [(0, 2, 71), (2, 2, 75)], [(0, 1, 73), (1, 1, 76), (2, 2, 80)],
+        [(0, 3, 78), (3, 1, 76)], [(0, 2, 73), (2, 1, 76), (3, 1, 78)], [(0, 3, 80), (3, 1, 78)],
+        [(0, 1, 81), (1, 1, 80), (2, 1, 78), (3, 1, 76)], [(0, 2, 75), (2, 2, 71)],
+    ]
+    counter = [  # A3: pizzicato odpowiada w przerwach tematu, oktawę niżej
+        [(2.5, .5, 64), (3, .5, 66), (3.5, .5, 68)], [(2.5, .5, 64), (3, 1, 61)], [(2.5, .5, 64), (3, 1, 66)],
+        [(2, .5, 63), (2.5, .5, 66), (3, 1, 69)], [(2.5, .5, 68), (3, .5, 66), (3.5, .5, 64)], [(2.5, .5, 63), (3, 1, 66)],
+        [(3, .5, 64), (3.5, .5, 66)], [(2, .5, 63), (2.5, .5, 66), (3, .5, 69), (3.5, .5, 71)],
+    ]
+    for i in range(8):
+        s.line('marimba', i, theme[i], 80)
+        s.line('pizz', 8 + i, answer[i], 78)
+        s.line('marimba', 16 + i, theme[i], 84)
+        s.line('glock', 16 + i, [(b, min(d, 1.0), p + 12) for b, d, p in theme[i]], 58)
+        s.line('box', 24 + i, [(b, d, p + 12) for b, d, p in bridge[i]], 70)
+        s.line('marimba', 32 + i, theme[i], 86)
+        s.line('glock', 32 + i, [(b, min(d, 1.0), p + 12) for b, d, p in theme[i]], 54)
+        s.line('pizz', 32 + i, counter[i], 70)
+    for bar, items in enumerate(prog):
+        bridge_bar = 24 <= bar < 32
+        for b, ln, sym in spans(items):
+            v = VOICE[sym]
+            on = bar * 4 + b
+            for p in v:
+                s.note('keys', on, ln - .1, p, 52 if bridge_bar else 46)
+            # ukulele (gitara nylonowa): bicie D . D U . U D U, w moście tylko na raz i trzy
+            hits = [(0, 84), (2, 76)] if bridge_bar else [(0, 82), (1, 70), (1.5, 58), (2.5, 62), (3, 74), (3.5, 58)]
+            for hb, vel in hits:
+                if b <= hb < b + ln:
+                    for k, p in enumerate(sorted(v)):
+                        s.note('uke', bar * 4 + hb + k * .02, .4, p + 12 if p < 60 else p, vel - 4 * k, 0.8)
+            r = root_of(sym)
+            pattern = [(0, 0, 86), (1.5, 12, 66), (2, 7, 78), (3, 0, 72), (3.5, 10 if 'B7' in sym else 12, 60)]
+            for pb, iv, vel in pattern:  # podskakujący bas: pryma, oktawa, kwinta, przejście
+                if b <= pb < b + ln and (not bridge_bar or pb in (0, 2)):
+                    s.note('bass', bar * 4 + pb, .45, r + iv - (12 if r + iv > 52 else 0), vel, 0.85)
+            s.note('sub', on, ln - .05, r - 12 if r > 40 else r, 88)
+    for bar in range(40):
+        o = bar * 4
+        sec_id = 'a' if bar < 8 else 'b' if bar < 16 else 'a2' if bar < 24 else 'c' if bar < 32 else 'a3'
+        if sec_id == 'c':  # pół-tempo: stopa na raz, werbel na trzy
+            s.note('drums', o, .2, 36, 86)
+            s.note('drums', o + 2, .2, 38, 74)
+            for k in range(4):
+                s.note('drums', o + k, .08, 42, 46)
+        else:
+            for b, vel in ((0, 94), (1.5, 62), (2.5, 84)):
+                s.note('drums', o + b, .2, 36, vel)
+            for b in (1, 3):
+                s.note('drums', o + b, .2, 37 if sec_id == 'a' else 38, 78 if sec_id == 'a' else 86)
+                if sec_id in ('a2', 'a3'):
+                    s.note('drums', o + b, .15, 39, 70)
+            for k in range(8):
+                s.note('drums', o + k * .5, .08, 42, 60 if k % 2 == 0 else 42)
+            if sec_id == 'a3':
+                for k in range(8):
+                    s.note('drums', o + k * .5 + .25, .08, 54, 40)
+        if bar % 8 == 7:
+            for b, p in ((3, 47), (3.25, 45), (3.5, 43), (3.75, 41)):
+                s.note('drums', o + b, .2, p, 74)
+    vinyl(s, 40)
+    s.p['tracks'][-1]['mix']['level_dbfs'] = -48
+    s.save('moving')
+
+
 if __name__ == '__main__':
     day()
     night()
     menu()
     intro()
+    moving()
     print('ok')

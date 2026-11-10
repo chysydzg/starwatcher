@@ -19,6 +19,12 @@ w A pozytywka prowadzi temat nad harfą, w B odpowiada miękkie pianino; bez per
 Earshot: „a music box melody”, „sad and melancholic” (z +3,6), jak wzorzec („solo piano”, „sad and melancholic”);
 jaśniej od wzorca (761 Hz wobec 467 Hz).
 
+Przeprowadzka (`music/moving`, cutscenka końca Etapu 1, wzorzec: moving_out.mp3 od autora, ~145 BPM, E-dur,
+radosne ukulele / funk, pizzicato, marimba, pozytywka): 145 BPM, E-dur, 40 taktów (66 s, A–B–A'–C–A''), pętla.
+Marimba prowadzi temat, gitara nylonowa bije jak ukulele, w B odpowiada pizzicato, w A' dzwonki dublują temat i dochodzą
+klaskania, w C pozytywka nad perkusją w pół-tempie. Akordy 6/9 zamiast maj7 pod tematem (bez tarcia sekund).
+Dźwięki i barwy z tego samego banku co pozostałe pętle, ten sam miks (szyna, taśma, winyl, bębny 12-bit).
+
 ## Jak to powstaje
 - `compose.py` (skill music-production) pisze `song.json` – każda nuta jest w skrypcie.
 - Render na komputerze autora: `music\render.cmd rN` (FluidSynth + bank MS Basic, `C:\Users\tomas\.music-skill`).
