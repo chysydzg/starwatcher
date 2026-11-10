@@ -136,7 +136,7 @@ function sitting(fr, f) {
 const jbb = P.bounds(jania.frames[16]);
 const jb = (f) => P.crop(jania.frames[16 + (f ? 7 : 0)], jbb.x, jbb.y - 1, jbb.w, jbb.h + 1);  // rząd 2 = tył; 7. kolumna = oddech
 // obserwatorium po drugiej stronie jeziora: białe, odnowione, kopuła otwarta, gruby teleskop wystaje przez szczelinę
-function observatory(closed = false) {  // closed: teleskop wyjęty, okna i drzwi zabite deskami
+function observatory(closed = false, empty = false) {  // closed: teleskop wyjęty, okna i drzwi zabite deskami; empty: odnowione, kopuła otwarta i pusta (żuraw wstawia teleskop)
   const b = new P.Buf(80, 64);
   const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
   const steel = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.14, light: [0.3, 0.78] });
@@ -147,7 +147,7 @@ function observatory(closed = false) {  // closed: teleskop wyjęty, okna i drzw
   P.solid(dome, [P.ell(40, 35, 17, 16)], white, { light: [-0.5, -0.7, 0.5] });                               // kopuła: tylko półkula nad dachem
   for (let y = 0; y < 35; y++) for (let x = 0; x < 80; x++) { const u = dome.get(x, y); if (u >>> 24) b.px[y * 80 + x] = u; }
   for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
-  if (!closed) {
+  if (!closed && !empty) {
     P.solid(b, [P.cap(40, 31, 55, 11, 2.4, 5.2)], steel, { light: [-0.5, -0.7, 0.5] });                      // teleskop: stożek rozszerza się ku obiektywowi
     P.solid(b, [P.cap(55, 11, 56.5, 9, 5.4, 5.4)], white, { light: [-0.5, -0.7, 0.5] });                     // pierścień obiektywu
   }
@@ -263,6 +263,7 @@ const T = (janiaAt(0.95), require("./jania.js"));
 P.save(strip([0, 1, 2, 3, 4].map((f) => T.frame(1, f, { carry: true }))), out + "/cut_teen_walk.png");
 P.save(observatory(), out + "/cut_observatory.png");
 P.save(observatory(true), out + "/cut_observatory_closed.png");
+P.save(observatory(false, true), out + "/cut_observatory_empty.png");
 P.save(crane(), out + "/cut_crane.png");
 P.save(truck(), out + "/cut_truck.png");
 P.save(P.pack([0, 1, 2, 3].map(wheel), { cols: 4, pad: 0 }), out + "/cut_wheel.png");

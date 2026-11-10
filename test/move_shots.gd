@@ -18,7 +18,7 @@ func _ready() -> void:
 	Game.new_game()
 	var m: Node = load("res://game/moving.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(m)
-	for k in 40:
+	for k in 50:
 		await get_tree().create_timer(1.0).timeout
 		if m.ended:  # karta końca: spacja wcisnęłaby DO MENU i zmiana sceny usunęłaby ten test
 			get_viewport().get_texture().get_image().save_png("res://debug_shots/mv_end.png")

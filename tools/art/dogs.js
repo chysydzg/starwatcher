@@ -1,6 +1,6 @@
 // Psy z U-Howl do scenki przeprowadzki: Lili (york, mała jak Jania) i Myszka (duża, czarna z podpalaniem).
 // Klatka 44x64 (stopy na dole), pomarańczowe ogrodniczki i czapeczki firmy, ogon wystaje ze spodni i macha.
-// Arkusz 10x2: rząd 0 przód [machanie 0-3, chód 1-2, niesie, niesie-chód 1-2, -],
+// Arkusz 10x3 (rząd 2: tyłem – machanie 0-3, chód 1-2): rząd 0 przód [machanie 0-3, chód 1-2, niesie, niesie-chód 1-2, -],
 //              rząd 1 bok w prawo [machanie 0-3, chód 1-4, niesie-chód 1-2]. Gra odtwarza machanie 0,1,2,3,2,1.
 const P = require(process.env.CODIXEL);
 const { ink } = require("./kit.js");
@@ -33,7 +33,24 @@ function frame(d, dir, walk, carry, wag) {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) b.pset(x0 + x, y0 + y, y < 2 ? BOX[2] : x === Math.floor(w / 2) || x === Math.floor(w / 2) - 1 ? [200, 170, 110] : BOX[1]);
   };
   const tailR = d.tail === "long" ? 1.5 : 1.7, tailL = d.tail === "long" ? 9 : 6;
-  if (dir === 0) {
+  if (dir === 2) { // tyłem: plecy w ogrodniczkach (szelki), tył głowy i czapeczki, ogon na środku wystaje ze spodni
+    const walking = walk >= 0, bob = walking ? -1 : 0, st = walk === 0 ? 1 : walk === 1 ? -1 : 0;
+    S([E(11, 45 - Math.max(st, 0), 3.6, 2), E(21, 45 - Math.max(-st, 0), 3.6, 2)], d.muz, { dark: 0.85 });
+    S([C(12, 39, 12, 43, 3.2), C(20, 39, 20, 43, 3.2), E(16, 35 + bob, 7.4, 6.4)], UH);
+    S([C(8, 30 + bob, 7, 37 - st, 2.1, 1.9), C(24, 30 + bob, 25, 37 + st, 2.1, 1.9)], d.body);
+    S([E(7, 38 - st + bob, 2, 1.7), E(25, 38 + st + bob, 2, 1.7)], d.muz, { dark: 0.85 });
+    fill(CX, Y(28.4 + bob), 6 * K, 3.4 * K, d.body[1]);
+    const by = Math.round(Y(30 + bob)), sx = px(3);
+    for (let y = Math.round(Y(26.5 + bob)); y < by + px(2); y++) { b.pset(L - sx, y, UH[2]); b.pset(Rr + sx, y, UH[2]); } // szelki
+    const tl = d.tail === "long" ? 8 : 5.5;  // ogon: z dziury w spodniach, w górę, macha na boki
+    S([C(16, 36 + bob, 16 + wag * (d.tail === "long" ? 5 : 3), 36 + bob - tl, tailR, tailR * 0.8)], d.tail === "long" ? d.body : d.head);
+    if (d.ears === "up") S([C(10.5, 17 + bob, 6.8, 8 + bob, 3.0, 0.8), C(21.5, 17 + bob, 25.2, 8 + bob, 3.0, 0.8)], d.head, { dark: 0.9 });
+    S([E(16, 21 + bob, 9, 7.4), E(10, 24 + bob, 3.6, 3), E(22, 24 + bob, 3.6, 3)], d.head, { ambient: 0.4, dark: 0.92 });
+    if (d.ears === "lop") S([C(9.5, 16 + bob, 6.5, 20 + bob, 2.4, 1.8), C(22.5, 16 + bob, 25.5, 20 + bob, 2.4, 1.8)], d.head, { dark: 0.85 });
+    const cy = Math.round(Y(14.4 + bob)), cw = px(6), ch = px(3);
+    for (let dd = 0; dd < cw; dd++) { const top = cy - ch + (dd >= cw - 2 ? 1 : 0) + (dd === cw - 1 ? 1 : 0); for (let y = top; y <= cy + 1; y++) sym(dd, y, y === top ? UH[3] : UH[2]); }
+    sym(0, cy + 1, CREAM); sym(1, cy + 1, CREAM);  // pasek regulacji z tyłu czapki
+  } else if (dir === 0) {
     const walking = walk >= 0, bob = walking ? -1 : 0, st = walk === 0 ? 1 : walk === 1 ? -1 : 0;
     // ogon za ciałem: wychodzi ze spodni nad biodrem i wychyla się na boki
     const tx = 16 + wag * 12.8, ty = 37 - tailL * 0.6 * (1 - 0.3 * Math.abs(wag));  // koniec ogona za łapką, nie za ręką
@@ -115,7 +132,10 @@ for (const [name, d] of Object.entries(DOGS)) {
     frame(d, 0, -1, true, 0.8), frame(d, 0, 0, true, -0.8), frame(d, 0, 1, true, 0.8), new P.Buf(FW, FH)];
   const side = [...WAG.map((w) => frame(d, 1, -1, false, w)), ...[0, 1, 2, 3].map((k) => frame(d, 1, k, false, k % 2 ? 0.4 : -0.4)),
     frame(d, 1, 1, true, 0.4), frame(d, 1, 3, true, -0.4)];
-  P.save(P.pack([...front, ...side], { cols: COLS, pad: 0 }), `${out}/cut_${name}.png`);
+  const back = [...WAG.map((w) => frame(d, 2, -1, false, w)), frame(d, 2, 0, false, -0.5), frame(d, 2, 1, false, 0.5)];
+  while (back.length < COLS) back.push(new P.Buf(FW, FH));
+  P.save(P.pack([...front, ...side, ...back], { cols: COLS, pad: 0 }), `${out}/cut_${name}.png`);
+  sheets.push(...back.slice(0, 6).map((b) => ({ buf: b, scale: 3 })), ...[0, 1, 2].map(() => ({ buf: new P.Buf(4, 4), scale: 1 })));
   sheets.push(...front.slice(0, 9).map((b) => ({ buf: b, scale: 3 })), ...side.slice(0, 9).map((b) => ({ buf: b, scale: 3 })));
 }
 P.save(P.sheet(sheets, { cols: 9 }), __dirname + "/_dogs_sprites.png");

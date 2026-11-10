@@ -17,7 +17,7 @@ const DARK = [40, 36, 46];
   for (const [x, y] of [[32, 7], [33, 6], [40, 7], [39, 6]]) s.pset(x, y, [120, 80, 50]);
   s.rect(33, 6, 40, 8, UH[2]); s.rect(38, 8, 42, 9, UH[1]);  // czapeczka z daszkiem
   s.pset(34, 11, DARK); s.pset(37, 11, DARK); s.rect(35, 13, 37, 14, DARK);
-  s.rect(1, 27, 63, 30, [70, 70, 82]);                       // podwozie
+  s.rect(0, 25, 3, 27, [96, 98, 108]); s.rect(0, 25, 1, 26, [140, 142, 150]);  // rura wydechowa z tyłu (spaliny rysuje gra)
   slab(s, 45, 9, 62, 27, UH, 0.95, 0.55);                    // kabina
   s.rect(46, 9, 58, 10, UH[3]);
   s.rect(51, 12, 60, 18, [150, 196, 230]); s.rect(51, 12, 60, 13, [200, 228, 246]); // szyba
@@ -47,5 +47,10 @@ const DARK = [40, 36, 46];
   s.rect(0, 0, w, 11, [30, 24, 44]); s.rect(1, 1, w - 1, 10, [44, 34, 62]);
   P.text(s, 3, 3, t, [255, 120, 200]);
   P.save(ink(s), out + "/cut_neon.png");
+}
+{ // ---- „HA HA” nad głową Jani w scenie (jasne litery z ciemnym cieniem)
+  const s = new P.Buf(20, 13);
+  for (const [t, x, y] of [["HA", 0, 0], ["HA", 9, 7]]) { P.text(s, x + 1, y + 1, t, [60, 30, 30]); P.text(s, x, y, t, [255, 236, 170]); }
+  P.save(s, out + "/cut_haha.png");
 }
 console.log("cut_uhowl.png luggage.png cut_neon.png");

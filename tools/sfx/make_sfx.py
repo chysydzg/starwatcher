@@ -395,6 +395,45 @@ def truck_drive(r, seconds=7.5):  # wywrotka rusza, zmienia bieg, jedzie w prawo
     return np.stack([m * np.cos(a), m * np.sin(a)], 1)
 
 
+# ------------------------------------------------------------------ przeprowadzka: remont obserwatorium
+def hammer(r, kind='c'):  # młotek wbija gwóźdź: stalowy obuch o stalowy łebek (jasne, krótkie dzwonienie), pod spodem stuk deski
+    from earshot.forge.recipes import knock
+    p = dict(knock.FAMILY['knock'][0])
+    p.update(f1=360.0, body=-6.0, body_f=140.0, body_ms=10.0, room=0.3, rt=0.4)
+    y = np.zeros((dsp.n_of(0.7), 2))
+    dsp.place(y, knock.render(p, dsp.rng(71)) * (0.6 if kind == 'c' else 0.45), 0.0)
+    if kind == 'e':  # sam stuk w deskę (bez dzwonienia stali)
+        return y / max(1e-9, np.abs(y).max())
+    t = dsp.t_of(dsp.n_of(0.5))
+    q = dsp.rng(72)
+    ring = {'c': 0.09, 'd': 0.16, 'f': 0.025}[kind]  # stal o stal: kilka niezharmonizowanych modów, krótko gaśnie
+    lo, hi, amp = (1500, 4000, 0.45) if kind == 'f' else (2200, 7000, 1.0)  # f: głuchy, krótki brzęk gwoździa
+    tink = sum(q.uniform(0.4, 1.0) * np.sin(2 * np.pi * f * t) * np.exp(-t / ring) for f in q.uniform(lo, hi, 10))
+    click = dsp.svf(dsp.noise(0.5, q), 4000, q=0.8, mode='band') * np.exp(-t / 0.003)
+    tink = (tink / max(1e-9, np.abs(tink).max()) * amp + click * 0.6) * 1.1
+    dsp.place(y, np.stack([tink, tink], 1), 0.0)
+    return y
+
+
+def site_work(r, seconds=12.0, kind='b'):  # plac budowy z daleka: klekoczący agregat, piła/wiertarka (szum, nie ton), czasem stuk
+    n = dsp.n_of(seconds)
+    t = dsp.t_of(n)
+    y = diesel(np.full(n, 28.0) * (1 + 0.03 * dsp.wander(seconds, r, rate=0.7, octaves=2)), r, clatter=0.45)
+    y += dsp.svf(dsp.noise(seconds, r, 'pink'), 160, q=0.8, mode='band') * 0.6
+    for t0, dur in [(1.2, 1.6), (5.0, 2.2), (8.6, 1.4)]:                       # piła: szum pasmowy z drganiem zębów
+        k = (t > t0) & (t < t0 + dur)
+        env = np.zeros(n)
+        env[k] = np.sin(np.pi * (t[k] - t0) / dur) ** 0.3
+        saw = dsp.butter(dsp.noise(seconds, r), 'band', (900, 3200)) * (0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 47 * t)))
+        y += saw * env * 0.35
+    if kind == 'c':  # daleki stuk młotków w nieregularnym rytmie
+        for t0 in np.sort(r.uniform(0, seconds - 0.7, 14)):
+            h = hammer(r, 'c')
+            dsp.place(y, h.mean(1) * 0.25, t0)
+    y = dsp.butter(y, 'low', 5000)
+    return seamless(dsp.room(y, r, rt60=0.8, wet=0.2))
+
+
 # ------------------------------------------------------------------ intro: szpital
 def beep(seconds=0.14):  # monitor serca: krótki, czysty pisk ok. 960 Hz z miękkim wejściem
     t = dsp.t_of(dsp.n_of(seconds))
@@ -449,6 +488,8 @@ def main():
     save('beep', beep(), -6)
     save('flatline', flatline(), -6)
     save('rain_parasol', parasol(dsp.rng(7)), -8, loop=True)  # ten sam, który earshot sprawdził (z +3.2)
+    save('hammer', hammer(dsp.rng(1), 'e'), -3)  # earshot: 'a hammer hitting a nail' 61% vs drewniany klocek, z +2,4
+    save('site_work', site_work(dsp.rng(9), kind='c'), -8, loop=True)
 
 
 if __name__ == '__main__':
