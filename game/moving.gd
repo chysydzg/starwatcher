@@ -4,11 +4,11 @@ extends "res://game/cutscene.gd"
 ## remont w szybkich ujęciach (co ujęcie inna pora dnia, raz deszcz), żuraw wstawia teleskop, finał nocą z szyldem.
 ## Korzysta z narzędzi intro (cutscene.gd): sceny w `sc`, efekty w `fx`, dialogi, pomijanie przytrzymaniem.
 
-const TRUCK_Y := 176.0                 # ten sam brzeg co wywrotka z intro (dół kół na linii jeziora)
+const TRUCK_Y := 183.0                 # dół kół na linii brzegu (jak wywrotka z intro); ciężarówka 48x27 w skali budynku
 const VIEW_CAM := Vector2(190, 168)    # zoom 2: cały budynek z odbiciem w wodzie, żuraw mieści się w kadrze
 const REPAIR_AT := Vector2(147, 162)   # cut_repair_k (repair.js) leży dokładnie na szarym budynku z balcony_view
 const OBS_AT := Vector2(146, 143)      # obserwatorium z intro (cutscene.js): odnowione, szeroka szczelina kopuły
-const TRUCK_PARK := 226.0              # U-Howl stoi przy budynku od przyjazdu do ostatniego dialogu
+const TRUCK_PARK := 232.0              # U-Howl stoi przy budynku od przyjazdu do ostatniego dialogu
 const TITLE := "OBSERWATORIUM"
 ## pora dnia: niebo (góra, dół), mnożnik koloru widoku, kolor odbicia w wodzie, słońce (x, y; 0 = brak)
 const TOD := {
@@ -189,7 +189,7 @@ func _site() -> void:
 	truck_x = 120.0
 	tick = func():
 		truck_moving = st < 2.4
-		truck_x = 120.0 + 106.0 * smoothstep(0.0, 2.4, st)  # dojeżdża i staje przy budynku
+		truck_x = 120.0 + 112.0 * smoothstep(0.0, 2.4, st)  # dojeżdża i staje przy budynku
 	fx_draw = _draw_truck
 	await _show()
 	await get_tree().create_timer(2.6).timeout
@@ -353,14 +353,14 @@ func _scenery(parent: Node, tod: String, building := "", at := Vector2.ZERO) -> 
 func _draw_truck() -> void:
 	var pos := Vector2(floorf(truck_x), TRUCK_Y + (1.0 if truck_moving and fmod(st, 0.2) < 0.1 else 0.0))
 	if engine:
-		_draw_exhaust_puffs(pos + Vector2(0, 26), 0.12 if truck_moving else 0.3)
+		_draw_exhaust_puffs(pos + Vector2(0, 18), 0.12 if truck_moving else 0.3)
 	fx.draw_texture(Game.tex("cut_uhowl"), pos, tint)
-	var wf := int(truck_x / 2.43) % 4 if truck_moving else 0
+	var wf := int(truck_x / 1.57) % 4 if truck_moving else 0  # koło r 4 px: klatka co 22,5° obrotu
 	mirror_extra = [[Game.tex("cut_uhowl"), Rect2(), pos, tint]]
-	for wx in [7, 41]:
-		var src := Rect2(wf * 15, 0, 15, 15)
-		fx.draw_texture_rect_region(Game.tex("cut_wheel"), Rect2(pos + Vector2(wx, 18), Vector2(15, 15)), src, tint)
-		mirror_extra.append([Game.tex("cut_wheel"), src, pos + Vector2(wx, 18), tint])
+	for wx in [3, 32]:
+		var src := Rect2(wf * 11, 0, 11, 11)
+		fx.draw_texture_rect_region(Game.tex("cut_wheel_s"), Rect2(pos + Vector2(wx, 15), Vector2(11, 11)), src, tint)
+		mirror_extra.append([Game.tex("cut_wheel_s"), src, pos + Vector2(wx, 15), tint])
 
 
 ## spaliny z małej rury z tyłu: pikselowe kłęby (bez półprzezroczystości) zostają w powietrzu tam, gdzie wyleciały,

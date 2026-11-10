@@ -249,6 +249,31 @@ function myszka(blink = false) {  // czarna z podpalaniem: opadające czarne usz
   hat(c, 40, 15);
   return c.render();
 }
+function arbjooze(blink = false) {  // Arbjooze: szarobury pręgowany, biała łata od czoła po pyszczek, zielone oczy, różowy nosek, kitel
+  const c = new Canvas();
+  const tab = ramp(3, { hue: 34, shift: 18, sat: 0.16, light: [0.26, 0.5] });
+  const wht = ramp(2, { hue: 40, shift: 10, sat: 0.1, light: [0.84, 0.96] });
+  const coat = ramp(3, { hue: 214, shift: 14, sat: 0.1, light: [0.72, 0.96] });
+  const stripe = [56, 46, 42], green = [132, 200, 64], earIn = ramp(2, { hue: 350, shift: 10, sat: 0.4, light: [0.66, 0.78] });
+  c.add("body", sup(CX, 101, 27, 25, 2.2), coat, { group: "body" });
+  c.add("chest", tri(CX - 9, 75, CX + 9, 75, CX, 92), wht, { group: "body", flat: true });       // dekolt kitla: biała pierś
+  for (let y = 76; y < 92; y++) { const d = Math.round((y - 75) * 9 / 17); c.set(CX - 10 + d, y, coat[0]); c.set(mir(CX - 10 + d), y, coat[0]); }  // klapy
+  c.add("ears", tri(32, 44, 20, 46, 22, 24), tab, { group: "ears", mirror: true });
+  c.add("earsi", tri(30, 43, 23, 44, 24, 30), earIn, { group: "ears", flat: true, mirror: true });
+  c.add("head", or(sup(CX, 57, 21, 17, 2.3), ell(30, 66, 10, 8), ell(58, 66, 10, 8)), tab, { group: "head" });
+  c.add("blaze", (x, y) => { const u = (y - 44) / 30; return u >= 0 && u <= 1 && Math.abs(x - CX) <= (u < 0.45 ? 1 + u * 6 : 3.7 + (u - 0.45) * 22); }, wht, { group: "head", flat: true });
+  for (const [x, y] of [[33, 44], [33, 45], [33, 46], [36, 43], [36, 44], [36, 45], [24, 60], [25, 60], [26, 60], [24, 64], [25, 64], [26, 64]]) { c.set(x, y, stripe); c.set(mir(x), y, stripe); }  // pręgi: czoło, policzki
+  for (const ex of [30, 51]) {
+    if (blink) { for (let x = 0; x < 7; x++) c.set(ex + x, 57, stripe); continue; }
+    for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) if (!((x === 0 || x === 6) && (y === 0 || y === 6))) c.set(ex + x, 53 + y, y > 4 ? [96, 150, 50] : green);
+    for (let y = 54; y < 59; y++) c.set(ex + 3, y, [26, 20, 22]);                               // pionowa źrenica
+    c.set(ex + 1, 54, [255, 252, 244]); c.set(ex + 1, 55, [255, 252, 244]);
+  }
+  for (let y = 63; y < 66; y++) for (let x = 41; x < 47; x++) if (!(y === 65 && (x === 41 || x === 46)) && !(y === 64 && (x === 41 || x === 46) && false)) c.set(x, y, y === 65 && (x < 42 || x > 45) ? wht[1] : [236, 150, 164]);  // różowy nosek
+  for (const [x, y] of [[43, 66], [44, 66], [43, 67], [44, 67], [42, 68], [41, 68], [45, 68], [46, 68]]) c.set(x, y, [120, 96, 96]);  // pyszczek
+  for (const [x, y] of [[20, 64], [21, 64], [22, 65], [19, 68], [20, 68], [21, 68]]) { c.set(x, y, [236, 232, 220]); c.set(mir(x), y, [236, 232, 220]); }  // wąsy
+  return c.render();
+}
 // arkusz 2 klatek: otwarte oczy, mrugnięcie (oddech robi okienko dialogu przesunięciem o 1 px)
 const M = maciej(), J = jania(), A = jania(false, false, true);
 P.save(P.pack([J, jania(true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania.png");
@@ -265,6 +290,8 @@ const haha = (b) => {  // „HA HA” nad głową (ciemny cień pod jasnymi lite
 P.save(P.pack([haha(jania(false, false, false, true)), haha(jania(false, false, false, true))], { cols: 2, pad: 0 }), OUT + "/portrait_jania_laugh.png");
 P.save(P.pack([lili(), lili(true)], { cols: 2, pad: 0 }), OUT + "/portrait_lili.png");
 P.save(P.pack([myszka(), myszka(true)], { cols: 2, pad: 0 }), OUT + "/portrait_myszka.png");
+P.save(P.pack([arbjooze(), arbjooze(true)], { cols: 2, pad: 0 }), OUT + "/portrait_arbjooze.png");
+P.save(P.sheet([{ buf: arbjooze(), scale: 4, label: "ARBJOOZE" }, { buf: arbjooze(true), scale: 4 }]), __dirname + "/_arbjooze.png");
 P.save(P.sheet([{ buf: lili(), scale: 4, label: "LILI" }, { buf: myszka(), scale: 4, label: "MYSZKA" }, { buf: J, scale: 4, label: "JANIA" }, { buf: haha(jania(false, false, false, true)), scale: 4, label: "SMIECH" }]), __dirname + "/_dogs.png");
 P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");
 console.log("edge J", JSON.stringify(P.edgeCheck(J)).slice(0, 120), "M", JSON.stringify(P.edgeCheck(M)).slice(0, 120));

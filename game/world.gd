@@ -17,6 +17,21 @@ const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96,
 	"szafa": Rect2(568, 104, 62, 24), "plakat": Rect2(248, 104, 32, 18), "model": Rect2(132, 104, 34, 18),
 	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24),
 	"bagaze": Rect2(500, 296, 62, 38)}
+## Etap 2 (base.js): ta sama bryła co pokój (biurko, łóżko, drzwi, szafa i karton w tych samych miejscach),
+## nowe: duży teleskop na platformie, biurko Arbjooze, podium ze starym teleskopem z balkonu
+const BASE_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "drzwi": Rect2(518, 104, 46, 18), "pokoik": Rect2(24, 104, 40, 18),
+	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "teleskop": Rect2(440, 226, 60, 40),
+	"arbjooze": Rect2(134, 266, 68, 38), "podium": Rect2(296, 312, 52, 28), "spektrograf": Rect2(242, 104, 58, 26),
+	"serwery": Rect2(440, 104, 62, 24), "tablica": Rect2(80, 104, 60, 14)}
+## pokoik Jani w Etapie 2 (pokoik.js): łóżko, szafka i szafa w miejscach z pokoju, drzwi do laboratorium
+const POKOIK_SPOTS := {"lozko": Rect2(12, 96, 88, 100), "drzwi": Rect2(518, 104, 46, 18), "szafa": Rect2(568, 104, 62, 24),
+	"lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24)}
+const ROOM_LIGHTS := [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82), "ffc070", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
+	[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(236, 78), "ffd890", 0.9, 1.3], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]
+## laboratorium nocą: chłodne światło nad teleskopem, lampka i monitor na biurku, okno, zielone diody szaf, drzwi
+const LAB_LIGHTS := [[Vector2(470, 170), "e8f0ff", 0.7, 1.8], [Vector2(412, 82), "e8f0ff", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
+	[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(472, 80), "8affb0", 0.5, 1.0], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]
+const CAT_DESK := Vector2(168, 284)  # stopy Arbjooze za jego biurkiem (biurko zasłania nogi)
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -35,7 +50,9 @@ var _step_frame := -1  # klatka chodu, przy której ostatnio był krok
 var owl_t := 20.0  # odległe pohukiwanie sowy nad jeziorem, co jakiś czas nocą
 var glow: Node2D
 var props := {}
-var feet := {"room": [], "balcony": []}
+var feet := {"room": [], "balcony": [], "pokoik": []}
+var pokoik: Node2D        # Etap 2: osobny pokoik Jani (location „pokoik”)
+var pokoik_sort: Node2D
 var hud: Node2D
 var ui: CanvasLayer
 var top: CanvasLayer
@@ -61,6 +78,9 @@ const YAWN := 2.2
 const TIRED := "Późno już, nie mam sił.\nPora spać."
 var toasts := []
 var tip := ""
+var base := false          # Etap 2: wnętrze obserwatorium zamiast pokoju (ten sam układ, inne tło i meble)
+var cat: Sprite2D          # Arbjooze (arbjooze.png: 5x2 klatek 40x58; przód 0-4, bok 5-9)
+var cat_wave := false
 
 
 func _ready() -> void:
@@ -80,6 +100,7 @@ func _ready() -> void:
 	shape.shape.size = Vector2(26, 8)  # szerokość sylwetki Jani
 	body.add_child(shape)
 	body.add_child(jania)
+	base = Game.stage >= 2
 	_build_room()
 	_build_balcony()
 	modulate_node = CanvasModulate.new()
@@ -115,6 +136,8 @@ func _ready() -> void:
 	if first:
 		Game.tips.start = true
 		_tip("Pierwsza noc. Podejdź do teleskopu od strony okularu i naciśnij " + Game.key("interact") + ".")
+	if base and not Game.tips.has("arbjooze"):
+		_arbjooze_arrives()
 
 
 func _layer(n: int) -> CanvasLayer:
@@ -153,14 +176,14 @@ func _scene(where: String, root: Node2D) -> Node2D:
 			continue
 		# kolider = cały obrys obiektu (bez 1 px obrysu): przez mebel nie da się przejść ani wejść w niego
 		var sz := s.texture.get_size()
-		feet[where].append(Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3))
+		feet[where if feet.has(where) else "room"].append(Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3))  # laboratorium Etapu 2 = „room”
 	return sorter
 
 
 ## kolidery: stopki obiektów + ściany wokół obszaru chodzenia (warstwa 1 pokój, 2 balkon)
 func _colliders(where: String, root: Node2D) -> void:
 	var sb := StaticBody2D.new()
-	sb.collision_layer = 2 if where == "balcony" else 1
+	sb.collision_layer = {"balcony": 2, "pokoik": 4}.get(where, 1)
 	sb.collision_mask = 0
 	root.add_child(sb)
 	var a: Rect2 = BALCONY_WALK if where == "balcony" else ROOM_WALK
@@ -177,8 +200,8 @@ func _colliders(where: String, root: Node2D) -> void:
 func _build_room() -> void:
 	room = Node2D.new()
 	add_child(room)
-	room_sort = _scene("room", room)
-	var desk: Sprite2D = props.room_desk
+	room_sort = _scene("base" if base else "room", room)
+	var desk: Sprite2D = props.base_desk if base else props.room_desk
 	_sprite("sticky_note", Vector2(386, 103) - desk.position, desk)  # karteczka: Teleskop → Dysk → Komputer
 	props.lcd = _lcd_patch(desk)
 	props.poster = _sprite("poster_iwtb", Vector2(354, 24), room.get_child(0))  # nad komputerem, widoczny
@@ -195,33 +218,62 @@ func _build_room() -> void:
 	props.parcel.offset = Vector2(0, -24)
 	props.parcel.centered = false
 	room_sort.add_child(props.parcel)
+	if base:
+		cat = Sprite2D.new()
+		cat.texture = Game.tex("arbjooze")
+		cat.hframes = 5
+		cat.vframes = 2
+		cat.centered = false
+		cat.offset = Vector2(-20, -56)
+		cat.position = CAT_DESK
+		cat.visible = Game.tips.has("arbjooze")
+		cat.set_meta("walking", false)
+		room_sort.add_child(cat)
 	_colliders("room", room)
-	for l in [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82), "ffc070", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
-			[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(236, 78), "ffd890", 0.9, 1.3], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]:
-		var g := GradientTexture2D.new()
-		g.fill = GradientTexture2D.FILL_RADIAL
-		g.fill_from = Vector2(0.5, 0.5)
-		g.fill_to = Vector2(0.5, 0.0)
-		g.gradient = Gradient.new()
-		g.gradient.set_color(0, Color.WHITE)
-		g.gradient.set_color(1, Color(1, 1, 1, 0))
-		var p := PointLight2D.new()
-		p.texture = g
-		p.texture_scale = l[3]
-		p.color = Color(l[1])
-		p.set_meta("e", l[2])
-		p.position = l[0]
-		room.add_child(p)
-		lights.append(p)
+	for l in (LAB_LIGHTS if base else ROOM_LIGHTS):
+		lights.append(_light(room, l))
+	pc_light = lights[2]
 	# shortcut: stan lamp nie trafia do zapisu (po wczytaniu włączone), dopisać do save_game, gdy lampy na coś wpłyną
-	lamps = {"lampka": {"light": lights[0], "on": true}, "lampa": {"light": lights[4], "on": true}}  # przed pop_at monitora
-	pc_light = lights.pop_at(2)  # monitor świeci też w dzień i migocze razem z obrazem – sterowany w _process
+	if base:
+		_build_pokoik()
+	else:
+		lamps = {"lampka": {"light": lights[0], "on": true}, "lampa": {"light": lights[4], "on": true}}
+	lights.erase(pc_light)  # monitor świeci też w dzień i migocze razem z obrazem – sterowany w _process
+
+
+func _light(parent: Node, l: Array) -> PointLight2D:
+	var g := GradientTexture2D.new()
+	g.fill = GradientTexture2D.FILL_RADIAL
+	g.fill_from = Vector2(0.5, 0.5)
+	g.fill_to = Vector2(0.5, 0.0)
+	g.gradient = Gradient.new()
+	g.gradient.set_color(0, Color.WHITE)
+	g.gradient.set_color(1, Color(1, 1, 1, 0))
+	var p := PointLight2D.new()
+	p.texture = g
+	p.texture_scale = l[3]
+	p.color = Color(l[1])
+	p.set_meta("e", l[2])
+	p.position = l[0]
+	parent.add_child(p)
+	return p
+
+
+## Etap 2: pokoik Jani za drzwiami laboratorium – łóżko (sen), lampka nocna i lampa stojąca jak w starym pokoju
+func _build_pokoik() -> void:
+	pokoik = Node2D.new()
+	add_child(pokoik)
+	pokoik_sort = _scene("pokoik", pokoik)
+	_colliders("pokoik", pokoik)
+	var own := [ROOM_LIGHTS[0], ROOM_LIGHTS[3], ROOM_LIGHTS[4], ROOM_LIGHTS[5]].map(func(l): return _light(pokoik, l))
+	lights.append_array(own)
+	lamps = {"lampka": {"light": own[0], "on": true}, "lampa": {"light": own[2], "on": true}}
 
 
 ## LCD stoi w miejscu CRT: tło za nim odtwarzam z kolumny obok monitora (ściana + blat biurka)
 func _lcd_patch(desk: Sprite2D) -> Sprite2D:
-	var bg := Game.img("room")
-	var dk := Game.img("room_desk")
+	var bg := Game.img("base" if base else "room")
+	var dk := Game.img("base_desk" if base else "room_desk")
 	var dpos := Vector2i(desk.position + desk.offset)
 	var img := Image.create(32, 33, false, Image.FORMAT_RGBA8)  # do wiersza 99: wiersz 100 to górny obrys klawiatury
 	for y in 33:
@@ -257,7 +309,7 @@ func _refresh() -> void:
 	props.poster.visible = Game.has("plakat")
 	props.radio.visible = Game.has("radio")
 	props.parcel.visible = not Game.parcels.is_empty() and not Game.arriving
-	props.luggage.visible = Game.stage_ready() and not Game.stage_done
+	props.luggage.visible = Game.stage == 1 and Game.stage_ready() and not Game.stage_done
 	if props.luggage.visible and not Game.tips.has("luggage"):
 		Game.tips.luggage = true
 		_toast("Walizki spakowane. Czas na przeprowadzkę!", "good")
@@ -290,7 +342,7 @@ func _exit_tree() -> void:
 
 # ---------------------------------------------------------------- fazy i miejsca
 func _apply_phase(instant := false) -> void:
-	var col := NIGHT_TINT if Game.night and Game.location == "room" else Color.WHITE
+	var col := NIGHT_TINT if Game.night and Game.location != "balcony" else Color.WHITE
 	for l in lights:
 		var e: float = l.get_meta("e") if Game.night else 0.0
 		for k in lamps:
@@ -312,7 +364,12 @@ func _toggle_phase() -> void:
 	if Game.night or busy or viewport:
 		return
 	busy = true
-	_sky_anim(false, func(): _start_night(); _go("balcony"))
+	_sky_anim(false, func():
+		_start_night()
+		if base:
+			_enter("room", true)  # noc w obserwatorium: zostaje w środku, muzyka nocna
+		else:
+			_go("balcony"))
 
 
 ## okienko z pytaniem Tak/Nie (kursor widać, bo busy)
@@ -460,24 +517,27 @@ func _enter(where: String, instant := false) -> void:
 	Game.location = where
 	room.visible = where == "room"
 	balcony.visible = where == "balcony"
+	if pokoik:
+		pokoik.visible = where == "pokoik"
 	if body.get_parent():
 		body.get_parent().remove_child(body)
-	(balcony_sort if where == "balcony" else room_sort).add_child(body)
-	body.collision_mask = 2 if where == "balcony" else 1  # kolizje tylko z aktualną sceną
+	{"balcony": balcony_sort, "pokoik": pokoik_sort}.get(where, room_sort).add_child(body)
+	body.collision_mask = {"balcony": 2, "pokoik": 4}.get(where, 1)  # kolizje tylko z aktualną sceną
 	if where == "balcony":
 		body.position = Vector2(64, 340)
 		face = 1
 		flip = false
 	elif not instant:
-		body.position = Vector2(541, 136)
+		body.position = Vector2(44, 136) if base and where == "room" else Vector2(541, 136)  # z pokoiku: przy jego drzwiach
 		face = 0
 	elif body.position == Vector2.ZERO:
 		body.position = Vector2(300, 220)
 	_apply_phase(true)
 	if where == "room" and Game.tips.has("tut_tel"):  # po pierwszej nocy przy teleskopie: jak sprzedawać i się rozwijać
 		Game.tutorial_once(self, "pc")
-	Game.loop("music/day", MUSIC_DB if where == "room" else -INF, "Music")  # pokój: dzień, balkon: noc
-	Game.loop("music/night", MUSIC_DB if where == "balcony" else -INF, "Music")
+	var night_music := where == "balcony" or (base and Game.night)  # Etap 2: noc spędza się w kopule
+	Game.loop("music/day", MUSIC_DB if not night_music else -INF, "Music")  # pokój: dzień, balkon: noc
+	Game.loop("music/night", MUSIC_DB if night_music else -INF, "Music")
 
 
 func _go(where: String) -> void:
@@ -533,6 +593,9 @@ func _process(dt: float) -> void:
 	if viewport == null and not busy:
 		_move()
 	_animate(dt)
+	if cat and not cat.get_meta("walking"):  # Arbjooze stoi przodem i czasem mruga; macha chwytakiem na powitanie
+		cat.flip_h = false
+		cat.frame = 4 if cat_wave else (1 if fmod(t + 1.3, 4.2) < 0.15 else 0)
 	glow.queue_redraw()
 	pc_light.energy = (1.1 if Game.night else 0.45) * (0.86 + 0.08 * sin(t * 2.1) + 0.04 * sin(t * 13.0) + (0.12 if fmod(t, 7.0) < 2.5 else 0.0))
 	hud.queue_redraw()
@@ -595,7 +658,7 @@ func _animate(dt: float) -> void:
 
 
 func _spots() -> Dictionary:
-	return BALCONY_SPOTS if Game.location == "balcony" else ROOM_SPOTS
+	return {"balcony": BALCONY_SPOTS, "pokoik": POKOIK_SPOTS}.get(Game.location, BASE_SPOTS if base else ROOM_SPOTS)
 
 
 func _nearest() -> String:
@@ -647,13 +710,14 @@ func _cheats() -> void:
 	add.call("+1000 $", func(): Game.money += 1000; Game.changed.emit())
 	add.call("+1000 PW", func(): Game.pw += 1000; Game.changed.emit())
 	add.call("+10000 $ I +10000 PW", func(): Game.money += 10000; Game.pw += 10000; Game.changed.emit())
-	add.call("NASTĘPNY ETAP (SCENKA)", func():  # zawsze: spełnia wymagania i odpala przeprowadzkę
-		Game.science["manifest"] = true
-		Game.shop["certyfikat"] = true
-		Game.discovered["mars"] = true
-		Game.save_game()
-		Game.hush()
-		get_tree().change_scene_to_file("res://game/moving.tscn"))
+	if Game.stage == 1:
+		add.call("NASTĘPNY ETAP (SCENKA)", func():  # zawsze: spełnia wymagania i odpala przeprowadzkę
+			Game.science["manifest"] = true
+			Game.shop["certyfikat"] = true
+			Game.discovered["mars"] = true
+			Game.save_game()
+			Game.hush()
+			get_tree().change_scene_to_file("res://game/moving.tscn"))
 	var c: Button = add.call("ZAMKNIJ", close)
 	c.grab_focus.call_deferred()
 
@@ -681,8 +745,14 @@ func _interact(k: String) -> void:
 				Game.tutorial_once(self, "tel")
 		"komputer":
 			_open(preload("res://game/astroos.gd").new())
+		"pokoik":
+			_go("pokoik")
 		"drzwi":
-			if Game.night:
+			if Game.location == "pokoik":
+				_go("room")
+			elif Game.night and base:
+				_say("Noc. Teleskop w kopule czeka.")
+			elif Game.night:
 				_go("balcony")
 			else:
 				_ask("Czy zmienić porę dnia?", _toggle_phase)
@@ -715,10 +785,81 @@ func _interact(k: String) -> void:
 			_say("Pusty kubek po czekoladzie.")
 		"kwiatek":
 			_say("Rośnie jak na drożdżach.")
+		"arbjooze":
+			_talk([[{"who": "arbjooze", "text": "Szefowo! Mleczko wypite, notatki gotowe. Gwiazdy mogą przychodzić."}],
+				[{"who": "arbjooze", "text": "Ta proteza to chwytak. Mam jeszcze lupę, młoteczek i kubeczek. Na każdą okazję!"}],
+				[{"who": "arbjooze", "text": "W nocy przypilnuję pomocniczego teleskopu. Kocie oczy widzą więcej."}]][randi() % 3])
+		"spektrograf":
+			_say("Spektrograf. Rozszczepi światło gwiazd na tęczę.")
+		"serwery":
+			_say("Szafy z danymi. Mruczą jak Arbjooze.")
+		"tablica":
+			_say("Obliczenia z wczoraj. Chyba się zgadzają.")
+		"podium":
+			_say("Mój stary teleskop z balkonu. Od niego wszystko się zaczęło.")
 		"lampa", "lampka":
 			Game.sfx("switch")
 			lamps[k].on = not lamps[k].on
 			lamps[k].light.energy = _lamp_e(k)  # pstryczek działa od razu, bez przenikania
+
+
+## dialog w świecie: okienko z portretem, Jania stoi
+func _talk(lines: Array) -> void:
+	busy = true
+	var d = preload("res://game/dialogue.gd").new().play(lines)
+	add_child(d)
+	await d.finished
+	busy = false
+
+
+## Arbjooze idzie do `to`: najpierw w pionie (przodem), potem w poziomie (bokiem)
+func _cat_walk(to: Vector2) -> void:
+	cat.set_meta("walking", true)
+	for leg in [Vector2(cat.position.x, to.y), to]:
+		var from := cat.position
+		var dur := from.distance_to(leg) / 60.0
+		if dur <= 0.0:
+			continue
+		var side := absf(leg.x - from.x) > 0.5
+		cat.flip_h = side and leg.x < from.x
+		var tw := create_tween()
+		tw.tween_method(func(u: float):
+			cat.position = from.lerp(leg, u).floor()
+			var k := int(u * dur * 8.0)
+			cat.frame = (6 + k % 4) if side else (2 + k % 2), 0.0, 1.0, dur)
+		await tw.finished
+	cat.set_meta("walking", false)
+
+
+## Etap 2, pierwszy dzień: pukanie, wchodzi Arbjooze w kitlu, wita się chwytakiem i zostaje pierwszym pracownikiem
+func _arbjooze_arrives() -> void:
+	busy = true
+	await get_tree().create_timer(1.6).timeout
+	Game.sfx("knock")
+	await get_tree().create_timer(1.0).timeout
+	cat.position = Vector2(541, 124)
+	cat.visible = true
+	face = 1
+	flip = body.position.x > 541
+	await _cat_walk(Vector2(clampf(body.position.x + (60.0 if body.position.x < 480 else -60.0), 40, 600), maxf(body.position.y, 140)))
+	flip = cat.position.x < body.position.x
+	cat_wave = true
+	Game.sfx("click")
+	var d = preload("res://game/dialogue.gd").new().play([
+		{"who": "arbjooze", "text": "Dzień dobry! Arbjooze, do usług. Słyszałem, że szukacie kogoś do patrzenia w gwiazdy?"},
+		{"who": "jania_laugh", "text": "Kotek w kitlu! I to z chwytakiem!"},
+		{"who": "arbjooze", "text": "Moja proteza. Mam też lupę, młoteczek i kubeczek na mleczko. Na każdą okazję!"},
+		{"who": "jania", "text": "Witaj w zespole, Arbjooze. Twoje biurko już na Ciebie czeka."},
+		{"who": "arbjooze", "text": "Dziękuję, Szefowo! Biorę się do pracy."},
+	])
+	d.line_shown.connect(func(l: Dictionary): cat_wave = false; happy_t = 1.6 if l.who == "jania_laugh" else 0.0)
+	add_child(d)
+	await d.finished
+	await _cat_walk(CAT_DESK)
+	Game.tips.arbjooze = true
+	Game.save_game()
+	busy = false
+	_toast("Nowy pracownik: Arbjooze!", "good")
 
 
 ## koniec nocy: Jania ziewa raz (zwrócona przodem)
@@ -921,7 +1062,7 @@ func _sleep() -> void:
 		_sky_anim(true, func():  # świt: Księżyc zachodzi, wschodzi Słońce
 			body.position = Vector2(56, 210)
 			face = 0
-			_enter("room", true)
+			_enter("pokoik" if base else "room", true)  # budzi się w swoim łóżku
 			tired_told = false
 			yawned = false
 			_toast("Nowy dzień! " + Game.calendar(), "info")
@@ -1018,7 +1159,7 @@ func _px(n: CanvasItem, x: float, y: float, w: float, h: float, c: Color) -> voi
 
 
 func _draw_glow() -> void:
-	if Game.location != "room" or viewport:
+	if Game.location == "balcony" or viewport:
 		return
 	var n := glow
 	var panes := [Rect2(163, 29, 27, 21), Rect2(192, 29, 27, 21), Rect2(163, 52, 27, 21), Rect2(192, 52, 27, 21),
@@ -1047,9 +1188,10 @@ func _draw_glow() -> void:
 				var q := a.lerp(bb, k / 6.0).floor()
 				if panes.any(func(r): return r.has_point(q)):
 					_px(n, q.x, q.y, 1, 1, Color(1, 1, 1, Game.lightning))
-	if Game.has("lcd"):
+	var at_pc := Game.location == "room"  # komputer i lampka na biurku tylko w pokoju / laboratorium
+	if at_pc and Game.has("lcd"):
 		_lcd_screen(n)
-	else:
+	elif at_pc:
 		_pc_screen(n)
 	if Game.rain:  # deszcz spływa po szybach
 		for i in panes.size():
@@ -1059,8 +1201,9 @@ func _draw_glow() -> void:
 				_px(n, r.position.x + 2 + (k * 7 + i * 3) % int(r.size.x - 3), r.position.y + yy, 1, 3, Color(0.85, 0.92, 1.0, 0.6))
 	if Game.night:
 		n.draw_circle(Vector2(208, 37), 4, Color("f8e9b4"))
-		_px(n, 407, 75, 10, 7, Color("ffe6a0"))  # klosz lampki na biurku
-	if lamps.lampka.on:  # klosz lampki nocnej świeci, gdy jest włączona
+		if at_pc:
+			_px(n, 407, 75, 10, 7, Color("ffe6a0") if not base else Color("e8f0ff"))  # klosz lampki na biurku
+	if lamps.lampka.on and (Game.location == "pokoik" or not base):  # klosz lampki nocnej świeci, gdy jest włączona
 		_px(n, 107, 83, 14, 8, Color("ffe6a0"))
 
 

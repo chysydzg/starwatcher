@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bsf41fa78g6yv"
-path="res://.godot/imported/cut_repair_4.png-24511935c135569ec96c4abb06675e70.ctex"
+uid="uid://dpngpq7swkjrt"
+path="res://.godot/imported/logo_crest.png-d5f321b5664ea4e203fd28c0ad4ceab6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://game/art/cut_repair_4.png"
-dest_files=["res://.godot/imported/cut_repair_4.png-24511935c135569ec96c4abb06675e70.ctex"]
+source_file="res://game/art/logo_crest.png"
+dest_files=["res://.godot/imported/logo_crest.png-d5f321b5664ea4e203fd28c0ad4ceab6.ctex"]
 
 [params]
 

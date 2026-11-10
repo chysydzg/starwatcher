@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kdq7nwq00cjo"
-path="res://.godot/imported/cut_repair_3.png-51dfb439c506c9acca386edd5a165675.ctex"
+uid="uid://b7yrj2uiiua48"
+path="res://.godot/imported/cut_obs_one.png-c070dbce0fe59ec9a16905d0b741c403.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://game/art/cut_repair_3.png"
-dest_files=["res://.godot/imported/cut_repair_3.png-51dfb439c506c9acca386edd5a165675.ctex"]
+source_file="res://game/art/cut_obs_one.png"
+dest_files=["res://.godot/imported/cut_obs_one.png-c070dbce0fe59ec9a16905d0b741c403.ctex"]
 
 [params]
 

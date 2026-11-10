@@ -6,26 +6,38 @@ const UH = P.hueRamp(4, { hue: 20, shift: 22, sat: 0.78, light: [0.36, 0.66] });
 const WH = P.hueRamp(3, { hue: 40, shift: 12, sat: 0.25, light: [0.72, 0.92] });
 const DARK = [40, 36, 46];
 
-{ // ---- ciężarówka 64x34: kontener z napisem U-HOWL i psim logo, kabina z prawej
-  const s = new P.Buf(64, 34);
-  slab(s, 1, 2, 45, 27, WH, 0.95, 0.6);                      // kontener
-  s.rect(1, 2, 45, 3, WH[2]);
-  s.rect(1, 18, 45, 22, UH[2]); s.rect(1, 22, 45, 23, UH[1]);  // pomarańczowy pas
-  P.text(s, 4, 6, "U-HOWL", UH[1]);
-  // logo: psia głowa w czapeczce
-  P.solid(s, [P.ell(36, 11, 4.2, 3.8)], P.hueRamp(3, { hue: 30, shift: 16, sat: 0.5, light: [0.36, 0.6] }));
-  for (const [x, y] of [[32, 7], [33, 6], [40, 7], [39, 6]]) s.pset(x, y, [120, 80, 50]);
-  s.rect(33, 6, 40, 8, UH[2]); s.rect(38, 8, 42, 9, UH[1]);  // czapeczka z daszkiem
-  s.pset(34, 11, DARK); s.pset(37, 11, DARK); s.rect(35, 13, 37, 14, DARK);
-  s.rect(0, 25, 3, 27, [96, 98, 108]); s.rect(0, 25, 1, 26, [140, 142, 150]);  // rura wydechowa z tyłu (spaliny rysuje gra)
-  slab(s, 45, 9, 62, 27, UH, 0.95, 0.55);                    // kabina
-  s.rect(46, 9, 58, 10, UH[3]);
-  s.rect(51, 12, 62, 18, [150, 196, 230]); s.rect(51, 12, 62, 13, [200, 228, 246]); // szyba aż do przodu kabiny (przednia szyba)
-  s.rect(48, 13, 49, 26, UH[0]);                             // drzwi
-  s.rect(52, 20, 55, 21, UH[0]);                             // klamka
-  s.rect(61, 19, 63, 21, [255, 230, 140]);                   // reflektor
-  s.rect(60, 23, 64, 28, [120, 124, 136]);                   // zderzak
+{ // ---- ciężarówka 46x24 (skala: drzwi obserwatorium 14 px = 2 m): kontener z napisem U-HOWL i psim logo, kabina z prawej
+  const s = new P.Buf(46, 24);
+  slab(s, 0, 1, 31, 19, WH, 0.95, 0.6);                      // kontener
+  s.rect(0, 1, 31, 2, WH[2]);
+  s.rect(0, 13, 31, 16, UH[2]); s.rect(0, 16, 31, 17, UH[1]);  // pomarańczowy pas
+  P.text(s, 1, 4, "U-HOWL", UH[1]);
+  P.solid(s, [P.ell(28, 7, 2.6, 2.4)], P.hueRamp(3, { hue: 30, shift: 16, sat: 0.5, light: [0.36, 0.6] }));  // logo: psia głowa
+  s.rect(26, 4, 31, 5, UH[2]); s.pset(27, 7, DARK); s.pset(29, 7, DARK);
+  s.rect(0, 17, 2, 18, [96, 98, 108]);                       // rura wydechowa z tyłu (spaliny rysuje gra)
+  slab(s, 31, 6, 45, 19, UH, 0.95, 0.55);                    // kabina
+  s.rect(31, 6, 41, 7, UH[3]);
+  s.rect(36, 8, 45, 12, [150, 196, 230]); s.rect(36, 8, 45, 9, [200, 228, 246]);  // szyba aż do przodu (przednia szyba)
+  s.rect(33, 9, 34, 18, UH[0]);                              // drzwi
+  s.rect(44, 13, 46, 15, [255, 230, 140]);                   // reflektor
+  s.rect(43, 16, 46, 19, [120, 124, 136]);                   // zderzak
   P.save(ink(s), out + "/cut_uhowl.png");
+}
+{ // ---- małe koło ciężarówki (11x11 z obrysem), 4 klatki obrotu: opona z bieżnikiem, jasna felga
+  const fr = [0, 1, 2, 3].map((f) => {
+    const b = new P.Buf(9, 9), a0 = f * Math.PI / 8;
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) {
+      const d = Math.hypot(x - 4, y - 4);
+      if (d > 4.4) continue;
+      let c = d < 1.8 ? [236, 236, 240] : d < 2.6 ? [150, 154, 166] : [40, 36, 46];
+      const a = Math.atan2(y - 4, x - 4) - a0, m = ((a % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2);
+      if (d >= 3.2 && m < 0.35) c = [84, 82, 92];
+      b.pset(x, y, c);
+    }
+    b.pset(4, 4, [90, 90, 100]);
+    return P.outline(b, [18, 12, 22]);
+  });
+  P.save(P.pack(fr, { cols: 4, pad: 0 }), out + "/cut_wheel_s.png");
 }
 { // ---- bagaże: duża brązowa walizka stojąca, niebieska leżąca na zielonej torbie, karton z taśmą
   const s = new P.Buf(58, 40);
@@ -46,4 +58,4 @@ const DARK = [40, 36, 46];
   for (const [t, x, y] of [["HA", 0, 0], ["HA", 9, 7]]) { P.text(s, x + 1, y + 1, t, [60, 30, 30]); P.text(s, x, y, t, [255, 236, 170]); }
   P.save(s, out + "/cut_haha.png");
 }
-console.log("cut_uhowl.png luggage.png cut_haha.png");
+console.log("cut_uhowl.png cut_wheel_s.png luggage.png cut_haha.png");

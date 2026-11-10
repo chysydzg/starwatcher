@@ -27,7 +27,14 @@ func _ready() -> void:
 	var cam := Camera2D.new()
 	cam.position = Vector2(320, 180)
 	add_child(cam)
-	add_child(preload("res://game/sky_fx.gd").new())  # gwiazdy nad jeziorem
+	var stars := Node2D.new()  # migoczące gwiazdy w tle
+	stars.draw.connect(func():
+		for i in 70:
+			var p := Vector2((i * 97 + 13) % 680 - 20, (i * 53 + 7) % 380 - 10)
+			stars.draw_rect(Rect2(p, Vector2.ONE), Color(1, 0.96, 0.85, 0.3 + 0.5 * absf(sin(Time.get_ticks_msec() / 900.0 + i * 1.7)))))
+	stars.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(stars)
+	get_tree().process_frame.connect(stars.queue_redraw)
 	_ui = CanvasLayer.new()
 	add_child(_ui)
 	var title := Label.new()
