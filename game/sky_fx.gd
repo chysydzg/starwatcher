@@ -10,8 +10,6 @@ var front := false        # warstwa przed rekwizytami: tylko ulewa (przyciemnien
 var meteors := true       # spadające gwiazdy tylko gdy noc ma meteory (zapowiedź eventu)
 var comet := false        # kometa widoczna na niebie, zanim podejdzie się do teleskopu
 var storm := false        # burza (warstwa front): więcej deszczu, błyski piorunów i grzmoty
-var _flash := 0.0
-var _next_flash := 3.0
 var _splash := []
 var shooting := {}
 var _stars := []
@@ -29,14 +27,6 @@ func _ready() -> void:
 
 func _process(dt: float) -> void:
 	t += dt
-	if storm and front and is_visible_in_tree():
-		_flash = maxf(0.0, _flash - dt * 2.5)
-		Game.lightning = _flash  # okular teleskopu błyska razem z niebem
-		_next_flash -= dt
-		if _next_flash <= 0.0:
-			_next_flash = _rng.randf_range(6.0, 12.0)
-			_flash = 1.0
-			get_tree().create_timer(_rng.randf_range(0.4, 1.4)).timeout.connect(Game.sfx.bind("thunder", _rng.randf_range(0.9, 1.1), -4.0))
 	if raining and front:
 		for i in (64 if storm else 28):  # krople na całej szerokości (szeroki ekran)
 			_drops.append(Vector3(_rng.randf_range(-320, 1020), _rng.randf_range(-20, 0), _rng.randf_range(0.7, 1.3)))
@@ -114,8 +104,15 @@ func _draw_rain() -> void:
 	if not raining:
 		return
 	_px(-320, -Game.margin.y, 1280, Game.view.y, Color(0.12, 0.16, 0.3, 0.42 if storm else 0.32))
-	if _flash > 0.0:  # piorun: całe niebo i balkon na moment jasne
-		_px(-320, -Game.margin.y, 1280, Game.view.y, Color(0.85, 0.9, 1.0, 0.5 * _flash * (0.6 + 0.4 * absf(sin(_flash * 37.0)))))
+	var fl := Game.lightning if storm else 0.0  # błyski planuje world._storm()
+	if fl > 0.0:  # piorun: całe niebo i balkon na moment jasne
+		_px(-320, -Game.margin.y, 1280, Game.view.y, Color(0.85, 0.9, 1.0, 0.35 * fl * (0.6 + 0.4 * absf(sin(fl * 37.0)))))
+	if fl > 0.0 and Game.bolt.size() > 1:  # piorun nad błyskiem: z samej góry nieba do drugiego brzegu (nad horyzontem nie ma rekwizytów)
+		for i in Game.bolt.size() - 1:
+			var a := Game.bolt[i].floor() + Vector2(0.5, 0.5)
+			var b := Game.bolt[i + 1].floor() + Vector2(0.5, 0.5)
+			draw_line(a, b, Color(0.7, 0.8, 1.0, 0.45 * fl), 3.0)
+			draw_line(a, b, Color(1, 1, 1, fl), 1.0)
 	for d in _drops:
 		_px(d.x, d.y, 1, 7, Color(0.75, 0.82, 1.0, 0.55 * d.z))
 		_px(d.x + 1, d.y - 2, 1, 3, Color(0.75, 0.82, 1.0, 0.25 * d.z))

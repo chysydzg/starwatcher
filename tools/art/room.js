@@ -105,7 +105,7 @@ obj(T, 16, 74, 80, 116, (s) => {
 });
 });
 shadow(b, 113, 128, 15, 4);
-piece("nightstand", 128, [96, 108, 132, 132], (T) => {
+piece("nightstand", 128, [96, 108, 132, 146], (T) => {  // stopa niżej: Jania nie wkłada uszu w lampkę
 // ---- szafka nocna: korpus, szuflada i lampka jako osobne obiekty z własnym obrysem
 obj(T, 100, 98, 28, 30, (s) => { slab(s, 0, 0, 28, 8, R.woodL, 1, 1); slab(s, 0, 8, 28, 28, R.woodL, 0.33, 0.33); });
 obj(T, 103, 110, 22, 7, (s) => { slab(s, 0, 0, 22, 7, R.woodL, 0.67, 0.67); s.rect(10, 3, 12, 4, R.gold[2]); });
@@ -117,9 +117,9 @@ piece("desk", 134, [334, 104, 428, 138], (T) => {
 // ---- biurko; CRT, blaszak, klawiatura, dyskietki i lampka to osobne obiekty
 obj(T, 338, 92, 86, 42, (s) => {
   slab(s, 0, 0, 86, 20, R.woodL, 1, 1); slab(s, 0, 20, 86, 26, R.woodL, 0.33, 0.33);
-  slab(s, 2, 26, 30, 40, R.woodL, 0.33, 0.33); s.rect(4, 32, 28, 33, R.woodL[1]);
-  s.rect(14, 29, 18, 30, R.gold[2]); s.rect(14, 35, 18, 36, R.gold[2]); slab(s, 80, 26, 84, 40, R.woodL, 0.3, 0.3);
+  slab(s, 2, 26, 30, 40, R.woodL, 0.33, 0.33); slab(s, 80, 26, 84, 40, R.woodL, 0.3, 0.3);
 });
+for (const [y, h] of [[118, 6], [125, 7]]) obj(T, 340, y, 28, h, (s) => { slab(s, 0, 0, 28, h, R.woodL, 0.67, 0.67); s.rect(12, 2, 16, 3, R.gold[2]); }); // szuflady z obrysem, jak w szafce nocnej
 obj(T, 350, 70, 26, 28, (s) => { // CRT 14"
   slab(s, 0, 0, 26, 26, R.beige, 0.67, 0.67); s.rect(1, 0, 25, 1, R.beige[3]);
   slab(s, 3, 3, 23, 20, R.screen, 0.2, 0.15); s.rect(4, 4, 8, 5, R.screen[2]);

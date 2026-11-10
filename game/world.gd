@@ -52,6 +52,8 @@ var rain_front: Node2D    # krople deszczu przed rekwizytami balkonu
 var busy := false
 var tired_told := false
 var ency_acc := 0.0
+var parasol_under := false  # Jania pod parasolem w deszczu: krople bębnią o materiał
+var flash_next := 3.0     # burza w nocy: następny piorun (balkon, okna pokoju i okular błyskają razem)
 var yawn_t := -1.0         # ziewanie (koniec nocy): >= 0 trwa; jania_yawn.png – 3 klatki przodem
 var yawned := false
 const YAWN := 2.2
@@ -439,7 +441,7 @@ func _start_night() -> void:
 	yawned = false
 	_toast("Zapada noc. Niebo rozbłyska gwiazdami.", "info")
 	if Game.rain:
-		_toast("Burza! Ulewa i pioruny – prawie nic nie widać." if Game.storm else "Pada deszcz – chmury zasłaniają część nieba.", "info")
+		_toast("Burza z piorunami. Widoczność mocno utrudniona." if Game.storm else "Pada deszcz. Widoczność utrudniona.", "info")
 	_apply_phase()
 
 
@@ -483,6 +485,12 @@ func _process(dt: float) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pointer else Input.MOUSE_MODE_HIDDEN
 	if viewport or busy:  # przy komputerze, teleskopie i okienkach Jania stoi (inaczej tupanie gra dalej)
 		jania.set_meta("walking", false)
+	_storm(dt)
+	var under: bool = Game.location == "balcony" and Game.rain and Game.has("parasol") and (
+		(viewport != null and viewport.get("is_telescope")) or jania.position.distance_to(props.balcony_parasol.position) < 70.0)
+	if under != parasol_under:
+		parasol_under = under
+		Game.loop("rain_parasol", (-2.0 if Game.storm else -6.0) if under else -INF)
 	if Game.night:
 		Game.night_left = maxf(0.0, Game.night_left - dt)
 		if Game.has("encyklopedia") and Game.night_left > 0.0:  # tylko póki trwa noc, nie do snu
@@ -741,6 +749,10 @@ func _open(v: Control) -> void:
 # ---------------------------------------------------------------- sen i podsumowanie dnia
 func _sleep() -> void:
 	busy = true
+	if Game.has("encyklopedia") and Game.night_left > 0.0:  # spanie przed końcem nocy: Encyklopedia dolicza resztę PW/s
+		Game.add_pw(floorf(ency_acc + 0.5 * mini(Game.discovered.size(), 20) * Game.night_left))
+		ency_acc = 0.0
+		Game.night_left = 0.0
 	var s := Game.sleep()
 	var rows := []  # [opis, kwota, „$”/„PW”, znak] – tylko to, co faktycznie się wydarzyło
 	if s.get("sales_n", 0) > 0:
@@ -933,6 +945,26 @@ func _toast(text: String, kind: String) -> void:
 		toasts.pop_front()
 
 
+## burza nocą: co 6–12 s piorun z samej góry nieba do drugiego brzegu jeziora, grzmot chwilę później
+func _storm(dt: float) -> void:
+	if not (Game.storm and Game.night):
+		Game.lightning = 0.0
+		return
+	Game.lightning = maxf(0.0, Game.lightning - dt * 2.5)
+	flash_next -= dt
+	if flash_next > 0.0:
+		return
+	flash_next = randf_range(6.0, 12.0)
+	Game.lightning = 1.0
+	var p := Vector2(randf_range(120.0, 600.0), -Game.margin.y - 2.0)
+	var b := PackedVector2Array([p])
+	while p.y < 206.0:  # zygzak w dół, z lekkim znoszeniem w bok
+		p += Vector2(randf_range(-9.0, 9.0), randf_range(8.0, 16.0))
+		b.append(p)
+	Game.bolt = b
+	get_tree().create_timer(randf_range(0.4, 1.4)).timeout.connect(Game.sfx.bind("thunder", randf_range(0.9, 1.1), -4.0 if Game.location == "balcony" else -12.0))
+
+
 func _tip(s: String) -> void:
 	tip = s
 	get_tree().create_timer(9.0).timeout.connect(func(): if tip == s: tip = "")
@@ -963,6 +995,16 @@ func _draw_glow() -> void:
 				var cr: Rect2 = Rect2(fposmod(c.x + t * 3.0, 640.0) - 40.0, c.y, c.z, c.w).intersection(r)
 				if cr.has_area():
 					_px(n, cr.position.x, cr.position.y, cr.size.x, cr.size.y, Color("f4f8ff"))
+	if Game.lightning > 0.0:  # burza: szyby jaśnieją, w szybach widać piorun
+		for r in panes:
+			_px(n, r.position.x, r.position.y, r.size.x, r.size.y, Color(0.8, 0.86, 1.0, 0.6 * Game.lightning))
+		for i in Game.bolt.size() - 1:
+			var a := _pane_pt(Game.bolt[i])
+			var bb := _pane_pt(Game.bolt[i + 1])
+			for k in 6:
+				var q := a.lerp(bb, k / 6.0).floor()
+				if panes.any(func(r): return r.has_point(q)):
+					_px(n, q.x, q.y, 1, 1, Color(1, 1, 1, Game.lightning))
 	if Game.has("lcd"):
 		_lcd_screen(n)
 	else:
@@ -978,6 +1020,11 @@ func _draw_glow() -> void:
 		_px(n, 407, 75, 10, 7, Color("ffe6a0"))  # klosz lampki na biurku
 	if lamps.lampka.on:  # klosz lampki nocnej świeci, gdy jest włączona
 		_px(n, 107, 83, 14, 8, Color("ffe6a0"))
+
+
+## punkt pioruna z nieba balkonu w oknie pokoju (lewe okno; ta sama burza, mniejsza skala)
+func _pane_pt(p: Vector2) -> Vector2:
+	return Vector2(163.0 + (p.x - 120.0) / 480.0 * 56.0, 29.0 + (p.y + 20.0) / 226.0 * 44.0)
 
 
 ## miniatura pulpitu AstroOS na monitorze CRT: niebo, wzgórze, płynące chmurki, okienko i kursor

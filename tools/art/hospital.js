@@ -4,7 +4,7 @@
 // po lewej drzwi, kanapa, stolik, szafka z telewizorem, kwiatek. Szyba okna przezroczysta: noc, gwiazdy i deszcz
 // rysuje gra. Meble to osobne obiekty (sortowanie po podstawie, hospital_layout.json), Maciej w łóżku osobno.
 // Uruchom: node hospital.js <katalog wyjściowy>
-const { P, slab, obj, shadow, light, piece, savePieces } = require("./kit.js");
+const { P, INK, slab, obj, shadow, light, piece, savePieces } = require("./kit.js");
 const W = 640, H = 360, WALL = 112;
 const r = (n, o) => P.hueRamp(n, o);
 const C = {
@@ -89,17 +89,19 @@ shadow(b, 78, 272, 30, 5);  // stolik w lewym dolnym rogu, z dala od drogi Jani
 piece("table", 272, [46, 254, 110, 274], (T) => obj(T, 50, 250, 56, 22, (s) => {
   slab(s, 0, 0, 56, 12, C.white, 0.95, 0.8); slab(s, 0, 12, 56, 15, C.white, 0.5, 0.4);
   s.rect(3, 15, 6, 22, C.steel[1]); s.rect(50, 15, 53, 22, C.steel[1]);
-  slab(s, 34, 3, 42, 9, C.sheet, 0.8, 0.5);                       // gazeta
-  P.solid(s, [P.ell(14, 6, 3, 2.4)], C.white); s.rect(13, 3, 16, 5, [150, 200, 230]); // kubek
 }));
+piece("table_items", 273, [0, 0, 0, 0], (T) => {  // rzeczy na stoliku z własnym obrysem (nad blatem)
+  obj(T, 83, 252, 10, 7, (s) => { slab(s, 0, 0, 10, 7, C.sheet, 0.85, 0.5); s.rect(2, 2, 8, 3, C.blue[1]); s.rect(2, 4, 6, 5, C.blue[1]); }); // gazeta
+  obj(T, 60, 252, 7, 6, (s) => { slab(s, 0, 0, 7, 6, C.white, 1, 0.6); s.rect(1, 0, 6, 2, [150, 200, 230]); s.rect(6, 2, 7, 4, C.white[1]); }); // kubek
+});
 shadow(b, 256, 132, 28, 4);
 piece("tv", 132, [228, 114, 284, 134], (T) => {
-  obj(T, 230, 100, 52, 32, (s) => { slab(s, 0, 0, 52, 10, C.white, 0.95, 0.8); slab(s, 0, 10, 52, 30, C.white, 0.5, 0.4); s.rect(4, 17, 48, 18, C.white[1]); s.rect(24, 13, 28, 15, C.steel[2]); s.rect(24, 22, 28, 24, C.steel[2]); });
+  obj(T, 230, 100, 52, 32, (s) => { slab(s, 0, 0, 52, 10, C.white, 0.95, 0.8); slab(s, 0, 10, 52, 30, C.white, 0.5, 0.4); s.rect(0, 10, 52, 11, INK); s.rect(0, 19, 52, 20, INK); s.rect(25, 10, 27, 30, INK); s.rect(10, 13, 16, 15, C.steel[2]); s.rect(36, 13, 42, 15, C.steel[2]); s.rect(10, 23, 16, 25, C.steel[2]); s.rect(36, 23, 42, 25, C.steel[2]); });
   obj(T, 234, 68, 44, 30, (s) => { slab(s, 0, 0, 44, 26, C.dark, 0.5, 0.4); slab(s, 2, 2, 42, 24, C.dark, 0.9, 0.7); for (let i = 0; i < 7; i++) s.pset(6 + i, 12 - i, C.dark[2]); s.rect(19, 26, 25, 30, C.dark[1]); });
 });
 shadow(b, 446, 142, 18, 4);
 piece("nightstand", 142, [426, 120, 466, 144], (T) => {
-  obj(T, 430, 108, 32, 34, (s) => { slab(s, 0, 0, 32, 9, C.white, 1, 0.85); slab(s, 0, 9, 32, 32, C.white, 0.5, 0.42); s.rect(3, 19, 29, 20, C.white[1]); s.rect(14, 14, 18, 16, C.steel[2]); s.rect(14, 24, 18, 26, C.steel[2]); });
+  obj(T, 430, 108, 32, 34, (s) => { slab(s, 0, 0, 32, 9, C.white, 1, 0.85); slab(s, 0, 9, 32, 32, C.white, 0.5, 0.42); s.rect(0, 9, 32, 10, INK); s.rect(0, 20, 32, 21, INK); s.rect(14, 14, 18, 16, C.steel[2]); s.rect(14, 24, 18, 26, C.steel[2]); });
   obj(T, 434, 88, 14, 22, (s) => { s.rect(6, 9, 8, 20, C.steel[1]); s.rect(2, 19, 12, 22, C.steel[1]); slab(s, 0, 0, 14, 10, C.warm, 0.9, 0.55); s.rect(1, 0, 13, 1, C.warm[2]); });
   obj(T, 451, 101, 7, 9, (s) => { slab(s, 0, 0, 7, 9, C.sheet, 0.9, 0.6); s.rect(1, 3, 6, 8, [150, 200, 236]); }); // szklanka wody
 });

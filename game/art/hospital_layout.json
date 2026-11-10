@@ -36,6 +36,18 @@
   ]
  },
  {
+  "name": "hospital_table_items",
+  "x": 59,
+  "y": 251,
+  "base": 273,
+  "foot": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ {
   "name": "hospital_tv",
   "x": 229,
   "y": 67,

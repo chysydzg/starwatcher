@@ -3,11 +3,12 @@ const { P, R, slab, ink } = require("./kit.js");
 const out = process.argv[2] + "/";
 const W = 640, H = 360;
 
-// ---------------------------------------------------------------- tapeta
+// ---------------------------------------------------------------- tapeta (xp: AstroOS XP na nowym komputerze – więcej tonów, gładsze przejścia, słońce)
+const makeWall = (xp) => {
 const wall = new P.Buf(W, H);
-P.sky(wall, { y0: 0, y1: H, cols: [[163, 194, 243], [123, 169, 240], [83, 144, 238], [49, 122, 233]], dither: 0.3 }); // kolory zmierzone z referencji
+P.sky(wall, { y0: 0, y1: H, cols: xp ? [[178, 206, 248], [158, 192, 246], [138, 178, 244], [118, 164, 241], [98, 150, 238], [80, 138, 236], [62, 126, 233], [46, 114, 228]] : [[163, 194, 243], [123, 169, 240], [83, 144, 238], [49, 122, 233]], dither: xp ? 0.5 : 0.3 }); // kolory zmierzone z referencji
 // cumulusy: kępy kulistych „puchów” z płaską, chłodniejszą podstawą (oświetlone z lewej-góry)
-const CL = [[150, 186, 238], [196, 217, 246], [234, 241, 250], [255, 255, 255]];
+const CL = xp ? [[140, 176, 232], [168, 198, 240], [196, 217, 246], [218, 230, 248], [238, 244, 251], [255, 255, 255]] : [[150, 186, 238], [196, 217, 246], [234, 241, 250], [255, 255, 255]];
 const cloud = (cx, base, w, seed) => {
   const r = P.rng(seed), prims = [], s = new P.Buf(W, H);
   for (let i = 0; i < 5 + w / 8; i++) { const x = cx + (r() - 0.5) * w, rr = 8 + r() * w * 0.32 * (1 - 0.7 * Math.abs(x - cx) / w); prims.push(P.ell(x, base - rr * 0.6, rr * 1.2, rr)); }
@@ -27,33 +28,59 @@ for (const [x0, y0, len, sd] of [[230, 40, 120, 1], [40, 74, 80, 2], [400, 60, 9
 for (const [cx, base, w, sd] of [[110, 104, 46, 3], [330, 130, 60, 5], [520, 120, 80, 7], [610, 70, 40, 9], [450, 196, 50, 13], [580, 208, 90, 15], [250, 206, 60, 17], [60, 214, 36, 19]]) cloud(cx, base, w, sd);
 // daleki, niebieskawy grzbiet po prawej (głębia)
 const far = (x) => 238 - 14 * Math.exp(-(((x - 560) / 60) ** 2)) - 8 * Math.exp(-(((x - 470) / 40) ** 2));
-const farC = P.hueRampFrom([[120, 140, 190], [150, 170, 214], [180, 198, 234]], 3);
-for (let x = 0; x < W; x++) for (let y = Math.floor(far(x)); y < H; y++) wall.pset(x, y, farC[P.band(0.7 - (y - far(x)) / 30, 3, x, y, 0.2)]);
+const farC = P.hueRampFrom([[120, 140, 190], [150, 170, 214], [180, 198, 234]], xp ? 5 : 3);
+for (let x = 0; x < W; x++) for (let y = Math.floor(far(x)); y < H; y++) wall.pset(x, y, farC[P.band(0.7 - (y - far(x)) / 30, farC.length, x, y, 0.2)]);
 // główne wzgórze: łagodny łuk, światło z lewej-góry, jasne pasy „przeczesanej” trawy
 const hill = (x) => 268 - 80 * Math.exp(-(((x - 230) / 290) ** 2)) + 0.02 * x;
-const G = P.hueRamp(5, { hue: 84, shift: 26, sat: 0.66, light: [0.2, 0.52] });
+const NG = xp ? 8 : 5, G = P.hueRamp(NG, { hue: 84, shift: 26, sat: xp ? 0.72 : 0.66, light: xp ? [0.18, 0.6] : [0.2, 0.52] });
 for (let x = 0; x < W; x++) {
   const top = Math.floor(hill(x)), slope = hill(x + 1) - hill(x - 1);
   for (let y = top; y < H; y++) {
     const d = (y - top) / (H - top);
     const v = 0.72 - slope * 0.35 - d * 0.4 - Math.max(0, x - 380) / 900 + 0.06 * Math.sin((x * 0.6 + y * 2.2) * 0.02) + (P.fbm(x * 0.012, y * 0.04, 2, 7) - 0.5) * 0.1;
-    wall.pset(x, y, G[P.band(v, 5, x, y, 0.16)]);
+    wall.pset(x, y, G[P.band(v, NG, x, y, 0.16)]);
   }
 }
 // pierwszy plan: ciemniejsza łąka z kępkami i kwiatkami
 const fg = (x) => 318 + 6 * Math.sin(x * 0.017) + 4 * Math.sin(x * 0.041);
-for (let x = 0; x < W; x++) for (let y = Math.floor(fg(x)); y < H; y++) wall.pset(x, y, G[P.band(0.42 - (y - fg(x)) / 90 + (P.fbm(x * 0.05, y * 0.1, 2, 9) - 0.5) * 0.3, 5, x, y, 0.2)]);
-P.grass(wall, { x0: 0, x1: W, count: 900, ground: (x) => fg(x) + 2, hmin: 2, hmax: 6, cols: [G[1], G[2], G[3]].map(P.unpack), seed: 5 });
+for (let x = 0; x < W; x++) for (let y = Math.floor(fg(x)); y < H; y++) wall.pset(x, y, G[P.band(0.42 - (y - fg(x)) / 90 + (P.fbm(x * 0.05, y * 0.1, 2, 9) - 0.5) * 0.3, NG, x, y, 0.2)]);
+P.grass(wall, { x0: 0, x1: W, count: 900, ground: (x) => fg(x) + 2, hmin: 2, hmax: 6, cols: (xp ? [G[2], G[3], G[4], G[5]] : [G[1], G[2], G[3]]).map(P.unpack), seed: 5 });
 const rnd = P.rng(11);
 for (let i = 0; i < 70; i++) {
   const x = Math.floor(rnd() * W), y = Math.floor(fg(x) + 4 + rnd() * (H - fg(x) - 4));
   wall.pset(x, y, rnd() < 0.7 ? [250, 226, 90] : [250, 250, 240]);
 }
-P.save(wall, out + "os_wallpaper.png");
+if (xp) { // słońce z miękką poświatą i pas światła na zboczu (tylko XP: nowa karta grafiki)
+  for (let y = 0; y < 200; y++) for (let x = 250; x < 510; x++) {
+    const d = Math.hypot(x - 380, y - 46);
+    if (d < 120) P.blend(wall, x, y, [255, 250, 222], Math.max(0, 0.55 * (1 - d / 120)) ** 1.6);
+  }
+  for (let y = 30; y < 63; y++) for (let x = 364; x < 397; x++) { const d = Math.hypot(x - 380, y - 46); if (d < 14) wall.pset(x, y, d < 11 ? [255, 252, 236] : [255, 240, 196]); }
+  for (let x = 0; x < W; x++) { const top = Math.floor(hill(x)); for (let y = top; y < top + 3; y++) P.blend(wall, x, y, [230, 250, 170], 0.35 * (1 - (y - top) / 3) * Math.max(0, 1 - Math.abs(x - 200) / 260)); }
+}
+P.save(wall, out + (xp ? "os_wallpaper_xp.png" : "os_wallpaper.png"));
+};
+makeWall(false);
+makeWall(true);
 
 // ---------------------------------------------------------------- ikony (32x32, czarny obrys)
+const xpIcon = (s) => { // AstroOS XP: światło z góry (jaśniej u góry, ciemniej u dołu), połysk, półprzezroczysty cień
+  const g = new P.Buf(s.w, s.h);
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+    const c = s.get(x, y); if (!(c >>> 24)) continue;
+    const u = y / (s.h - 1), f = 1.16 - 0.32 * u;
+    let rgb = P.unpack(c).map((v) => Math.min(255, v * f));
+    if (u < 0.35) rgb = P.mix(rgb, [255, 255, 255], 0.16 * (1 - u / 0.35));
+    g.pset(x, y, rgb);
+  }
+  const o = ink(g), out2 = new P.Buf(o.w + 2, o.h + 2), sh = ((90 << 24) | (10 << 16) | (8 << 8) | 10) >>> 0;
+  for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) if (o.px[y * o.w + x] >>> 24) out2.px[(y + 2) * out2.w + x + 2] = sh;
+  out2.sprite(o, 0, 0);
+  return out2;
+};
 const icon = (name, w, h, draw) => {
   const s = new P.Buf(w, h); draw(s); P.save(ink(s), out + name + ".png");
+  if (name.startsWith("icon_")) P.save(xpIcon(s), out + name + "_xp.png");
   if (name.startsWith("icon_") && name !== "icon_etap") { // ikona karty (mieści się w 22x18): zmniejszony rysunek BEZ obrysu, obrys po zmniejszeniu
     const k = Math.min(14 / w, 14 / h);
     P.save(ink(P.resize(s, Math.round(w * k), Math.round(h * k), { mode: true })), out + name.replace("icon_", "tab_") + ".png");

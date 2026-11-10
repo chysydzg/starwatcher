@@ -407,6 +407,7 @@ func _sc_mobile() -> void:  # pokój: tata na krześle wiesza układ słoneczny,
 		for k in 33:
 			ring.append(c + Vector2(cos(k * TAU / 32) * 26.0, sin(k * TAU / 32) * 6.0))
 		fx.draw_polyline(ring, Color("b0a890"), 1.0)
+		fx.draw_line(c, c + Vector2(0, 7), Color("d8d0c0"), 1.0)  # Słońce wisi na nitce, nie lewituje
 		fx.draw_circle(c + Vector2(0, 12), 6.0, Color("ffd060"))
 
 

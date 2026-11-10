@@ -117,8 +117,7 @@ func _ready() -> void:
 	Game.shop["newton"] = true
 	Game.shop["parasol"] = true
 	w._refresh()
-	w.rain_front._next_flash = 0.0
-	await get_tree().create_timer(0.15).timeout
+	w.flash_next = 0.62  # piorun tuż przed zrzutem (shot czeka 0,7 s)
 	await shot("burza_balkon")
 	w._interact("teleskop")
 	await get_tree().create_timer(1.0).timeout
@@ -132,6 +131,11 @@ func _ready() -> void:
 	await shot("burza_okular_bez_parasola")
 	w.viewport.close()
 	await get_tree().create_timer(0.4).timeout
+	w._enter("room", true)  # burza widziana z pokoju: błysk i piorun w szybach
+	w._apply_phase(true)
+	w._refresh()
+	w.flash_next = 0.62  # piorun tuż przed zrzutem (shot czeka 0,7 s)
+	await shot("burza_pokoj")
 	Game.storm = false
 	Game.shop.erase("newton")
 	Game.shop.erase("czyszczacy")
@@ -142,6 +146,11 @@ func _ready() -> void:
 	w._enter("room", true)
 	w._apply_phase(true)
 	w._refresh()
+	w._interact("komputer")  # AstroOS XP: bogatsza tapeta i ikony
+	await get_tree().create_timer(0.6).timeout
+	await shot("os_xp_pulpit")
+	w.viewport.close()
+	await get_tree().create_timer(0.4).timeout
 	Game.parcels.append("statyw")
 	Game.arriving = true
 	w._parcel_arrives()

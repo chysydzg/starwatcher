@@ -44,6 +44,7 @@ var meteor := {}
 var next_meteor := 0.0
 var clouds := []
 var result := {}
+var qe_idle := 0.0
 var dialog: Control  # okno wyboru (pełny dysk): wtedy widać kursor
 var center_msg := ""
 var center_t := 0.0
@@ -237,7 +238,12 @@ func hit_radius(tg: Dictionary) -> float:
 	if tg.info.has("pts"):
 		for p in star_points(tg):
 			r = maxf(r, p.distance_to(to_screen(tg.pos)) + 12.0)
-	return r * (1.2 if Game.has("kursor1") else 1.0) * (1.35 if Game.has("montaz") else 1.0)
+	return r * snap()
+
+
+## przyciąganie celownika (Precyzyjny Kursor, montaż): przy szukaniu obiektów i przy łączeniu gwiazd
+func snap() -> float:
+	return (1.2 if Game.has("kursor1") else 1.0) * (1.35 if Game.has("montaz") else 1.0)
 
 
 ## 0..1: jak blisko celownik jest najbliższego nieodkrytego obiektu (radar SYGNAŁ i buczenie)
@@ -270,7 +276,7 @@ func quality() -> int:
 	# var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
 	var q := 100.0 - maxf(0.0, absf(focus_offset()) - green()) * 250.0
 	if Game.rain and _clouded(target.pos):
-		q = minf(q, 45)
+		q = minf(q, 75 if Game.has("newton") else 45)  # Newton (większe lustro) widzi przez chmury lepiej
 	return int(clampf(q, 10, 100))
 
 
@@ -288,6 +294,11 @@ func _process(dt: float) -> void:
 	shake = maxf(0.0, shake - dt)
 	ring_a = lerpf(ring_a, f * TAU * 1.5, minf(1.0, dt * 14.0))  # pierścień ostrości nadąża płynnie za kółkiem
 	center_t -= dt
+	if state == S.SCAN and Game.has("szukacz") and not Game.tips.has("qe_used"):  # gracz nie używa Q/E: przypomnienie na środku
+		qe_idle += dt
+		if qe_idle > 6.0 and center_t <= 0.0:
+			_center("Używaj %s, żeby szybko przenosić się do obiektów" % Game.key("prev_next"), 3.5)
+			qe_idle = -8.0
 	var mv := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var mouse := get_global_mouse_position()
 	var moved := mouse.distance_to(_last_mouse) > 2.0 or (Game.pad and mv.length() > 0.2)
@@ -299,6 +310,12 @@ func _process(dt: float) -> void:
 	if Game.pad and mv.length() > 0.2:
 		_mouse_aim = aim + mv * 220.0 * speed_mult() * minf(1.0, steer() / 8.0) * dt
 	aim = aim.lerp(_mouse_aim, 1.0 - exp(-steer() * dt))
+	if state == S.CONNECT and snap() > 1.0:  # łączenie: celownik lekko ciągnie do najbliższej niezaznaczonej gwiazdy
+		var pts := star_points(target)
+		for i in pts.size():
+			if not lit.has(i) and aim.distance_to(pts[i]) < 16.0 * snap():
+				aim = aim.lerp(pts[i], (1.0 - exp(-8.0 * dt)) * (snap() - 1.0))
+				break
 	var off := aim - C
 	if off.length() > R - 6:
 		aim = C + off.limit_length(R - 6)
@@ -452,6 +469,7 @@ func _leave() -> void:
 
 
 func _jump(dir: int) -> void:
+	Game.tips["qe_used"] = true
 	var open := targets.filter(func(tg): return not tg.done)
 	if open.is_empty():
 		return
@@ -519,7 +537,7 @@ func _click_star() -> void:
 	for i in pts.size():
 		if lit.has(i):
 			continue
-		if (aim + wobble()).distance_to(pts[i]) < 11:
+		if (aim + wobble()).distance_to(pts[i]) < 11.0 * snap():
 			lit[i] = true
 			bursts.append({"p": pts[i], "t": 0.0})
 			shake = 0.12
@@ -552,7 +570,7 @@ func _check_all_done() -> void:
 	if _all_told or targets.is_empty() or targets.any(func(tg): return not tg.done):
 		return
 	_all_told = true
-	_center("„Chyba odkryłam już wszystko na dziś.”", 5.0)
+	_center("Chyba odkryłam już wszystko na dziś.", 5.0)
 	all_done.emit()
 
 
@@ -668,13 +686,14 @@ func _draw() -> void:
 		var s := to_screen(tg.pos)
 		if s.distance_to(C) < R + 60:
 			_draw_target(tg, s)
+	var ca := 0.5 if Game.has("newton") else 1.0  # Newton: chmury bardziej przezroczyste
 	for c in clouds:  # kłęby: ciemne, gęste, z jaśniejszym wierzchem; zasłaniają gwiazdy pod spodem
 		var s := to_screen(c[0])
 		for k in 7:
 			var o := Vector2(cos(c[2] + k * 0.9) * c[1] * 0.38, sin(c[2] + k * 1.3) * c[1] * 0.18) * zoom
 			var rad: float = c[1] * (0.42 - k * 0.025) * zoom
-			draw_circle((s + o).floor(), rad, Color(0.2, 0.2, 0.28, 0.75))
-			draw_circle((s + o + Vector2(0, -rad * 0.25)).floor(), rad * 0.7, Color(0.3, 0.3, 0.38, 0.6))  # wierzch podświetlony Księżycem
+			draw_circle((s + o).floor(), rad, Color(0.2, 0.2, 0.28, 0.75 * ca))
+			draw_circle((s + o + Vector2(0, -rad * 0.25)).floor(), rad * 0.7, Color(0.3, 0.3, 0.38, 0.6 * ca))  # wierzch podświetlony Księżycem
 	if not meteor.is_empty():
 		var s := to_screen(meteor.pos)
 		var a: float = 1.0 - meteor.t / Game.METEOR_WINDOW
@@ -804,7 +823,7 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 						draw_line(pts[e[0]], pts[e[1]], Color("ffcf6b"), 1.0)
 				for i in pts.size():
 					var on: bool = lit.has(i)
-					var near := (aim + wobble()).distance_to(pts[i]) < 11
+					var near := (aim + wobble()).distance_to(pts[i]) < 11.0 * snap()
 					_glint(pts[i], Color("ffcf6b") if on else col, 4.5 if near and not on else 3.5, 1.0 if on else (0.7 + 0.3 * sin(t * 4.0 + i)))
 			else:
 				for i in pts.size():

@@ -237,6 +237,18 @@ def rain(r, room, seconds=20.0):
     return seamless(dsp.stereo(y, r, width=0.8))
 
 
+def parasol(r, kind='a', seconds=20.0):  # deszcz na rozpiętym parasolu: gęste stuknięcia o napięty materiał, krople ściekające z brzegu
+    lo, hi = (700, 2000) if kind == 'a' else (400, 1200)
+    y = drops(seconds, r, 140, lo, hi, 0.006, (-34, -10))  # krople o materiał: krótkie, suche, bez dzwonienia
+    for t in np.sort(r.uniform(0, seconds, int(90 * seconds))):  # membrana: miękkie "tup" pod każdą kroplą
+        th = dsp.svf(dsp.noise(0.04, r) * dsp.env_exp(0.04, 0.008, 0.0005), r.uniform(160, 260), q=1.2, mode='band')
+        dsp.place(y, th * 10 ** (r.uniform(-30, -16 if kind == 'b' else -22) / 20), t)
+    y += drops(seconds, r, 3, 500, 1100, 0.03, (-26, -16))  # ciężkie krople spływające z brzegu na deski
+    bed = dsp.butter(dsp.noise(seconds, r, 'pink'), 'band', (500, 4000)) * am(seconds, r, 0.2, 0.25)
+    y += bed / np.abs(bed).max() * 0.12
+    return seamless(dsp.stereo(y, r, width=0.6))
+
+
 def lake(r, seconds=30.0):  # water lapping the shore, wind in the reeds
     swell = dsp.butter(dsp.noise(seconds, r, 'brown'), 'low', 400)
     t = dsp.t_of(dsp.n_of(seconds))
@@ -436,6 +448,7 @@ def main():
     save('truck_drive', truck_drive(r), -4)
     save('beep', beep(), -6)
     save('flatline', flatline(), -6)
+    save('rain_parasol', parasol(dsp.rng(7)), -8, loop=True)  # ten sam, który earshot sprawdził (z +3.2)
 
 
 if __name__ == '__main__':

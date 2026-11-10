@@ -62,7 +62,8 @@ func _ready() -> void:
 	Game.cover(back)
 	add_child(back)
 	var wall := TextureRect.new()
-	wall.texture = Game.tex("os/os_wallpaper")
+	var xp := "_xp" if Game.has("lcd") else ""  # nowy komputer: AstroOS XP z bogatszą tapetą i ikonami
+	wall.texture = Game.tex("os/os_wallpaper" + xp)
 	add_child(wall)
 	var icons := Control.new()
 	add_child(icons)
@@ -72,7 +73,7 @@ func _ready() -> void:
 	for i in list.size():
 		var b := Button.new()
 		b.flat = true
-		b.icon = Game.tex("os/icon_" + list[i][0])
+		b.icon = Game.tex("os/icon_" + list[i][0] + xp)
 		b.text = list[i][1]
 		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER

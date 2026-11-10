@@ -173,10 +173,8 @@ const SHOP := [
 	["poduszka", "Wygodna Poduszka na Balkon", 80, 1, 2, "", "Noc trwa 15 s dłużej."],
 	["termos", "Termos z Gorącą Czekoladą", 180, 2, 2, "", "Noc trwa 20 s dłużej."],
 	["materac", "Ergonomiczny Materac", 250, 2, 2, "", "+50 PW na początku każdej nocy."],
-	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "+10 obiektów na niebie, pole widzenia +30%, cena +50%."],
+	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "+10 obiektów, szersze pole, cena +50%, widzi przez chmury."],
 	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za wykrytym obiektem i trzyma go w kadrze."],
-	["hdd", "Zewnętrzny Dysk HDD 5400 RPM", 300, 3, 1, "lcd", "Dysk mieści 50 odkryć więcej."],
-	["ide", "Dysk HDD w Macierzy IDE", 650, 3, 1, "hdd", "Dysk mieści 100 odkryć więcej."],
 	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Za raport płacą od razu, bez czekania do rana."],
 	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zodiak, mgławice, głębokie niebo, komety, planety: 2x drożej."],
 	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "Jazz: celownik o 10% szybszy, pole ostrości o 10% szersze."],
@@ -209,6 +207,7 @@ var rain_next := false
 var storm := false          # burza: ulewa, pioruny, gęste chmury
 var storm_next := false
 var lightning := 0.0        # jasność błysku pioruna (burza), 0..1
+var bolt := PackedVector2Array()  # kształt ostatniego pioruna (współrzędne nieba balkonu)
 var arriving := false       # kupiona paczka: kurier zapuka, gdy Jania odejdzie od komputera
 var comet := {"left": 0, "gap": 0, "seed": 0}
 var tips := {}
@@ -478,7 +477,7 @@ func night_length() -> float:
 
 func storage_cap() -> int:
 	var c := 5
-	for p in [["dd", 5], ["hd", 10], ["pudelko", 10], ["hdd", 50], ["ide", 100]]:
+	for p in [["dd", 5], ["hd", 10], ["pudelko", 10]]:  # maks. 30 miejsc; większe dyski w Etapie 2
 		if has(p[0]):
 			c += p[1]
 	return c
@@ -752,7 +751,7 @@ func sleep() -> Dictionary:
 			comet = {"left": COMET_NIGHTS, "gap": 0, "seed": randi()}
 	rain_next = randf() < RAIN_CHANCE
 	storm_next = rain_next and randf() < STORM_CHANCE
-	summary.forecast = "burza z piorunami – prawie nic nie widać" if storm_next else ("deszcz – słaba widoczność" if rain_next else "pogodnie")
+	summary.forecast = "burza z piorunami, widoczność mocno utrudniona" if storm_next else ("deszcz, widoczność utrudniona" if rain_next else "pogodnie, dobra widoczność")
 	_roll_demand()
 	_roll_offer()
 	history.append(summary)
