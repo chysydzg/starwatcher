@@ -151,7 +151,7 @@ function maciej(blink = false, cry = false, old = false) {
   return c.render();
 }
 
-function jania(blink = false, cry = false, adult = false) {
+function jania(blink = false, cry = false, adult = false, laugh = false) {
   const c = new Canvas();
   const fur = ramp(3, { hue: 24, shift: 26, sat: 0.72, light: [0.44, 0.66] });
   const cream = ramp(2, { hue: 34, shift: 14, sat: 0.5, light: [0.78, 0.9] });
@@ -167,12 +167,19 @@ function jania(blink = false, cry = false, adult = false) {
   c.add("head", adult ? or(sup(CX, 59, 17, 16, 2.4), ell(34, 67, 7, 6), ell(54, 67, 7, 6)) : or(sup(CX, 59, 19, 15, 2.4), ell(33, 66, 9, 7), ell(55, 66, 9, 7)), fur, { group: "head" });
   c.add("muzzle", or(ell(40, 68, 5.5, 4.4)), cream, { group: "head", flat: true, mirror: true });
   const eh = adult ? 6 : 7;
-  for (const ex of [33, 51]) eye(c, ex, 56, 5, eh, [34, 20, 18], null, blink ? fur[1] : null);
-  if (adult && !blink) for (const [x, y] of [[32, 56], [31, 55]]) { c.set(x, y, [34, 20, 18]); c.set(mir(x), y, [34, 20, 18]); } // rzęsy
+  if (laugh) for (const ex of [33, 51]) for (const [x, y] of [[0, 4], [1, 3], [2, 2], [3, 3], [4, 4], [1, 4], [2, 3], [3, 4]]) c.set(ex + x, 56 + y, [34, 20, 18]); // oczy zmrużone ze śmiechu (^ ^)
+  else for (const ex of [33, 51]) eye(c, ex, 56, 5, eh, [34, 20, 18], null, blink ? fur[1] : null);
+  if (adult && !blink && !laugh) for (const [x, y] of [[32, 56], [31, 55]]) { c.set(x, y, [34, 20, 18]); c.set(mir(x), y, [34, 20, 18]); } // rzęsy
   if (cry) tears(c, [[33, 5], [51, 5]], 56, eh, 7, 53);
   for (const [x, y] of [[29, 64], [30, 64], [31, 64]]) { c.set(x, y, pink[0]); c.set(mir(x), y, pink[0]); } // rumieńce
   for (const [x, y] of [[42, 64], [43, 64], [42, 65], [43, 65]]) { c.set(x, y, pink[0]); c.set(mir(x), y, pink[0]); } // nosek
   for (const [x, y] of [[43, 66], [42, 67], [41, 67]]) { c.set(x, y, fur[0]); c.set(mir(x), y, fur[0]); } // pyszczek
+  if (laugh) {  // szeroki, otwarty uśmiech: ciemne wnętrze, różowy język, siekacze u góry
+    for (const [x0, x1, y] of [[38, 49, 68], [38, 49, 69], [39, 48, 70], [40, 47, 71], [41, 46, 72]]) for (let x = x0; x <= x1; x++) c.set(x, y, [110, 36, 46]);
+    for (let x = 41; x <= 46; x++) c.set(x, 72, [232, 112, 132]);
+    for (let x = 42; x <= 45; x++) c.set(x, 71, [214, 96, 116]);
+    for (const [x, y] of [[37, 67], [50, 67]]) c.set(x, y, fur[0]);  // kąciki ust uniesione
+  }
   for (const x of [41, 42]) for (let y = 68; y < 71; y++) { c.set(x, y, y === 70 ? [222, 214, 202] : [252, 248, 240]); c.set(mir(x), y, y === 70 ? [222, 214, 202] : [252, 248, 240]); } // dwa siekacze
   for (let y = 68; y < 71; y++) { c.set(43, y, [196, 184, 172]); c.set(44, y, [196, 184, 172]); }
   for (const x of [31, 32, 55, 56]) c.set(x, 81, [255, 214, 92]);            // guziki
@@ -251,8 +258,13 @@ P.save(P.pack([maciej(false, false, true), maciej(true, false, true)], { cols: 2
 P.save(P.pack([maciej(false, true, true), maciej(true, true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_maciej_old_cry.png");
 P.save(P.pack([A, jania(true, false, true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania_adult.png");
 P.save(P.pack([jania(false, true, true), jania(true, true, true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania_adult_cry.png");
+const haha = (b) => {  // „HA HA” nad głową (ciemny cień pod jasnymi literami)
+  for (const [t, x, y] of [["HA", 62, 8], ["HA", 68, 16]]) { P.text(b, x + 1, y + 1, t, [60, 30, 30]); P.text(b, x, y, t, [255, 236, 170]); }
+  return b;
+};
+P.save(P.pack([haha(jania(false, false, false, true)), haha(jania(false, false, false, true))], { cols: 2, pad: 0 }), OUT + "/portrait_jania_laugh.png");
 P.save(P.pack([lili(), lili(true)], { cols: 2, pad: 0 }), OUT + "/portrait_lili.png");
 P.save(P.pack([myszka(), myszka(true)], { cols: 2, pad: 0 }), OUT + "/portrait_myszka.png");
-P.save(P.sheet([{ buf: lili(), scale: 4, label: "LILI" }, { buf: myszka(), scale: 4, label: "MYSZKA" }, { buf: J, scale: 4, label: "JANIA" }]), __dirname + "/_dogs.png");
+P.save(P.sheet([{ buf: lili(), scale: 4, label: "LILI" }, { buf: myszka(), scale: 4, label: "MYSZKA" }, { buf: J, scale: 4, label: "JANIA" }, { buf: haha(jania(false, false, false, true)), scale: 4, label: "SMIECH" }]), __dirname + "/_dogs.png");
 P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");
 console.log("edge J", JSON.stringify(P.edgeCheck(J)).slice(0, 120), "M", JSON.stringify(P.edgeCheck(M)).slice(0, 120));

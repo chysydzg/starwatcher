@@ -126,13 +126,12 @@ func _pack() -> void:
 	_walk(lili, Vector2(350, 266), 46.0)
 	await _walk(mysz, Vector2(392, 270), 40.0)
 	await _say_lines([
-		{"who": "lili", "text": "Dzień dobry! U-Howl, przeprowadzki z pazurem!"},
-		{"who": "myszka", "text": "Jestem Myszka, a to Lili. Ona zawsze tak wystawia język."},
-		{"who": "lili", "text": "Bo lubię swoją pracę!"},
-		{"who": "jania", "text": "Jania, miło mi. Wszystko spakowane. Tylko teleskop proszę bardzo ostrożnie."},
-		{"who": "myszka", "text": "Spokojnie. Wieźliśmy już fortepian i jednego wielbłąda."},
-		{"who": "lili", "text": "A dokąd jedziemy?"},
-		{"who": "jania", "text": "Nad jezioro. Do starego budynku z kopułą."},
+		{"who": "myszka", "text": "Jestem Myszka, a to Lili! Nie przejmuj się nią, to nasz rodzinny głupol!"},
+		{"who": "lili", "text": "Sama jesteś głupol!"},
+		{"who": "jania_laugh", "text": "Haha, przesłodkie jesteście! Jestem Jania, wszystko już spakowane. Proszę tylko ostrożnie z teleskopem!"},
+		{"who": "myszka", "text": "Pani będzie spokojna, damy radę! Nie takie rzeczy się woziło!"},
+		{"who": "lili", "text": "I gdzie z tym jedziemy?"},
+		{"who": "jania", "text": "Na drugą stronę jeziora. Do starego obserwatorium."},
 	])
 	for b in so.get_children():  # psy biorą kartony
 		if b is Sprite2D and b.texture == Game.tex("parcel"):
@@ -172,9 +171,9 @@ func _site() -> void:
 	await _show()
 	await get_tree().create_timer(2.6).timeout
 	await _say_lines([
-		{"who": "myszka", "text": "To tutaj? Trochę tu... przewiewnie."},
-		{"who": "jania", "text": "Tata zawsze mówił, że kiedyś będzie tu nasze obserwatorium."},
-		{"who": "lili", "text": "No to do roboty! Deski, szyby, młotki!"},
+		{"who": "myszka", "text": "Na pewno tutaj? Ten budynek się rozpada."},
+		{"who": "jania", "text": "Tak, na pewno. To stare obserwatorium mojego ojca. Chcę je odbudować."},
+		{"who": "lili", "text": "No to do roboty! Chętnie pomożemy!"},
 	])
 
 
@@ -243,9 +242,9 @@ func _finale() -> void:
 	await _show()
 	await get_tree().create_timer(3.4).timeout
 	await _say_lines([
-		{"who": "lili", "text": "Ojej. Świeci się!"},
-		{"who": "myszka", "text": "Powodzenia, Jania. Jakby co, U-Howl przyjedzie znowu."},
-		{"who": "jania", "text": "Dziękuję. Tato... udało się."},
+		{"who": "lili", "text": "I elegancko! Wszystko działa! Wooof!"},
+		{"who": "myszka", "text": "Powodzenia, Jania! Pamiętaj, że na nas możesz liczyć! Auuuuuuuuuu!"},
+		{"who": "jania", "text": "Dziękuję Wam! Tata byłby ze mnie dumny..."},
 	])
 	await get_tree().create_timer(1.0).timeout
 

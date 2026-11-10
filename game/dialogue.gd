@@ -6,7 +6,7 @@ signal finished
 signal line_shown(line: Dictionary)  # przy każdym następnym oknie (pierwsze pokazuje play())
 
 const WHO := {"jania": ["Jania", "portrait_jania"], "jania_adult": ["Jania", "portrait_jania_adult"], "maciej": ["Maciej", "portrait_maciej"], "maciej_old": ["Maciej", "portrait_maciej_old"],
-	"lili": ["Lili", "portrait_lili"], "myszka": ["Myszka", "portrait_myszka"]}
+	"jania_laugh": ["Jania", "portrait_jania_laugh"], "lili": ["Lili", "portrait_lili"], "myszka": ["Myszka", "portrait_myszka"]}
 ## linia z "cry": true bierze portret ze łzami (portrait_<kto>_cry)
 const CPS := 30.0              # liter na sekundę
 const PORT := Rect2(12, 228, 104, 104)
