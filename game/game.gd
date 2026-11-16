@@ -246,14 +246,26 @@ const STAFF_MAX := 5
 const TRAITS := {"skrupulatny": ["Skrupulatny", "+25% PW w Trybie 1, lepsza analiza"], "szybki": ["Szybki", "+30% tempa pracy"],
 	"nocny_marek": ["Nocny Marek", "+50% w Trybie 1, -10% w Trybie 2"], "majsterkowicz": ["Majsterkowicz", "Tryb 3: +10 s nocy więcej"],
 	"bystre_oko": ["Bystre Oko", "Zgłoszenia odkryć +50%"]}
-const NAMES := ["Lisica Ola", "Szop Kazik", "Królik Bartek", "Niedźwiadek Tosia", "Bóbr Feliks", "Wiewiórka Zuzia", "Jeżyk Staś",
-	"Sowa Halinka", "Borsuk Tadek", "Kuna Ewelina", "Wydra Marcel", "Łasiczka Pola"]
+## pracownicy do wylosowania: rodzaj (grafiki worker_<kind>.png i portrait_w_<kind>.png z tools/art/staff.js) -> imiona.
+## Biały królik celowo nie występuje (unikat do późniejszej scenki).
+const STAFF_NAMES := {
+	"pies_shiba": ["Piesek Fafik", "Suczka Mika"], "pies_beagle": ["Piesek Bruno", "Suczka Figa"], "pies_pudel": ["Pudel Hrabia", "Pudelka Lala"],
+	"pies_husky": ["Husky Borys", "Husky Śnieżka"], "pies_mops": ["Mops Klusek", "Mopsica Pyza"], "pies_jamnik": ["Jamnik Parówek", "Jamniczka Frania"],
+	"lis": ["Lisica Ola", "Lisek Rudzik"], "lis_polarny": ["Lis Mrozek", "Lisica Zima"],
+	"kot_rudy": ["Kotek Mruczek", "Kotka Ruda"], "kot_czarny": ["Kotka Sadza", "Kotek Węgielek"], "kot_syjam": ["Kotka Tajka", "Kotek Syjamek"],
+	"borsuk": ["Borsuk Tadek", "Borsuczka Hania"], "lasica": ["Łasiczka Pola", "Łasic Wiktor"], "kuna": ["Kuna Ewelina", "Kunek Leon"],
+	"wydra": ["Wydra Marcel", "Wydra Iga"], "szop": ["Szop Kazik", "Szopka Lusia"],
+	"wombat": ["Wombat Stefan", "Wombatka Bunia"], "kapibara": ["Kapibara Celina", "Kapibar Zenek"], "bobr": ["Bóbr Feliks", "Bobrzyca Tamara"],
+	"wiewiorka": ["Wiewiórka Zuzia", "Wiewiór Orzech"], "jez": ["Jeżyk Staś", "Jeżynka Kolka"], "swinka": ["Świnka Róża", "Prosiak Chrumek"],
+	"lemur": ["Lemur Julian", "Lemurka Kiki"], "mis": ["Niedźwiadek Tosia", "Miś Bartosz"],
+	"krolik": ["Królik Bartek", "Króliczka Fasolka"], "krolik_szary": ["Królik Popiel", "Króliczka Mgiełka"],
+	"krolik_czarny": ["Królik Atrament", "Króliczka Noc"], "krolik_laciaty": ["Królik Łatek", "Króliczka Krówka"],
+	"papuga": ["Papuga Ara"], "golab": ["Gołąb Gruchacz"], "ges": ["Gęś Balbina", "Gąsior Gerwazy"], "kura": ["Kura Kwoka", "Kogut Budzik"],
+	"sowa": ["Sowa Halinka", "Puchacz Hubert"], "zolw": ["Żółw Powolniak", "Żółwica Matylda"], "ropucha": ["Ropucha Rechota", "Ropuch Kumak"]}
 const MODES := ["Rutynowe Obserwacje", "Analiza Raportów", "Utrzymanie Sprzętu"]
 const MODE_INFO := ["Nocą obserwuje niebo pomocniczym teleskopem: ok. 1 PW/s, czasem zgłasza odkrycie [!].",
 	"W dzień analizuje pomiary: rano do 8 odkryć na dysku zyskuje 20-30% jakości (wyższa cena).",
 	"Dba o sprzęt: noc trwa 15 s dłużej, serwisuje satelity Sat-Net (bez opłat za serwis)."]
-const KIND := {"Lisica": "lis", "Szop": "szop", "Królik": "krolik", "Niedźwiadek": "mis", "Bóbr": "bobr", "Wiewiórka": "wiewiorka",
-	"Jeżyk": "jez", "Sowa": "sowa", "Borsuk": "borsuk", "Kuna": "kuna", "Wydra": "wydra", "Łasiczka": "lasica"}  # sprite worker_<kind>.png
 const SAT_COST := 2000
 const SAT_USES := {"nauka": ["Badania naukowe", "+150 PW dziennie"], "astrotv": ["Wynajem AstroTV", "$160 dziennie"],
 	"satnet": ["Wynajem Sat-Net", "$350 dziennie, serwis $150 co 3 dni"]}
@@ -969,12 +981,12 @@ func hire(c: Dictionary) -> String:
 
 func _roll_candidates() -> void:
 	candidates = []
-	var names := NAMES.filter(func(n): return not staff.any(func(p): return p.name == n))
-	names.shuffle()
+	var kinds := STAFF_NAMES.keys().filter(func(k): return not staff.any(func(p): return p.kind == k))  # każdy gatunek w zespole raz
+	kinds.shuffle()
 	for i in 3:
 		var tr := TRAITS.keys()
 		tr.shuffle()
-		candidates.append({"name": names[i], "kind": KIND[names[i].get_slice(" ", 0)], "traits": tr.slice(0, randi_range(1, 2))})
+		candidates.append({"name": STAFF_NAMES[kinds[i]].pick_random(), "kind": kinds[i], "traits": tr.slice(0, randi_range(1, 2))})
 
 
 ## rano: Tryb 2 poprawia pomiary, zgłoszenia z nocy, pensje co 7 dni, satelity; wiersze do podsumowania dnia

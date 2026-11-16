@@ -274,6 +274,8 @@ function arbjooze(blink = false) {  // Arbjooze: szarobury pręgowany, biała ł
   for (const [x, y] of [[20, 64], [21, 64], [22, 65], [19, 68], [20, 68], [21, 68]]) { c.set(x, y, [236, 232, 220]); c.set(mir(x), y, [236, 232, 220]); }  // wąsy
   return c.render();
 }
+module.exports = { P, Canvas, ell, sup, cap, rell, or, and, tri, eye, ring, mir, ramp, W, H, CX, INK };
+if (require.main === module) {
 // arkusz 2 klatek: otwarte oczy, mrugnięcie (oddech robi okienko dialogu przesunięciem o 1 px)
 const M = maciej(), J = jania(), A = jania(false, false, true);
 P.save(P.pack([J, jania(true)], { cols: 2, pad: 0 }), OUT + "/portrait_jania.png");
@@ -295,3 +297,5 @@ P.save(P.sheet([{ buf: arbjooze(), scale: 4, label: "ARBJOOZE" }, { buf: arbjooz
 P.save(P.sheet([{ buf: lili(), scale: 4, label: "LILI" }, { buf: myszka(), scale: 4, label: "MYSZKA" }, { buf: J, scale: 4, label: "JANIA" }, { buf: haha(jania(false, false, false, true)), scale: 4, label: "SMIECH" }]), __dirname + "/_dogs.png");
 P.save(P.sheet([{ buf: J, scale: 4, label: "JANIA" }, { buf: M, scale: 4, label: "MACIEJ" }, { buf: J, scale: 1 }, { buf: M, scale: 1 }]), __dirname + "/_portraits.png");
 console.log("edge J", JSON.stringify(P.edgeCheck(J)).slice(0, 120), "M", JSON.stringify(P.edgeCheck(M)).slice(0, 120));
+
+}

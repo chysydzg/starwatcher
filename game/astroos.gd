@@ -872,14 +872,14 @@ func _zespol() -> void:
 		var c: Dictionary = Game.candidates[i]
 		var card := Panel.new()
 		card.position = Vector2(8 + i * 210, cy + 24)
-		card.size = Vector2(202, 116)
+		card.size = Vector2(202, 118)
 		card.add_theme_stylebox_override("panel", _box(Color("fffbe8"), Color("a89a6a")))
 		body.add_child(card)
 		_label(card, c.name, Vector2(6, 2))
-		_label(card, "\n".join(c.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(6, 22), Color("6a5a2a"))
+		_portrait(card, c, Vector2(4, 22), Vector2(64, 62))
+		_label(card, "\n".join(c.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(76, 22), Color("6a5a2a"))
 		var cost: Array = Game.cand_cost(c)
-		_label(card, "$%d + $%d/tydz." % cost, Vector2(6, 66), Color("2a7a3a"))
-		_portrait(card, c, Vector2(154, 4))
+		_label(card, "$%d\n+ $%d/tydz." % cost, Vector2(76, 58), Color("2a7a3a"))
 		var hb := _button("ZATRUDNIJ", func():
 			var why := Game.hire(c)
 			if why != "":
@@ -888,8 +888,8 @@ func _zespol() -> void:
 				Game.ding(1.3)
 				bar.queue_redraw()
 				_rebuild())
-		hb.position = Vector2(6, 86)
-		hb.size = Vector2(190, 26)
+		hb.position = Vector2(6, 90)
+		hb.size = Vector2(190, 24)
 		var seat := [1, 2, 3].any(func(m): return Game.free_stations(m) > 0)
 		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or Game.money < cost[0] or not seat
 		if not seat:
@@ -901,22 +901,18 @@ func _zespol() -> void:
 	info.text = "Tryb pracy zmienisz przyciskami 1-3. Pensje są wypłacane co 7 dni."
 
 
-## portret pracownika w prawym rogu (na razie z kadru sprite'a: głowa z pierwszej klatki; Arbjooze z portretu dialogu)
-func _portrait(parent: Control, p: Dictionary, pos: Vector2) -> void:
+## portret pracownika: kadr twarzy z portretu rozmowy (88x88, tools/art/staff.js; Arbjooze ma własny) w ramce `size`
+func _portrait(parent: Control, p: Dictionary, pos: Vector2, size := Vector2(44, 30)) -> void:
 	var fr := Panel.new()
 	fr.position = pos
-	fr.size = Vector2(46, 30) if parent.size.y < 40 else Vector2(46, 44)  # w wierszu zespołu: sama głowa
+	fr.size = size + Vector2(2, 2)
 	fr.add_theme_stylebox_override("panel", _box(Color("2a3a5a"), Color("1a1426")))
 	fr.clip_contents = true
 	parent.add_child(fr)
 	var at := AtlasTexture.new()
-	var h := fr.size.y - 2  # kadr od czubka uszu w dół: w wierszu głowa, na karcie popiersie
-	if p.kind == "cat":
-		at.atlas = Game.tex("portrait_arbjooze")
-		at.region = Rect2(22, 24, 44, h)
-	else:
-		at.atlas = Game.tex("worker_" + p.kind)
-		at.region = Rect2(0, 27, 44, h)
+	at.atlas = Game.tex("portrait_arbjooze" if p.kind == "cat" else "portrait_w_" + p.kind)
+	# wiersz zespołu: oczy i pyszczek; karta kandydata: cała głowa z uszami
+	at.region = Rect2(44 - size.x / 2, 46 if size.y < 40 else 86 - size.y, size.x, size.y)
 	var tr := TextureRect.new()
 	tr.texture = at
 	tr.position = Vector2(1, 1)
