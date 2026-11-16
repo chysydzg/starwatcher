@@ -258,8 +258,7 @@ const STAFF_NAMES := {
 	"wombat": ["Wombat Stefan", "Wombatka Bunia"], "kapibara": ["Kapibara Celina", "Kapibar Zenek"], "bobr": ["Bóbr Feliks", "Bobrzyca Tamara"],
 	"wiewiorka": ["Wiewiórka Zuzia", "Wiewiór Orzech"], "jez": ["Jeżyk Staś", "Jeżynka Kolka"], "swinka": ["Świnka Róża", "Prosiak Chrumek"],
 	"lemur": ["Lemur Julian", "Lemurka Kiki"], "mis": ["Niedźwiadek Tosia", "Miś Bartosz"],
-	"krolik": ["Królik Bartek", "Króliczka Fasolka"], "krolik_szary": ["Królik Popiel", "Króliczka Mgiełka"],
-	"krolik_czarny": ["Królik Atrament", "Króliczka Noc"], "krolik_laciaty": ["Królik Łatek", "Króliczka Krówka"],
+	"krolik": ["Królik Bartek", "Króliczka Fasolka"], "krolik_czarny": ["Królik Atrament", "Króliczka Noc"],
 	"papuga": ["Papuga Ara"], "golab": ["Gołąb Gruchacz"], "ges": ["Gęś Balbina", "Gąsior Gerwazy"], "kura": ["Kura Kwoka", "Kogut Budzik"],
 	"sowa": ["Sowa Halinka", "Puchacz Hubert"], "zolw": ["Żółw Powolniak", "Żółwica Matylda"], "ropucha": ["Ropucha Rechota", "Ropuch Kumak"]}
 const MODES := ["Rutynowe Obserwacje", "Analiza Raportów", "Utrzymanie Sprzętu"]
