@@ -25,17 +25,26 @@ function frame(dir, f, o = {}) {
   const S = (prims, ramp, o) => P.solid(b, prims, ramp, { ...(dir === 1 ? {} : TOP), ...o });
   const sym = (d, y, c) => { b.pset(17 - d, y, c); b.pset(18 + d, y, c); }; // para pikseli d od środka
   const fill = (cx, cy, rx, ry, c) => { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = 1; x <= 34; x++) if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) b.pset(x, y, c); };
-  const walk = f === 1 || f === 2, bob = walk ? -1 : 0, st = f === 1 ? 1 : f === 2 ? -1 : 0;
+  // o.walk = k (0..7): pełny cykl chodu – kontakt, dół, przejście, góra (x2). Ciało buja się góra-dół, stopa w wykroku
+  // odrywa się łukiem, ręce idą w przeciwfazie do nóg, a uszy i ogonek spóźniają się o klatkę (follow-through).
+  const k = o.walk, W = k != null, BOB = [1, 2, 1, 0, 1, 2, 1, 0], LIFT = [0, 0, 0, 0, 1, 3, 3.6, 1.6];  // bujanie tylko w dół: czubki uszu leżą w górnym rzędzie klatki
+  const walk = W || f === 1 || f === 2, bob = W ? BOB[k] : walk ? -1 : 0, st = W ? 0 : f === 1 ? 1 : f === 2 ? -1 : 0;
+  const lag = W ? BOB[(k + 7) % 8] : bob;                       // uszy: bujanie z poprzedniej klatki
+  const lL = W ? LIFT[k] : Math.max(st, 0), lR = W ? LIFT[(k + 4) % 8] : Math.max(-st, 0);
+  const sw = W ? Math.cos(k * Math.PI / 4) : 0;                 // +1: lewa noga w wykroku → prawa ręka z przodu
 
   if (dir === 0 || dir === 2) {
     const back = dir === 2, droop = !back && (f === 4 || f === 5), pawUp = !back && f === 5;
-    S([E(11, 44 - Math.max(st, 0), 4, 2.2), E(21, 44 - Math.max(-st, 0), 4, 2.2)], R.cream, back ? { dark: 0.85 } : {});
-    S([C(12, 39, 12, 42, 3.2), C(20, 39, 20, 42, 3.2), E(16, 35 + bob, 7, 6)], R.denim);
-    const rp = o.paw || (pawUp ? [26, 16] : o.yawn === 2 ? [19, 26] : [25, 37 - st]); // ziewanie: łapka idzie do buzi
-    S([C(8, 30 + bob, 7, 37 + st, 2.1, 1.9), C(24, 30 + bob, rp[0], rp[1] + (o.paw || pawUp ? 0 : bob), 2.1, 1.9)], R.fur);
-    S([E(7, 38 + st + bob, 2.1, 1.8), E(rp[0], rp[1] + 1 + (o.paw || pawUp ? 0 : bob), 2.1, 1.8)], R.cream);
+    // stopa w powietrzu jest mniejsza (dalej od ziemi), ta w wykroku odrobinę większa
+    const foot = (x, l, fwd) => E(x + (l > 1 ? (x < 16 ? 0.8 : -0.8) : 0), 44 - l, l > 1 ? 3.4 : fwd ? 4.3 : 4, l > 1 ? 2 : 2.2);
+    S([foot(11, lL, W && sw > 0.5), foot(21, lR, W && sw < -0.5)], R.cream, back ? { dark: 0.85 } : {});
+    S([C(12, 39, 12, 42 - lL * 0.7, 3.2), C(20, 39, 20, 42 - lR * 0.7, 3.2), E(16, 35 + bob, 7, 6)], R.denim);
+    const rp = o.paw || (pawUp ? [26, 16] : o.yawn === 2 ? [19, 26] : [25 + (W ? 0.4 * sw : 0), 37 - st + 1.6 * sw]); // ziewanie: łapka idzie do buzi
+    const la = [7 - (W ? 0.4 * sw : 0), 37 + st - 1.6 * sw];
+    S([C(8, 30 + bob, la[0], la[1], 2.1, 1.9), C(24, 30 + bob, rp[0], rp[1] + (o.paw || pawUp ? 0 : bob), 2.1, 1.9)], R.fur);
+    S([E(la[0], la[1] + 1 + bob, 2.1, 1.8), E(rp[0], rp[1] + 1 + (o.paw || pawUp ? 0 : bob), 2.1, 1.8)], R.cream);
     const by = Math.round(Y(30 + bob));
-    if (back) S([E(16, 39 + bob, 2.6, 2.4)], R.cream);
+    if (back) S([E(16, 39 + lag, 2.6, 2.4)], R.cream);
     else {
       for (let d = 0; d < 4; d++) for (let y = by; y < by + 5; y++) sym(d, y, y === by + 4 ? R.denim[1] : R.denim[3]);
       sym(3, by, BTN); sym(0, by + 2, R.denim[2]); sym(1, by + 2, R.denim[2]);
@@ -45,12 +54,13 @@ function frame(dir, f, o = {}) {
     if (back) for (let i = 0; i < 7; i++) sym(Math.max(0, 4 - Math.floor(i * 0.7)), by - 2 + i, R.denim[1]);
     else for (const y of [by - 2, by - 1]) { sym(3, y, R.denim[2]); }
     // uszy: symetryczne; prawe opada w klatkach 4-5
-    S([C(12, 15 + bob, 11.4, 3 + bob, 2.3, 2.7)], R.fur);
+    const ex = 0;  // końce uszu rozchylają się, gdy głowa opada szybciej niż one
+    S([C(12, 15 + bob, 11.4 - ex, 3 + lag, 2.3, 2.7)], R.fur);
     if (droop) S([C(20, 15, 23, 11, 2.3, 2.6), C(23, 11, 28, 16, 2.6, 2.1)], R.fur);
-    else S([C(20, 15 + bob, 20.6, 3 + bob, 2.3, 2.7)], R.fur);
+    else S([C(20, 15 + bob, 20.6 + ex, 3 + lag, 2.3, 2.7)], R.fur);
     if (!back) {
-      S([C(11.9, 13 + bob, 11.6, 5.5 + bob, 0.9, 1.2)], R.pink);
-      if (!droop) S([C(20.1, 13 + bob, 20.4, 5.5 + bob, 0.9, 1.2)], R.pink);
+      S([C(11.9, 13 + bob, 11.6 - ex, 5.5 + lag, 0.9, 1.2)], R.pink);
+      if (!droop) S([C(20.1, 13 + bob, 20.4 + ex, 5.5 + lag, 0.9, 1.2)], R.pink);
     }
     S([E(16, 21 + bob, 9, 7.2), E(10, 23 + bob, 3.5, 3), E(22, 23 + bob, 3.5, 3)], R.fur, { ambient: 0.5 });
     if (!back) {
@@ -86,20 +96,28 @@ function frame(dir, f, o = {}) {
     }
   } else { // ---- bok, patrzy w prawo
     // chód z boku: 4 fazy (kontakt, przejście, kontakt drugą nogą, przejście); stopy jak u królika – długie, płaskie
-    const ph = f - 1, sb = ph === 1 || ph === 3 ? -1 : 0;
-    const near = f === 0 ? 17 : [20, 15.5, 11, 15.5][ph], far = f === 0 ? 13 : [11, 15.5, 20, 15.5][ph];
-    const nearUp = ph === 1 ? 1 : 0, farUp = ph === 3 ? 1 : 0;
+    const ph = f - 1, sb = W ? bob : ph === 1 || ph === 3 ? -1 : 0;
+    // stopa: 5 klatek na ziemi (jedzie równo do tyłu), 3 w powietrzu (łuk do przodu)
+    const FX = [20.5, 18, 15.5, 13, 10.5, 11.5, 15.5, 19.5], FU = [0, 0, 0, 0, 0, 2, 3, 1.4];
+    const near = W ? FX[k] : f === 0 ? 17 : [20, 15.5, 11, 15.5][ph], far = W ? FX[(k + 4) % 8] : f === 0 ? 13 : [11, 15.5, 20, 15.5][ph];
+    const nearUp = W ? FU[k] : ph === 1 ? 1 : 0, farUp = W ? FU[(k + 4) % 8] : ph === 3 ? 1 : 0;
+    const swS = W ? -(near - 15.5) * 0.75 : f === 0 ? 0 : [-3, 0, 3, 0][ph]; // ręka w przeciwfazie do bliższej nogi
+    if (W) {  // dalsza ręka: widać ją, gdy wychodzi przed albo za tułów
+      S([C(15.5, 30 + sb, 15.5 - swS, 36.5 + sb, 2, 1.8)], R.fur, { dark: 0.75 });
+      S([E(15.5 - swS, 37.5 + sb, 1.9, 1.7)], R.cream, { dark: 0.8 });
+    }
     S([C(14.5, 39 + sb, far, 43 - farUp, 2.1)], R.denim, { dark: 0.75 });
     S([E(far + 1.6, 45 - farUp, 3.6, 1.5)], R.cream, { dark: 0.8 });
     S([E(15, 35 + sb, 6, 6.2)], R.denim);
-    S([E(9, 37 + sb, 2.6, 2.6)], R.cream);
+    S([E(9, 37 + (W ? lag : sb), 2.6, 2.6)], R.cream);
     S([C(15.5, 39 + sb, near, 43 - nearUp, 2.3)], R.denim);
     S([E(near + 1.8, 45 - nearUp, 3.9, 1.6)], R.cream);
     const hb = sb;
     S([E(16, 28.6 + hb, 4.6, 2.6)], R.fur);
-    S([C(12, 15 + hb, 9, 3 + hb, 2.2, 2.6)], R.fur, { dark: 0.8 });
-    S([C(14, 15 + hb, 15, 3 + hb, 2.3, 2.8)], R.fur);
-    S([C(14.4, 13 + hb, 14.9, 5 + hb, 0.8, 1.2)], R.pink);
+    const eb = W ? -1 + 0.6 * (lag - bob) : 0;  // w biegu uszy kładą się lekko do tyłu i sprężynują
+    S([C(12, 15 + hb, 9 + eb, 3 + (W ? lag : hb), 2.2, 2.6)], R.fur, { dark: 0.8 });
+    S([C(14, 15 + hb, 15 + eb, 3 + (W ? lag : hb), 2.3, 2.8)], R.fur);
+    S([C(14.4, 13 + hb, 14.9 + eb * 0.8, 5 + (W ? lag : hb), 0.8, 1.2)], R.pink);
     S([E(16, 21 + hb, 7.5, 7), E(21, 23 + hb, 4, 3.2)], R.fur);
     fill(X(21.6), Y(25 + hb), 3.4, 2.4, R.cream[1]);
     const ey = Math.round(Y(19.5 + hb)), ex = Math.round(X(18.5));
@@ -124,9 +142,8 @@ function frame(dir, f, o = {}) {
       S([C(16, 30 + hb, 20, 34 + hb, 2.1, 1.9)], R.fur);
       S([E(21, 34.4 + hb, 1.9, 1.7)], R.cream);
     } else {
-      const sw = f === 0 ? 0 : [-3, 0, 3, 0][ph]; // ręka w przeciwfazie do bliższej nogi
-      S([C(16, 30 + hb, 16 + sw, 37 + hb, 2.1, 1.9)], R.fur);
-      S([E(16 + sw, 38 + hb, 2, 1.8)], R.cream);
+      S([C(16, 30 + hb, 16 + swS, 37 + hb - Math.abs(swS) * 0.2, 2.1, 1.9)], R.fur);
+      S([E(16 + swS, 38 + hb - Math.abs(swS) * 0.2, 2, 1.8)], R.cream);
     }
   }
   return ink(P.rimLight(b, R.fur, { dir: dir === 1 ? [-1, -1] : [0, -1] }));
@@ -146,6 +163,11 @@ module.exports = { frames, frame, breath, FW, FH, COLS, R };
 
 if (require.main === module) {
   P.save(P.pack(frames, { cols: COLS, pad: 0 }), process.argv[2] + "/jania.png");
+  // chód: 8 klatek na kierunek (rzędy: przód, bok, tył)
+  const wf = [0, 1, 2].flatMap((d) => [...Array(8)].map((_, k) => frame(d, 0, { walk: k })));
+  P.save(P.pack(wf, { cols: 8, pad: 0 }), process.argv[2] + "/jania_walk.png");
+  for (const d of [0, 1, 2]) require("fs").writeFileSync(process.argv[2] + `/_walk${d}.gif`, P.gif(wf.slice(d * 8, d * 8 + 8).map((b) => { const g = new P.Buf(b.w, b.h); g.rect(0, 0, b.w, b.h, [200, 190, 170]); g.sprite(b, 0, 0); return g; }), { delay: 60, scale: 5 }));
+  P.save(P.sheet(wf.map((b, i) => ({ buf: b, label: "" + (i % 8) })), { cols: 8, scale: 4 }), process.argv[2] + "/_walk_sheet.png");
   // ziewanie na koniec nocy (world.gd): 3 klatki przodem
   P.save(P.pack([1, 2, 3].map((k) => frame(0, 0, { yawn: k })), { cols: 3, pad: 0 }), process.argv[2] + "/jania_yawn.png");
   // szpital: ten sam arkusz ze smutną miną, bez łez (jania_sad) i z łzami, gdy płacze razem z portretem (jania_cry)

@@ -5,6 +5,7 @@ extends Node2D
 
 const NIGHT_TINT := Color(0.34, 0.38, 0.64)
 const SPEED := 144.0
+const WALK_FPS := 16.0  # 2 pełne cykle chodu (4 kroki) na sekundę
 const ROOM_WALK := Rect2(14, 122, 612, 224)
 const BALCONY_WALK := Rect2(20, 318, 610, 42)
 const MUSIC_DB := -8.0  # pętle są masterowane na -16 LUFS
@@ -848,8 +849,9 @@ func _animate(dt: float) -> void:
 		yawn_t = -1.0
 	var frame := 0
 	var walking: bool = jania.get_meta("walking", false)
+	jania.texture = Game.tex("jania_walk" if walking else "jania")  # chód: osobny arkusz, 8 klatek na kierunek
 	if walking:
-		frame = 1 + int(t * 14.0) % 4 if face == 1 else 1 + int(t * 10.0) % 2
+		frame = int(t * WALK_FPS) % 8
 	elif happy_t > 0:
 		face = 0
 		frame = 6
@@ -865,7 +867,7 @@ func _animate(dt: float) -> void:
 		face = 2  # na balkonie po chwili odwraca się do nieba
 	if frame == 0 and not walking and fmod(idle_t, BREATH) > BREATH_DOWN:
 		frame = 7  # spokojny oddech: góra ciała unosi się o 1 px
-	if walking and frame != _step_frame and (face != 1 or frame in [1, 3]):
+	if walking and frame != _step_frame and frame in [0, 4]:  # kontakt stopy z podłogą
 		Game.sfx("step%d" % (randi() % 4), randf_range(0.92, 1.08), -12.0)  # miękkie łapki na drewnie
 	_step_frame = frame if walking else -1
 	jania.frame = face * 8 + frame

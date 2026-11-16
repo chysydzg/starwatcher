@@ -88,4 +88,17 @@ function savePieces(dir, prefix, post) {
   pieces.length = 0;
 }
 
-module.exports = { P, R, INK, slab, obj, ink, shadow, light, ramp, BAND, piece, savePieces };
+// tuba pod kątem dokładnie 45° (schodki 1:1, bez poszarpanych krawędzi): oś od (bx, by) w górę, sx = 1 w prawo,
+// -1 w lewo; s0..s1 – odcinek osi w krokach po przekątnej, r – połowa szerokości w pikselach (po skosie).
+// Cieniowanie walca płaskimi pasami wzdłuż tuby: górna strona jasna, spód w cieniu.
+function tube45(b, bx, by, s0, s1, r, ramp, sx = 1) {
+  const n = ramp.length - 1, m = Math.abs(s0) + Math.abs(s1) + r + 2;
+  for (let dy = -m; dy <= m; dy++) for (let dx = -m; dx <= m; dx++) {
+    const al = dx - dy, c = dx + dy;
+    if (al < 2 * s0 || al > 2 * s1 || Math.abs(c) > r) continue;
+    const v = c / r;
+    b.pset(bx + dx * sx, by + dy, ramp[v < -0.7 ? n - 1 : v < -0.15 ? n : v < 0.4 ? n - 1 : v < 0.75 ? Math.min(1, n) : 0]);
+  }
+}
+
+module.exports = { tube45,  P, R, INK, slab, obj, ink, shadow, light, ramp, BAND, piece, savePieces };

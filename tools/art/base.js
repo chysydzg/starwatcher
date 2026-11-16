@@ -4,7 +4,7 @@
 // starym teleskopem z balkonu. Okno (x 152) i drzwi wejściowe (x 520) mają geometrię pokoju: szyby, ekran komputera
 // i światła z world.gd pasują bez zmian. Drzwi po lewej prowadzą do pokoiku Jani (pokoik.js).
 const fs = require("fs");
-const { P, R, slab, obj, shadow, light, piece, savePieces } = require("./kit.js");
+const { tube45, P, R, slab, obj, shadow, light, piece, savePieces } = require("./kit.js");
 const W = 640, H = 360, WALL = 112;
 const out = process.argv[2];
 const b = new P.Buf(W, H);
@@ -127,6 +127,13 @@ piece("spectro", 126, [242, 110, 300, 130], (T) => {
     s.rect(6, 50, 48, 54, dark[1]); s.pset(44, 52, LED[0]); s.pset(40, 52, LED[1]);
   });
 });
+// mały teleskop na trójnogu w buforze 30x50: nogi o równych schodkach 1:2, tuba pod 45° z obejmą i osłoną
+const scopeOn = (s, ramp) => {
+  s.line(15, 26, 5, 46, steel[1]); s.line(15, 26, 25, 46, steel[1]); s.rect(15, 26, 16, 48, steel[1]);
+  s.rect(4, 46, 7, 48, steel[0]); s.rect(24, 46, 27, 48, steel[0]);
+  s.rect(13, 20, 18, 26, steel[1]);
+  tube45(s, 7, 23, -1, 0, 3, steel); tube45(s, 7, 23, 0, 12, 4, ramp); tube45(s, 7, 23, 3, 4, 5, steel); tube45(s, 7, 23, 12, 16, 5, steel);
+};
 // ---- duży teleskop na kolumnie: biała tuba skierowana w górę, w stronę szczeliny kopuły
 shadow(b, 470, 262, 24, 6);
 piece("telescope", 262, [452, 254, 488, 266], (T) => {
@@ -138,9 +145,15 @@ piece("telescope", 262, [452, 254, 488, 266], (T) => {
     s.rect(14, 40, 22, 44, [255, 214, 92]);
   });
   const tube = new P.Buf(640, 360);
-  P.solid(tube, [P.cap(484, 214, 424, 144, 9, 12)], white, { light: [-0.5, -0.7, 0.5] });
-  P.solid(tube, [P.cap(425, 145, 419, 138, 13.5, 13.5)], steel, { light: [-0.5, -0.7, 0.5] });
-  P.solid(tube, [P.cap(462, 180, 468, 172, 3, 3)], steel, { light: [-0.5, -0.7, 0.5] });
+  // tuba dokładnie pod 45°: tylna cela, biała tuba z obejmami, osłona przeciwrosowa z ciemnym wlotem, szukacz
+  tube45(tube, 472, 180, 6, 7, 6, steel, -1); tube45(tube, 472, 180, 14, 15, 6, steel, -1);  // wsporniki szukacza
+  tube45(tube, 490, 218, -4, 2, 11, steel, -1);
+  tube45(tube, 490, 218, 2, 56, 15, white, -1);
+  for (const st of [8, 32]) tube45(tube, 490, 218, st, st + 2, 17, steel, -1);
+  tube45(tube, 490, 218, 56, 70, 18, steel, -1);
+  tube45(tube, 490, 218, 69, 70, 15, [dark[0], dark[0], dark[0], dark[0]], -1);
+  tube45(tube, 476, 184, 0, 16, 3, steel, -1);
+  tube45(tube, 476, 184, 16, 18, 4, dark, -1);
   T.sprite(P.outline(tube, [18, 12, 22], { corners: true }), -1, -1);
 });
 // ---- biurko Arbjooze: biały stolik laboratoryjny, mała klawiatura, kubek mleczka, notatki; obok teleskop pomocniczy
@@ -157,8 +170,7 @@ piece("catdesk", 300, [134, 280, 202, 304], (T) => {
 shadow(b, 226, 300, 12, 3);
 piece("aux", 300, [216, 292, 238, 304], (T) => {
   obj(T, 212, 252, 30, 50, (s) => {
-    s.line(15, 24, 5, 48, steel[1]); s.line(15, 24, 25, 48, steel[1]); s.line(15, 24, 15, 48, steel[1]);
-    P.solid(s, [P.cap(6, 22, 24, 6, 3, 4)], white, { light: [-0.5, -0.7, 0.5] });
+    scopeOn(s, white);
   });
 });
 // ---- lobby: podium ze starym teleskopem z balkonu (pamiątka)
@@ -180,8 +192,7 @@ const deskAt = (T, x0, y0, extra) => {  // biały stolik laboratoryjny 64x36 (ja
   extra(T);
 };
 const auxScope = (T, x0, y0, hue) => obj(T, x0, y0, 30, 50, (s) => {  // mały teleskop na trójnogu
-  s.line(15, 24, 5, 48, steel[1]); s.line(15, 24, 25, 48, steel[1]); s.line(15, 24, 15, 48, steel[1]);
-  P.solid(s, [P.cap(6, 22, 24, 6, 3, 4)], P.hueRamp(4, { hue, shift: 20, sat: 0.5, light: [0.34, 0.66] }), { light: [-0.5, -0.7, 0.5] });
+  scopeOn(s, P.hueRamp(4, { hue, shift: 20, sat: 0.5, light: [0.34, 0.66] }));
 });
 const logbook = (T, x, y) => obj(T, x, y, 14, 8, (s) => { s.rect(0, 0, 14, 8, R.cream[2]); s.rect(7, 0, 8, 8, R.cream[0]); s.rect(2, 2, 6, 3, R.gray[1]); s.rect(9, 4, 12, 5, R.gray[1]); });
 for (const [k, x0, y0, hue] of [["st_obs1", 20, 150, 200], ["st_obs2", 20, 236, 140]]) {  // stanowiska obserwacyjne (Tryb 1)
