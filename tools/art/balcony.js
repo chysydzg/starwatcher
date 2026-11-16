@@ -48,10 +48,10 @@ const skyOnly = b.px.slice(); // do wycięcia samego krajobrazu (balcony_view.pn
 // ---- góry (dwa plany) i las na drugim brzegu
 const ridge = (y0, amp, s, cols, haze) => {
   for (let x = X0; x < X1; x++) {
-    const top = y0 - amp * P.fbm(x * 0.008, 0.5, 4, s);
+    const top = y0 - amp * P.fbm(x * 0.008, 0.5, 3, s);  // 3 oktawy: grzbiet bez jednopikselowych zębów
     for (let y = Math.floor(top); y < SHORE; y++) {
-      const v = 0.85 - (y - top) / 50;
-      b.pset(x, y, P.mix(P.unpack(cols[P.band(v, cols.length, x, y)]), skyCols[4], haze));
+      const v = 0.85 - (y - top) / 50;  // płaskie pasy bez ditheru: czyste krawędzie warstw
+      b.pset(x, y, P.mix(P.unpack(cols[Math.max(0, Math.min(cols.length - 1, Math.floor(v * cols.length)))]), skyCols[4], haze));
     }
   }
 };
@@ -138,16 +138,20 @@ for (let x = X0; x < X1; x++) b.pset(x, DECK, R.wood[0]);
 
 // ---- rekwizyty: tani teleskop, leżak z kocem, skrzynka z kubkiem, roślina
 shadow(b, 254, 340, 22, 3);
-{ // teleskop: referencja użytkownika → piksele (codixel: kwantyzacja w pełnym rozmiarze, potem resize mode)
-  const ref = P.load(__dirname + "/out/scope_ref.png");
-  for (let i = 0; i < ref.px.length; i++) { // usuń półprzezroczyste piksele i brązowy cień pod statywem
-    const [r, g, bb] = P.unpack(ref.px[i]), y = Math.floor(i / ref.w);
-    if ((ref.px[i] >>> 24) < 220 || (y > ref.h * 0.85 && r > bb + 15 && r < 140)) ref.px[i] = 0;
-  }
-  const q = P.quantize(P.trim(ref), 9).buf;
-  const sp = P.smoothEdge(P.cleanup(P.resize(q, 54, null, { mode: true }), { tol: 20 }));
-  const t = P.trim(require("./kit.js").ink(sp));
-  piece("telescope", 341, [230, 332, 280, 346], (T) => T.sprite(t, 226, 341 - t.h));
+{ // tani refraktor: tuba dokładnie pod 45° (kit.tube45), trójnóg o równych schodkach 1:2
+  const { tube45, ink } = require("./kit.js");
+  const blue = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.5, light: [0.3, 0.64] }), blk = P.hueRamp(4, { hue: 230, shift: 10, sat: 0.2, light: [0.1, 0.3] });
+  const leg = P.hueRamp(3, { hue: 226, shift: 10, sat: 0.3, light: [0.22, 0.46] });
+  const sp = new P.Buf(54, 52);
+  sp.line(27, 28, 17, 48, leg[2]); sp.line(28, 28, 38, 48, leg[2]); sp.rect(27, 28, 29, 50, leg[1]);
+  sp.rect(21, 40, 35, 41, leg[0]);
+  sp.rect(15, 48, 19, 50, leg[0]); sp.rect(37, 48, 41, 50, leg[0]);
+  sp.rect(24, 21, 32, 28, blk[2]); sp.rect(24, 21, 32, 22, blk[3]);
+  tube45(sp, 13, 28, 1, 9, 2, blk);                                   // szukacz
+  tube45(sp, 17, 32, -9, -6, 3, blk); tube45(sp, 17, 32, -6, 17, 5, blue);
+  tube45(sp, 17, 32, 2, 3, 6, blk); tube45(sp, 17, 32, 17, 22, 6, blue); tube45(sp, 17, 32, 22, 22, 6, blk);
+  const t = P.trim(ink(sp));
+  piece("telescope", 341, [230, 332, 280, 346], (T) => T.sprite(t, 232, 341 - t.h));
 }
 // Teleskop Newtona (sklep): duża biała tuba na montażu paralaktycznym i statywie (newton.js); gra pokazuje go zamiast refraktora
 {

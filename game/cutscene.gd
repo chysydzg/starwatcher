@@ -32,7 +32,7 @@ func _ready() -> void:
 	_sprite("cut_door", Vector2(19, 219))              # drzwi balkonowe zamknięte
 	obs.draw.connect(_draw_obs)
 	add_child(obs)
-	_sprite("balcony_telescope", Vector2(372, 293))
+	_sprite("balcony_telescope", Vector2(380, 295))
 	for c in [["cut_jania_back", Vector2(283, 300), 0.0], ["cut_maciej_back", Vector2(312, 274), 0.9]]:
 		var s := _sprite(c[0], c[1])
 		s.hframes = 2
@@ -376,7 +376,7 @@ func _steam(at: Vector2) -> void:
 
 func _sc_stars() -> void:  # balkon nocą: tata z profilu patrzy na Janię, kubek w obu łapach; Jania pisze w zeszycie
 	_balcony_night()
-	_spr("balcony_telescope", Vector2(372, 293))
+	_spr("balcony_telescope", Vector2(380, 295))
 	var m := _spr("cut_maciej_mug", Vector2(304, 275), null, 2)
 	var j := _spr("cut_jania_sit", Vector2(262, 298), null, 2)
 	tick = func():
@@ -413,7 +413,7 @@ func _sc_mobile() -> void:  # pokój: tata na krześle wiesza układ słoneczny,
 
 func _sc_day() -> void:  # balkon za dnia: oboje patrzą na drugi brzeg
 	_balcony_day()
-	_spr("balcony_telescope", Vector2(372, 293)).modulate = Color(1.4, 1.4, 1.35)
+	_spr("balcony_telescope", Vector2(380, 295)).modulate = Color(1.4, 1.4, 1.35)
 	var j := _spr("cut_jania_back", Vector2(283, 300), null, 2)
 	var m := _spr("cut_maciej_back", Vector2(312, 274), null, 2)
 	j.modulate = Color(1.15, 1.15, 1.1)

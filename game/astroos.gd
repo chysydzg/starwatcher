@@ -93,8 +93,15 @@ func _ready() -> void:
 		b.position = Vector2(10 + int(i / 5.0) * 96, BAR + 4 + (i % 5) * 66)
 		b.add_theme_color_override("font_color", Color.WHITE)
 		b.add_theme_color_override("font_hover_color", Color("fff2a0"))
-		b.add_theme_color_override("font_outline_color", INK)
-		b.add_theme_constant_override("outline_size", 3)
+		# podpis na ciemnej tabliczce (gruby obrys zlewał cienkie litery VT323 w plamę)
+		var tw := Game.font_os.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x
+		var plate := ColorRect.new()
+		plate.color = Color(0.04, 0.05, 0.14, 0.72)
+		plate.position = Vector2(roundf((92 - tw) / 2) - 4, 42)
+		plate.size = Vector2(tw + 8, 18)
+		plate.show_behind_parent = true
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(plate)
 		for st in ["normal", "disabled"]:
 			b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		for st in ["hover", "pressed", "focus"]:

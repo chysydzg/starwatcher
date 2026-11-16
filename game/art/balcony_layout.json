@@ -1,8 +1,8 @@
 [
  {
   "name": "balcony_telescope",
-  "x": 226,
-  "y": 293,
+  "x": 232,
+  "y": 295,
   "base": 341,
   "foot": [
    230,
@@ -14,7 +14,7 @@
  {
   "name": "balcony_newton",
   "x": 214,
-  "y": 249,
+  "y": 261,
   "base": 342,
   "foot": [
    222,

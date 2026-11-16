@@ -4,26 +4,25 @@
 const P = require(process.env.CODIXEL || "./pixel.js");
 const { ink } = require("./kit.js");
 function newton() {
-  const ref = P.resize(P.load(__dirname + "/out/newton_ref.png"), 500, 500);
-  const q = P.quantize(P.trim(P.removeBg(ref, { tol: 10, erode: 1 })), 12).buf;
-  const tube = P.smoothEdge(P.cleanup(P.resize(q, 64, null, { mode: true }), { tol: 20 }));
-  for (let y = 0; y < tube.h; y++) for (let x = 0; x < tube.w; x++) if (y > 0.5 * x + 22.5) tube.px[y * tube.w + x] = 0; // tylko tuba
-  const s = new P.Buf(70, 92);
+  const { tube45 } = require("./kit.js");
+  const s = new P.Buf(72, 96);
   const blk = [[22, 22, 28], [44, 44, 52], [70, 70, 80]], sil = P.hueRamp(3, { hue: 220, shift: 10, sat: 0.06, light: [0.45, 0.85] });
-  // statyw: trzy srebrne nogi do podłogi (tylna ciemniejsza)
-  s.line(38, 64, 37, 90, sil[0], 2);
-  s.line(34, 63, 18, 90, sil[2], 2); s.line(35, 63, 19, 90, sil[1], 1);
-  s.line(42, 63, 58, 90, sil[2], 2); s.line(43, 63, 59, 90, sil[1], 1);
-  s.line(24, 80, 52, 80, sil[0], 1); // półka na akcesoria
-  slab0(s, 32, 58, 46, 64, blk); // głowica statywu
-  // montaż: oś deklinacji, pręt i przeciwwaga
-  slab0(s, 34, 44, 44, 58, blk); s.rect(35, 45, 37, 57, blk[2]);
-  s.line(36, 54, 24, 70, sil[2], 1);
-  slab0(s, 19, 68, 28, 75, blk); s.rect(20, 69, 27, 70, blk[2]);
-  s.sprite(tube, 3, 0);
-  const o = P.trim(ink(s)), f = new P.Buf(o.w, o.h);  // lustro: tuba patrzy w prawo, jak stary teleskop
-  for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) f.px[y * o.w + x] = o.px[y * o.w + o.w - 1 - x];
-  return f;
+  const tubeR = P.hueRamp(4, { hue: 232, shift: 22, sat: 0.34, light: [0.44, 0.9] }), blk4 = [blk[0], blk[1], blk[1], blk[2]];
+  // statyw: nogi o równych schodkach 1:2 (tylna ciemniejsza), półka na akcesoria
+  s.rect(35, 64, 37, 94, sil[0]);
+  s.line(33, 64, 20, 90, sil[2], 2); s.line(38, 64, 51, 90, sil[2], 2);
+  s.rect(26, 80, 46, 81, sil[0]);
+  s.rect(18, 90, 23, 93, blk[1]); s.rect(50, 90, 55, 93, blk[1]);
+  slab0(s, 30, 58, 42, 64, blk);
+  // montaż paralaktyczny: oś, pręt pod 45° i przeciwwaga
+  slab0(s, 31, 44, 41, 58, blk); s.rect(32, 45, 34, 57, blk[2]);
+  tube45(s, 31, 52, -11, 0, 1, sil); tube45(s, 31, 52, -14, -10, 4, blk4);
+  // tuba pod 45°: dno, obejmy, szukacz i wyciąg na górnej stronie, ciemny wlot
+  tube45(s, 36, 28, 1, 11, 3, blk4); tube45(s, 46, 22, 0, 2, 4, sil);
+  tube45(s, 28, 52, -8, -6, 10, blk4); tube45(s, 28, 52, -6, 30, 11, tubeR);
+  for (const st of [4, 18]) tube45(s, 28, 52, st, st + 1, 12, blk4);
+  tube45(s, 28, 52, 28, 30, 12, blk4); tube45(s, 28, 52, 30, 30, 9, [blk[0], blk[0], blk[0], blk[0]]);
+  return P.trim(ink(s));
 }
 function slab0(s, x0, y0, x1, y1, r) { s.rect(x0, y0, x1, y1, r[1]); s.rect(x0, y0, x1, y0 + 1, r[2]); s.rect(x0, y1 - 1, x1, y1, r[0]); }
 module.exports = { newton };

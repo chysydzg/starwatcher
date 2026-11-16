@@ -148,8 +148,8 @@ function observatory(closed = false, empty = false, lit = 4, open = true) {  // 
   for (let y = 0; y < 35; y++) for (let x = 0; x < 80; x++) { const u = dome.get(x, y); if (u >>> 24) b.px[y * 80 + x] = u; }
   if (open) for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
   if (!closed && !empty) {
-    P.solid(b, [P.cap(40, 31, 55, 11, 2.4, 5.2)], steel, { light: [-0.5, -0.7, 0.5] });                      // teleskop: stożek rozszerza się ku obiektywowi
-    P.solid(b, [P.cap(55, 11, 56.5, 9, 5.4, 5.4)], white, { light: [-0.5, -0.7, 0.5] });                     // pierścień obiektywu
+    const { tube45 } = require("./kit.js");  // teleskop pod 45° (równe schodki), jasna osłona obiektywu
+    tube45(b, 40, 31, 0, 15, 4, steel); tube45(b, 40, 31, 15, 18, 6, white);
   }
   for (const [i, wx] of [10, 20, 52, 62].entries()) {                                                         // okna: świecą się albo są ciemne
     for (let y = 43; y < 50; y++) for (let x = wx; x < wx + 7; x++) b.pset(x, y, steel[1]);
