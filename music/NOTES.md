@@ -26,19 +26,19 @@ klaskania, w C pozytywka nad perkusją w pół-tempie. Akordy 6/9 zamiast maj7 p
 Dźwięki i barwy z tego samego banku co pozostałe pętle, ten sam miks (szyna, taśma, winyl, bębny 12-bit).
 
 ## Etap 2 (`compose_s2.py`; wzorce od autora: day2.mp3, night2.mp3, build.mp3, w repo ich nie trzymamy)
-| | laboratorium, dzień (`day2`) | kopuła, noc (`night2`) | remont (`build`) |
+| | laboratorium, dzień (`day2`) | kopuła, noc (`night2`) | urządzanie pokoiku (`build`) |
 |---|---|---|---|
 | tempo, tonacja | 78 BPM, G-dur | 66 BPM, a-moll | 132 BPM, C-dur |
 | pętla | 32 takty, 98,5 s (A–B–A'–C) | 24 takty, 87,3 s (A–B–A') | 24 takty, 43,6 s (A–B–A') |
 | prowadzi | flet nad ósemkami pizzicato, w B celesta | pianino elektryczne z echem, w B wibrafon, dzwonki na końcach fraz | fortepian staccato, w B celesta, w A' dzwonki i klaskanie |
 | wzorzec (earshot) | kwartet, pizzicato, flet, „romantic” | rozmarzone EP, szklana harfa, dzwonki, bez pulsu | fortepian i celesta, „SNES”, od smutku do nadziei |
-| odczyt (earshot) | „romantic” z +3,3, „cheerful cozy daytime” z +3,2; CLAP 0,73 do wzorca | „dreamy” z +2,9, „sad and melancholic” z +3,4; CLAP 0,75; ciemniej (514 Hz wobec 778 Hz) | „playful” z +3,8, „work montage” z +3,7; CLAP 0,36 – celowo żwawiej niż wzorzec, bo gra pod montażem z młotkami |
+| odczyt (earshot) | „romantic” z +3,3, „cheerful cozy daytime” z +3,2; CLAP 0,73 do wzorca | „dreamy” z +2,9, „sad and melancholic” z +3,4; CLAP 0,75; ciemniej (514 Hz wobec 778 Hz) | „playful” z +3,8, „work montage” z +3,7; CLAP 0,36 – żwawiej niż wzorzec; autor zatwierdził ten utwór bez zmian |
 
 Przerywniki dzień/noc (`sting_dawn` G-dur, `sting_dusk` C-dur, 120 BPM, 2 takty, ~4 s + wybrzmienie): harfa przebiega w górę,
 celesta i dzwonki kończą jasnym akordem toniki, triangel. Earshot: „a bright magical success jingle” z +4,1 / +4,2.
 W grze (`world.gd: _sky_anim`): na początku zmierzchu / świtu muzyka cichnie przez 1,2 s, gra przerywnik (`STING_DB`),
 a po animacji nieba nowy motyw wchodzi przez 3 s pod przyciskiem KONTYNUUJ. Etap 1 zostaje przy `day` / `night`.
-Remont (`moving.gd: _repair`) przenika się z przeprowadzki do `build` i z powrotem w finale.
+Tryb edycji pokoiku (Tab, `world.gd: _edit_toggle`): motyw pory dnia cichnie, `build` gra w pętli; po wyjściu wraca motyw dnia albo nocy. Cutscenka przeprowadzki (z remontem) gra wciąż `moving`.
 Wszystko na -16 LUFS jak pozostałe pętle.
 
 ## Jak to powstaje

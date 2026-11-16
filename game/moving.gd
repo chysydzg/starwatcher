@@ -213,8 +213,6 @@ func _repair() -> void:
 	engine = false
 	fx_draw = _draw_truck
 	Game.loop("site_work", -6.0)
-	Game.loop("music/moving", -INF, "Music", 1.5)  # remont ma własny motyw (music/build), finał wraca do przeprowadzki
-	Game.loop("music/build", -8.0, "Music", 1.5)
 	tick = func():
 		shot_t += get_process_delta_time()
 		if hammering and shot_t > next_hit:  # młotki w nierównym rytmie, czasem dwa szybko po sobie
@@ -269,8 +267,6 @@ func _draw_crane() -> void:
 # ---------------------------------------------------------------- 5. finał: noc, teleskop na miejscu, napis falą nad kopułą,
 ## U-Howl odjeżdża po ostatnim dialogu
 func _finale() -> void:
-	Game.loop("music/build", -INF, "Music", 1.5)
-	Game.loop("music/moving", -8.0, "Music", 1.5)
 	_scenery(sc, "night", "cut_observatory", OBS_AT)
 	_cam(Vector2(210, 200))  # obserwatorium i ciężarówka nad okienkiem dialogu, pod nimi odbicie
 	truck_x = TRUCK_PARK

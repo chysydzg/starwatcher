@@ -41,6 +41,7 @@ func _ready() -> void:
 	w.busy = false  # test: bez otwartych okienek
 	w._edit_toggle()
 	assert(w.editing)
+	assert(Game._loops["music/build"].playing, "tryb edycji: motyw build")
 	w.hover_item = "room_pufa"
 	w.held = "room_pufa"
 	w.held_from = [0, 0, false]
@@ -59,6 +60,9 @@ func _ready() -> void:
 	await get_tree().create_timer(0.5).timeout
 	shot("e2_edit")
 	w._edit_toggle()
+	await get_tree().create_timer(1.3).timeout
+	assert(not Game._loops["music/build"].playing, "po edycji build milknie")
+	print("EDIT MUSIC OK")
 	Game.decor = {}
 	for k in w.decor_items:
 		w._apply_decor(k)

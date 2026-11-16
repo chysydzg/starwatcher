@@ -9,6 +9,7 @@ const WALK_FPS := 16.0  # 2 pełne cykle chodu (4 kroki) na sekundę
 const ROOM_WALK := Rect2(14, 122, 612, 224)
 const BALCONY_WALK := Rect2(20, 318, 610, 42)
 const MUSIC_DB := -8.0  # pętle są masterowane na -16 LUFS
+const MUSIC_LOOPS := ["music/day", "music/night", "music/day2", "music/night2", "music/build"]  # build: tryb edycji pokoiku
 const STING_DB := -6.0  # przerywnik dzień/noc: -16 LUFS jak pętle, trochę głośniej od nich (gra sam)
 const CLOUDS := [Vector4(0, 33, 22, 3), Vector4(150, 40, 30, 4), Vector4(300, 34, 18, 3), Vector4(430, 57, 26, 3), Vector4(560, 45, 20, 3)]  # x, y, szer., wys.
 const BREATH := 2.6       # rytm oddechu Jani: dół BREATH_DOWN s, potem góra
@@ -374,6 +375,11 @@ func _edit_toggle() -> void:
 		_edit_cancel()
 	editing = not editing
 	hover_item = ""
+	if editing:  # urządzanie pokoiku ma własny motyw; po wyjściu wraca motyw pory dnia
+		for f in MUSIC_LOOPS:
+			Game.loop(f, MUSIC_DB if f == "music/build" else -INF, "Music", 1.0)
+	else:
+		_music(base and Game.night, 1.0)
 	for k in decor_items:
 		decor_items[k].s.modulate = Color.WHITE
 	Game.sfx("click")
@@ -610,7 +616,7 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 	top.add_child(o)
 	dusk_o = o
 	# zmiana motywu: muzyka cichnie, gra przerywnik (dawn: wschód, dusk: zmierzch), nowy motyw wchodzi pod KONTYNUUJ
-	for f in ["music/day", "music/night", "music/day2", "music/night2"]:
+	for f in MUSIC_LOOPS:
 		Game.loop(f, -INF, "Music", 1.2)
 	Game.sfx("music/sting_dawn" if dawn else "music/sting_dusk", 1.0, STING_DB, "Music")
 	var k := {"u": 0.0}
@@ -755,7 +761,7 @@ func _enter(where: String, instant := false) -> void:
 ## motyw dnia albo nocy (Etap 2: własne pętle laboratorium i kopuły); reszta cichnie przez `fade` s
 func _music(night_music: bool, fade := 0.8) -> void:
 	var want := "music/" + ("night" if night_music else "day") + ("2" if base else "")
-	for f in ["music/day", "music/night", "music/day2", "music/night2"]:
+	for f in MUSIC_LOOPS:
 		Game.loop(f, MUSIC_DB if f == want else -INF, "Music", fade)
 
 
