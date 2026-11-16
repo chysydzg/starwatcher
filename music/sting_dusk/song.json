@@ -1,0 +1,602 @@
+{
+ "schema": "music-production/v1",
+ "title": "Star Watcher - Zmierzch",
+ "version": "1.0.r1",
+ "brief": "One-shot day/night transition sting: cheerful, lifting, ends on a decaying tonic chord.",
+ "clock": {
+  "bars": 2,
+  "meter": [
+   4,
+   4
+  ],
+  "tempo": [
+   [
+    0,
+    120
+   ]
+  ],
+  "tail_seconds": 3
+ },
+ "sections": [
+  {
+   "id": "a",
+   "start_bar": 0,
+   "bars": 2,
+   "intent": "bright sting into the next theme"
+  }
+ ],
+ "tracks": [
+  {
+   "id": "harp",
+   "name": "harp",
+   "role": "texture",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 46,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "harp_0000",
+     "on": 0.0,
+     "duration": 2.5,
+     "pitch": 60
+    },
+    {
+     "id": "harp_0001",
+     "on": 0.25,
+     "duration": 2.25,
+     "pitch": 64
+    },
+    {
+     "id": "harp_0002",
+     "on": 0.5,
+     "duration": 2.0,
+     "pitch": 67
+    },
+    {
+     "id": "harp_0003",
+     "on": 0.75,
+     "duration": 1.75,
+     "pitch": 72
+    },
+    {
+     "id": "harp_0004",
+     "on": 1.0,
+     "duration": 1.5,
+     "pitch": 76
+    },
+    {
+     "id": "harp_0005",
+     "on": 1.25,
+     "duration": 1.25,
+     "pitch": 79
+    }
+   ],
+   "performance": {
+    "notes": {
+     "harp_0000": {
+      "velocity": 55,
+      "timing_ms": -7.11,
+      "gate": 0.9369
+     },
+     "harp_0001": {
+      "velocity": 64,
+      "timing_ms": -4.13,
+      "gate": 1.0064
+     },
+     "harp_0002": {
+      "velocity": 69,
+      "timing_ms": 0.94,
+      "gate": 1.0037
+     },
+     "harp_0003": {
+      "velocity": 73,
+      "timing_ms": 3.77,
+      "gate": 1.0109
+     },
+     "harp_0004": {
+      "velocity": 76,
+      "timing_ms": 3.19,
+      "gate": 1.0346
+     },
+     "harp_0005": {
+      "velocity": 75,
+      "timing_ms": 6.57,
+      "gate": 1.0074
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": -0.3,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -10,
+    "delay_db": null,
+    "level_dbfs": -22,
+    "highpass": 150,
+    "lowpass": 10000
+   }
+  },
+  {
+   "id": "celesta",
+   "name": "celesta",
+   "role": "melody",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 8,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "celesta_0000",
+     "on": 0,
+     "duration": 0.25,
+     "pitch": 84
+    },
+    {
+     "id": "celesta_0001",
+     "on": 0.25,
+     "duration": 0.25,
+     "pitch": 83
+    },
+    {
+     "id": "celesta_0002",
+     "on": 0.5,
+     "duration": 0.25,
+     "pitch": 79
+    },
+    {
+     "id": "celesta_0003",
+     "on": 0.75,
+     "duration": 0.25,
+     "pitch": 76
+    },
+    {
+     "id": "celesta_0004",
+     "on": 1,
+     "duration": 0.25,
+     "pitch": 77
+    },
+    {
+     "id": "celesta_0005",
+     "on": 1.25,
+     "duration": 0.25,
+     "pitch": 81
+    },
+    {
+     "id": "celesta_0006",
+     "on": 1.5,
+     "duration": 0.5,
+     "pitch": 84
+    },
+    {
+     "id": "celesta_0007",
+     "on": 2,
+     "duration": 3,
+     "pitch": 88
+    }
+   ],
+   "performance": {
+    "notes": {
+     "celesta_0000": {
+      "velocity": 70,
+      "timing_ms": -4.51,
+      "gate": 0.994
+     },
+     "celesta_0001": {
+      "velocity": 67,
+      "timing_ms": -3.82,
+      "gate": 0.9753
+     },
+     "celesta_0002": {
+      "velocity": 67,
+      "timing_ms": -11.63,
+      "gate": 0.9514
+     },
+     "celesta_0003": {
+      "velocity": 62,
+      "timing_ms": -4.1,
+      "gate": 0.9376
+     },
+     "celesta_0004": {
+      "velocity": 68,
+      "timing_ms": -2.24,
+      "gate": 0.9562
+     },
+     "celesta_0005": {
+      "velocity": 72,
+      "timing_ms": 5.97,
+      "gate": 0.9738
+     },
+     "celesta_0006": {
+      "velocity": 81,
+      "timing_ms": 6.98,
+      "gate": 0.9595
+     },
+     "celesta_0007": {
+      "velocity": 91,
+      "timing_ms": 11.71,
+      "gate": 0.9904
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0.2,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -10,
+    "delay_db": null,
+    "level_dbfs": -19,
+    "highpass": 220,
+    "lowpass": 10000,
+    "delay": {
+     "beats": 0.75,
+     "feedback": 0.25,
+     "send_db": -18,
+     "lowpass": 4000,
+     "ping_pong": true
+    }
+   }
+  },
+  {
+   "id": "glock",
+   "name": "glock",
+   "role": "texture",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 9,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "glock_0000",
+     "on": 2,
+     "duration": 3,
+     "pitch": 91
+    },
+    {
+     "id": "glock_0001",
+     "on": 2.5,
+     "duration": 2.5,
+     "pitch": 84
+    }
+   ],
+   "performance": {
+    "notes": {
+     "glock_0000": {
+      "velocity": 74,
+      "timing_ms": -5.09,
+      "gate": 0.97
+     },
+     "glock_0001": {
+      "velocity": 68,
+      "timing_ms": 5.89,
+      "gate": 1.03
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0.4,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -9,
+    "delay_db": null,
+    "level_dbfs": -26,
+    "highpass": 400,
+    "lowpass": 10000
+   }
+  },
+  {
+   "id": "strings",
+   "name": "strings",
+   "role": "texture",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 48,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "strings_0000",
+     "on": 2,
+     "duration": 3.5,
+     "pitch": 60
+    },
+    {
+     "id": "strings_0001",
+     "on": 2,
+     "duration": 3.5,
+     "pitch": 64
+    },
+    {
+     "id": "strings_0002",
+     "on": 2,
+     "duration": 3.5,
+     "pitch": 67
+    },
+    {
+     "id": "strings_0003",
+     "on": 2,
+     "duration": 3.5,
+     "pitch": 74
+    }
+   ],
+   "performance": {
+    "notes": {
+     "strings_0000": {
+      "velocity": 61,
+      "timing_ms": 2.76,
+      "gate": 1.0
+     },
+     "strings_0001": {
+      "velocity": 61,
+      "timing_ms": 0.11,
+      "gate": 1.0
+     },
+     "strings_0002": {
+      "velocity": 61,
+      "timing_ms": -4.78,
+      "gate": 1.0
+     },
+     "strings_0003": {
+      "velocity": 61,
+      "timing_ms": -5.52,
+      "gate": 1.0
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -9,
+    "delay_db": null,
+    "level_dbfs": -27,
+    "highpass": 140,
+    "lowpass": 6000
+   }
+  },
+  {
+   "id": "pizz",
+   "name": "pizz",
+   "role": "bass",
+   "engine": "soundfont",
+   "drums": false,
+   "program": 45,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "pizz_0000",
+     "on": 2,
+     "duration": 1.5,
+     "pitch": 36
+    },
+    {
+     "id": "pizz_0001",
+     "on": 2,
+     "duration": 1.5,
+     "pitch": 48
+    }
+   ],
+   "performance": {
+    "notes": {
+     "pizz_0000": {
+      "velocity": 83,
+      "timing_ms": 4.62,
+      "gate": 1.0
+     },
+     "pizz_0001": {
+      "velocity": 69,
+      "timing_ms": 4.62,
+      "gate": 1.0
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "active_rms",
+    "pan": 0,
+    "eq": [],
+    "automation": [],
+    "reverb_db": null,
+    "delay_db": null,
+    "level_dbfs": -24,
+    "highpass": 35,
+    "lowpass": 3000
+   }
+  },
+  {
+   "id": "drums",
+   "name": "drums",
+   "role": "drums",
+   "engine": "soundfont",
+   "drums": true,
+   "program": 0,
+   "bank": 0,
+   "range": [
+    0,
+    127
+   ],
+   "notes": [
+    {
+     "id": "drums_0000",
+     "on": 2,
+     "duration": 0.3,
+     "pitch": 36
+    },
+    {
+     "id": "drums_0001",
+     "on": 2,
+     "duration": 1,
+     "pitch": 81
+    },
+    {
+     "id": "drums_0002",
+     "on": 0.0,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0003",
+     "on": 0.25,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0004",
+     "on": 0.5,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0005",
+     "on": 0.75,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0006",
+     "on": 1.0,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0007",
+     "on": 1.25,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0008",
+     "on": 1.5,
+     "duration": 0.1,
+     "pitch": 70
+    },
+    {
+     "id": "drums_0009",
+     "on": 1.75,
+     "duration": 0.1,
+     "pitch": 70
+    }
+   ],
+   "performance": {
+    "notes": {
+     "drums_0000": {
+      "velocity": 74,
+      "timing_ms": 0.79,
+      "gate": 1.0
+     },
+     "drums_0001": {
+      "velocity": 72,
+      "timing_ms": 0.79,
+      "gate": 1.0
+     },
+     "drums_0002": {
+      "velocity": 24,
+      "timing_ms": -4.92,
+      "gate": 1.0
+     },
+     "drums_0003": {
+      "velocity": 28,
+      "timing_ms": 0.56,
+      "gate": 1.0
+     },
+     "drums_0004": {
+      "velocity": 34,
+      "timing_ms": 2.55,
+      "gate": 1.0
+     },
+     "drums_0005": {
+      "velocity": 40,
+      "timing_ms": 3.01,
+      "gate": 1.0
+     },
+     "drums_0006": {
+      "velocity": 43,
+      "timing_ms": -2.0,
+      "gate": 1.0
+     },
+     "drums_0007": {
+      "velocity": 46,
+      "timing_ms": 1.15,
+      "gate": 1.0
+     },
+     "drums_0008": {
+      "velocity": 55,
+      "timing_ms": 1.3,
+      "gate": 1.0
+     },
+     "drums_0009": {
+      "velocity": 61,
+      "timing_ms": -2.37,
+      "gate": 1.0
+     }
+    },
+    "cc": []
+   },
+   "mix": {
+    "level_mode": "peak",
+    "pan": 0,
+    "eq": [],
+    "automation": [],
+    "reverb_db": -20,
+    "delay_db": null,
+    "level_dbfs": -22,
+    "highpass": 40,
+    "lowpass": 12000,
+    "effects": [
+     {
+      "type": "bitcrush",
+      "bits": 12,
+      "downsample": 2,
+      "mix": 0.55
+     }
+    ],
+    "saturate": 0.2
+   }
+  }
+ ],
+ "harmony": [
+  {
+   "bar": 1,
+   "beat": 0,
+   "symbol": "Cadd9"
+  }
+ ],
+ "mix": {
+  "chain": "bus",
+  "target_lufs": -16,
+  "dynamics": "glue",
+  "wow_flutter": {
+   "wow_cents": 4,
+   "wow_hz": 0.5,
+   "flutter_cents": 1,
+   "flutter_hz": 7
+  }
+ }
+}

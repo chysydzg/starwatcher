@@ -9,6 +9,7 @@ const WALK_FPS := 16.0  # 2 pełne cykle chodu (4 kroki) na sekundę
 const ROOM_WALK := Rect2(14, 122, 612, 224)
 const BALCONY_WALK := Rect2(20, 318, 610, 42)
 const MUSIC_DB := -8.0  # pętle są masterowane na -16 LUFS
+const STING_DB := -6.0  # przerywnik dzień/noc: -16 LUFS jak pętle, trochę głośniej od nich (gra sam)
 const CLOUDS := [Vector4(0, 33, 22, 3), Vector4(150, 40, 30, 4), Vector4(300, 34, 18, 3), Vector4(430, 57, 26, 3), Vector4(560, 45, 20, 3)]  # x, y, szer., wys.
 const BREATH := 2.6       # rytm oddechu Jani: dół BREATH_DOWN s, potem góra
 const BREATH_DOWN := 1.5
@@ -608,12 +609,17 @@ func _sky_anim(dawn: bool, then: Callable) -> void:
 	Game.cover(o)
 	top.add_child(o)
 	dusk_o = o
+	# zmiana motywu: muzyka cichnie, gra przerywnik (dawn: wschód, dusk: zmierzch), nowy motyw wchodzi pod KONTYNUUJ
+	for f in ["music/day", "music/night", "music/day2", "music/night2"]:
+		Game.loop(f, -INF, "Music", 1.2)
+	Game.sfx("music/sting_dawn" if dawn else "music/sting_dusk", 1.0, STING_DB, "Music")
 	var k := {"u": 0.0}
 	o.draw.connect(func(): _draw_dusk(o, 1.0 - k.u if dawn else k.u, k.u, dawn))
 	o.create_tween().set_loops().tween_callback(o.queue_redraw).set_delay(1.0 / 30.0)  # woda, chmury i gwiazdy żyją cały czas
 	var tw := o.create_tween()  # ginie razem z okienkiem
 	tw.tween_method(func(v): k.u = v, 0.0, 1.0, 3.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_callback(func():
+		_music(not dawn, 3.0)
 		var b := Button.new()
 		b.text = "KONTYNUUJ"
 		b.position = Vector2(260, 318) + Game.margin
@@ -743,9 +749,14 @@ func _enter(where: String, instant := false) -> void:
 		Game.tutorial_once(self, "edycja")
 	if where == "room" and Game.tips.has("tut_tel"):  # po pierwszej nocy przy teleskopie: jak sprzedawać i się rozwijać
 		Game.tutorial_once(self, "pc")
-	var night_music := where == "balcony" or (base and Game.night)  # Etap 2: noc spędza się w kopule
-	Game.loop("music/day", MUSIC_DB if not night_music else -INF, "Music")  # pokój: dzień, balkon: noc
-	Game.loop("music/night", MUSIC_DB if night_music else -INF, "Music")
+	_music(where == "balcony" or (base and Game.night))  # Etap 2: noc spędza się w kopule
+
+
+## motyw dnia albo nocy (Etap 2: własne pętle laboratorium i kopuły); reszta cichnie przez `fade` s
+func _music(night_music: bool, fade := 0.8) -> void:
+	var want := "music/" + ("night" if night_music else "day") + ("2" if base else "")
+	for f in ["music/day", "music/night", "music/day2", "music/night2"]:
+		Game.loop(f, MUSIC_DB if f == want else -INF, "Music", fade)
 
 
 func _go(where: String) -> void:

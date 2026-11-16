@@ -369,12 +369,12 @@ func _stream(file: String) -> AudioStream:
 
 
 ## jednorazowy efekt (oprawa z GDD rozdz. 22)
-func sfx(file: String, pitch := 1.0, db := 0.0) -> void:
+func sfx(file: String, pitch := 1.0, db := 0.0, bus := "SFX") -> void:
 	var p := AudioStreamPlayer.new()
 	p.stream = _stream(file)
 	p.pitch_scale = pitch
 	p.volume_db = db
-	p.bus = "SFX"
+	p.bus = bus
 	add_child(p)
 	p.play()
 	p.finished.connect(p.queue_free)
@@ -391,7 +391,7 @@ func ding(pitch := 1.0) -> void:
 
 
 ## pętla tła (deszcz, jezioro, szum kosmosu…) płynnie do `db`; db = -INF wycisza i zatrzymuje
-func loop(file: String, db: float, bus := "Ambient") -> void:
+func loop(file: String, db: float, bus := "Ambient", fade := 0.8) -> void:
 	var p: AudioStreamPlayer = _loops.get(file)
 	if p == null:
 		if db == -INF:
@@ -408,7 +408,7 @@ func loop(file: String, db: float, bus := "Ambient") -> void:
 		_fades[file].kill()  # stare wyciszanie nie zatrzyma ponownie włączonej pętli
 	var tw := create_tween()
 	_fades[file] = tw
-	tw.tween_property(p, "volume_db", -50.0 if db == -INF else db, 0.8)
+	tw.tween_property(p, "volume_db", -50.0 if db == -INF else db, fade)
 	if db == -INF:
 		tw.tween_callback(p.stop)  # bez lambdy: lambda trzymała odtwarzanie Ogg (wyciek przy wyjściu)
 

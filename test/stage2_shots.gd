@@ -112,4 +112,13 @@ func _ready() -> void:
 	w._enter("pokoik", true)
 	await get_tree().create_timer(2.0).timeout
 	shot("e2_noc_pokoik")
+	# zmiana pory: muzyka cichnie, gra przerywnik, potem wchodzi motyw Etapu 2 (day2 / night2), stare pętle milczą
+	w.busy = false
+	w._sky_anim(true, func(): pass)
+	await get_tree().create_timer(1.5).timeout
+	assert(Game._loops["music/night2"].volume_db < -20.0, "noc cichnie pod przerywnikiem")
+	await get_tree().create_timer(5.5).timeout
+	assert(Game._loops["music/day2"].playing and Game._loops["music/day2"].volume_db > -10.0, "dzień 2 po przerywniku")
+	assert(not Game._loops.has("music/day") or not Game._loops["music/day"].playing, "pętla Etapu 1 milczy")
+	print("MUSIC S2 OK")
 	Game.quit()

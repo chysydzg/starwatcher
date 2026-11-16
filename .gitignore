@@ -13,3 +13,6 @@ music/*/render_*/
 music/*/analyze_*.txt
 music/render_*.log
 __pycache__/
+music/*.mp3
+music/*/render_*.log
+music/*/review_*
