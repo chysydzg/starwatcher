@@ -845,7 +845,7 @@ func _zespol() -> void:
 		row.add_theme_stylebox_override("panel", _box(Color("ffffff"), Color("8a9a8a")))
 		body.add_child(row)
 		_label(row, p.name + ("  [!]" if p.report != "" else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" else INK)
-		var tr: String = Game.TRAITS[p.traits[0]][0] + ("  +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
+		var tr: String = Game.TRAITS[p.traits[0]][0] + (" +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
 		_label(row, tr, Vector2(166, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
 		_num(row, "$%d/tydz." % p.get("salary", Game.hire_cost(i)[1]), 380, 5, Color("6a6a7a"))
 		for m in 3:
@@ -876,10 +876,11 @@ func _zespol() -> void:
 		card.add_theme_stylebox_override("panel", _box(Color("fffbe8"), Color("a89a6a")))
 		body.add_child(card)
 		_label(card, c.name, Vector2(6, 2))
-		_portrait(card, c, Vector2(4, 22), Vector2(64, 62))
-		_label(card, "\n".join(c.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(76, 22), Color("6a5a2a"))
+		_portrait(card, c, Vector2(4, 22), Vector2(60, 62))
+		for k in c.traits.size():
+			_label(card, Game.TRAITS[c.traits[k]][0], Vector2(70, 20 + k * 20), Color("6a5a2a"))
 		var cost: Array = Game.cand_cost(c)
-		_label(card, "$%d\n+ $%d/tydz." % cost, Vector2(76, 58), Color("2a7a3a"))
+		_label(card, "$%d + $%d/tyg." % cost, Vector2(70, 64), Color("2a7a3a"))
 		var hb := _button("ZATRUDNIJ", func():
 			var why := Game.hire(c)
 			if why != "":
