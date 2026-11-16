@@ -32,8 +32,8 @@ const ROOM_LIGHTS := [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82),
 const LAB_LIGHTS := [[Vector2(470, 170), "e8f0ff", 0.7, 1.8], [Vector2(412, 82), "e8f0ff", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
 	[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(472, 80), "8affb0", 0.5, 1.0], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]
 const CAT_DESK := Vector2(168, 284)  # stopy Arbjooze za jego biurkiem (biurko zasłania nogi)
-## biurka pozostałych pracowników (lewy górny róg biurka): lewa ściana i pod platformą teleskopu
-const DESKS := [Vector2(30, 200), Vector2(30, 290), Vector2(384, 296), Vector2(476, 296)]
+## miejsca pracowników przy stanowiskach (base.js): stopy za blatem; tryb 1 obserwacje, 2 analiza, 3 warsztat
+const SEATS := {1: [Vector2(55, 160), Vector2(55, 246)], 2: [Vector2(428, 306), Vector2(520, 306)], 3: [Vector2(548, 204)]}
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -52,7 +52,15 @@ var _step_frame := -1  # klatka chodu, przy której ostatnio był krok
 var owl_t := 20.0  # odległe pohukiwanie sowy nad jeziorem, co jakiś czas nocą
 var glow: Node2D
 var props := {}
-var feet := {"room": [], "balcony": [], "pokoik": []}
+var feet := {"room": [], "balcony": [], "pokoik": []}  # [prostokąt kolizji, nazwa obiektu]
+var shapes := {}          # nazwa obiektu -> CollisionShape2D (zakupy pokazują się po otwarciu paczki, edycja pokoiku)
+var opt_props := []       # [sprite, id zakupu] laboratorium Etapu 2
+var decor_items := {}     # pokoik: nazwa -> {s, pos0, rect0, kind, opt} (tryb edycji: przestawianie mebli i ozdób)
+var editing := false      # tryb edycji pokoiku (Tab)
+var held := ""            # podniesiony obiekt
+var held_from := []       # [dx, dy, odbity] przed podniesieniem (PPM odkłada z powrotem)
+var hover_item := ""
+var own_lights := []      # światła pokoiku [lampka, okno, lampa, drzwi] i ich pozycje domyślne
 var pokoik: Node2D        # Etap 2: osobny pokoik Jani (location „pokoik”)
 var pokoik_sort: Node2D
 var hud: Node2D
@@ -83,7 +91,7 @@ var tip := ""
 var base := false          # Etap 2: wnętrze obserwatorium zamiast pokoju (ten sam układ, inne tło i meble)
 var cat: Sprite2D          # Arbjooze (arbjooze.png: 5x3 klatek 40x58; przód 0-4, bok 5-9, protezy 10-13)
 var cat_wave := false
-var workers := []          # [biurko, sprite] pracowników 2-5 (worker_<rodzaj>.png, 4 klatki machania)
+var workers := []          # sprite'y pracowników 2-5 (worker_<rodzaj>.png, 4 klatki machania) przy stanowiskach
 
 
 func _ready() -> void:
@@ -175,11 +183,17 @@ func _scene(where: String, root: Node2D) -> Node2D:
 		s.offset = Vector2(0, p.y - p.base)
 		sorter.add_child(s)
 		props[p.name] = s
-		if p.name in ["balcony_newton", "balcony_parasol"]:  # stoją tam, gdzie teleskop: jego kolider wystarczy
+		if p.has("opt"):
+			opt_props.append([s, p.opt, p.name])
+		if p.name in ["balcony_newton", "balcony_parasol"] or p.get("nocol", false):  # stoją tam, gdzie teleskop / wiszą na ścianie
 			continue
-		# kolider = cały obrys obiektu (bez 1 px obrysu): przez mebel nie da się przejść ani wejść w niego
+		# kolider = cały obrys obiektu (bez 1 px obrysu): przez mebel nie da się przejść ani wejść w niego;
+		# wysokie obiekty w laboratorium (teleskopy, legowisko) tylko pod stopą, żeby dało się przejść za nimi
 		var sz := s.texture.get_size()
-		feet[where if feet.has(where) else "room"].append(Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3))  # laboratorium Etapu 2 = „room”
+		var r := Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3)
+		if p.get("footcol", false):
+			r = Rect2(p.foot[0], p.foot[1], p.foot[2] - p.foot[0], p.foot[3] - p.foot[1])
+		feet[where if feet.has(where) else "room"].append([r, p.name])  # laboratorium Etapu 2 = „room”
 	return sorter
 
 
@@ -192,12 +206,15 @@ func _colliders(where: String, root: Node2D) -> void:
 	var a: Rect2 = BALCONY_WALK if where == "balcony" else ROOM_WALK
 	var walls := [Rect2(a.position.x - 40, a.position.y - 40, a.size.x + 80, 40), Rect2(a.position.x - 40, a.end.y, a.size.x + 80, 40),
 		Rect2(a.position.x - 40, a.position.y, 40, a.size.y), Rect2(a.end.x, a.position.y, 40, a.size.y)]
-	for r in feet[where] + walls:
+	for f in feet[where] + walls.map(func(w): return [w, ""]):
+		var r: Rect2 = f[0]
 		var cs := CollisionShape2D.new()
 		cs.shape = RectangleShape2D.new()
 		cs.shape.size = r.size
 		cs.position = r.get_center()
 		sb.add_child(cs)
+		if f[1] != "":
+			shapes[f[1]] = cs
 
 
 func _build_room() -> void:
@@ -234,16 +251,13 @@ func _build_room() -> void:
 		room_sort.add_child(cat)
 	_colliders("room", room)
 	if base:
-		for d in DESKS:
-			var wd := _sprite("base_catdesk", Vector2(d.x, d.y + 41), room_sort)  # sortowanie po podstawie biurka
-			wd.offset = Vector2(0, -41)
+		for i in Game.STAFF_MAX - 1:
 			var w := Sprite2D.new()
 			w.centered = false
 			w.hframes = 4
 			w.offset = Vector2(-22, -62)
-			w.position = d + Vector2(33, 24)
 			room_sort.add_child(w)
-			workers.append([wd, w])
+			workers.append(w)
 		_place_workers()
 	for l in (LAB_LIGHTS if base else ROOM_LIGHTS):
 		lights.append(_light(room, l))
@@ -281,8 +295,172 @@ func _build_pokoik() -> void:
 	pokoik_sort = _scene("pokoik", pokoik)
 	_colliders("pokoik", pokoik)
 	var own := [ROOM_LIGHTS[0], ROOM_LIGHTS[3], ROOM_LIGHTS[4], ROOM_LIGHTS[5]].map(func(l): return _light(pokoik, l))
+	own_lights = own
 	lights.append_array(own)
 	lamps = {"lampka": {"light": own[0], "on": true}, "lampa": {"light": own[2], "on": true}}
+	for p in Game.layout("pokoik"):
+		var sp: Sprite2D = props[p.name]
+		var sz := sp.texture.get_size()
+		decor_items[p.name] = {"s": sp, "pos0": sp.position, "rect0": Rect2(p.x + 1, p.y + 1, sz.x - 2, sz.y - 3),
+			"kind": p.get("kind", "floor"), "opt": p.get("opt", ""), "img": Game.img(p.name)}
+		if p.get("kind", "") == "rug":  # dywanik leży pod wszystkim
+			sp.reparent(pokoik)
+			pokoik.move_child(sp, pokoik_sort.get_index())
+		_apply_decor(p.name)
+
+
+## pozycja obiektu w pokoiku z zapisu (przesunięcie od miejsca domyślnego i odbicie); kolider i lampy idą razem z nim
+func _apply_decor(n: String) -> void:
+	var it: Dictionary = decor_items[n]
+	var d: Array = Game.decor.get(n, [0, 0, false])
+	var off := Vector2(d[0], d[1])
+	it.s.position = it.pos0 + off
+	it.s.flip_h = d[2]
+	it.s.visible = it.opt == "" or Game.has(it.opt)
+	if shapes.has(n):
+		shapes[n].position = it.rect0.get_center() + off
+		shapes[n].set_deferred("disabled", not it.s.visible)
+	if n == "room_nightstand" and own_lights.size() > 0:
+		own_lights[0].position = _decor_pt(n, ROOM_LIGHTS[0][0])
+	elif n == "room_lamp" and own_lights.size() > 2:
+		own_lights[2].position = _decor_pt(n, ROOM_LIGHTS[4][0])
+
+
+## punkt z grafiki domyślnego ustawienia (np. żarówka) po przesunięciu i odbiciu obiektu
+func _decor_pt(n: String, p: Vector2) -> Vector2:
+	if not decor_items.has(n):
+		return p
+	var it: Dictionary = decor_items[n]
+	var d: Array = Game.decor.get(n, [0, 0, false])
+	if d[2]:
+		p.x = 2.0 * it.rect0.get_center().x - p.x
+	return p + Vector2(d[0], d[1])
+
+
+func _decor_off(n: String) -> Vector2:
+	var d: Array = Game.decor.get(n, [0, 0, false])
+	return Vector2(d[0], d[1])
+
+
+## czy obiekt może stać tu, gdzie go trzymamy: podłoga (ozdoby ścienne na ścianie), bez wchodzenia na inne meble i na Janię
+func _decor_ok(n: String) -> bool:
+	var it: Dictionary = decor_items[n]
+	var r: Rect2 = it.rect0
+	r.position += _decor_off(n)
+	if it.kind == "wall":
+		return r.position.y >= 12 and r.end.y <= 104 and r.position.x >= 12 and r.end.x <= 628
+	var bottom := r.end.y + 2
+	if bottom < 118 or bottom > 346 or r.position.x < 12 or r.end.x > 628:
+		return false
+	if it.kind == "rug":
+		return true
+	for k in decor_items:
+		var o: Dictionary = decor_items[k]
+		if k == n or o.kind != "floor" or not o.s.visible:
+			continue
+		var q: Rect2 = o.rect0
+		q.position += _decor_off(k)
+		if r.intersects(q):
+			return false
+	return not r.intersects(Rect2(body.position - Vector2(8, 6), Vector2(16, 8)))
+
+
+func _edit_toggle() -> void:
+	if not editing and (Game.location != "pokoik" or busy or viewport):
+		return
+	if editing and held != "":
+		_edit_cancel()
+	editing = not editing
+	hover_item = ""
+	for k in decor_items:
+		decor_items[k].s.modulate = Color.WHITE
+	Game.sfx("click")
+
+
+func _edit_cancel() -> void:
+	if held == "":
+		return
+	Game.decor[held] = held_from
+	_apply_decor(held)
+	decor_items[held].s.modulate = Color.WHITE
+	held = ""
+
+
+## obiekt pod kursorem: najwyższy (najbliżej kamery) nieprzezroczysty piksel
+func _decor_at(p: Vector2) -> String:
+	var best := ""
+	var best_y := -INF
+	for k in decor_items:
+		var it: Dictionary = decor_items[k]
+		if not it.s.visible:
+			continue
+		var tl: Vector2 = it.s.position + it.s.offset
+		var lp := (p - tl).floor()
+		var sz: Vector2 = it.s.texture.get_size()
+		if lp.x < 0 or lp.y < 0 or lp.x >= sz.x or lp.y >= sz.y:
+			continue
+		var img: Image = it.img
+		if img.get_pixel(int(sz.x - 1 - lp.x) if it.s.flip_h else int(lp.x), int(lp.y)).a < 0.5:
+			continue
+		var y: float = it.s.position.y if it.kind != "rug" else -1000.0
+		if y > best_y:
+			best_y = y
+			best = k
+	return best
+
+
+func _edit_input(e: InputEvent) -> bool:
+	if e.is_action_pressed("edit"):
+		_edit_toggle()
+		return true
+	if not editing:
+		return false
+	var mp := get_global_mouse_position()
+	if e is InputEventMouseMotion:
+		if held != "":
+			var it: Dictionary = decor_items[held]
+			var off: Vector2 = (mp - it.grab - it.pos0).round()
+			Game.decor[held] = [off.x, off.y, Game.decor.get(held, [0, 0, false])[2]]
+			_apply_decor(held)
+			it.s.modulate = Color(1.15, 1.15, 1.15) if _decor_ok(held) else Color(1.5, 0.55, 0.55)
+		else:
+			var h := _decor_at(mp)
+			if h != hover_item:
+				if hover_item != "":
+					decor_items[hover_item].s.modulate = Color.WHITE
+				hover_item = h
+				if h != "":
+					decor_items[h].s.modulate = Color(1.25, 1.25, 1.25)
+	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		if held == "" and hover_item != "":
+			held = hover_item
+			held_from = Game.decor.get(held, [0, 0, false]).duplicate()
+			decor_items[held].grab = mp - decor_items[held].s.position
+			Game.sfx("click", 1.2)
+		elif held != "":
+			if _decor_ok(held):
+				decor_items[held].s.modulate = Color.WHITE
+				held = ""
+				Game.sfx("thud", 1.0, -6.0)
+				Game.save_game()
+			else:
+				Game.sfx("miss", 1.0, -6.0)
+	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT or e.is_action_pressed("back"):
+		if held != "":
+			_edit_cancel()
+		else:
+			_edit_toggle()
+	elif e.is_action_pressed("prev_obj") or e.is_action_pressed("next_obj"):  # Q/E: obrót (odbicie lustrzane mebla)
+		var k := held if held != "" else hover_item
+		if k != "":
+			var d: Array = Game.decor.get(k, [0, 0, false]).duplicate()
+			d[2] = not d[2]
+			Game.decor[k] = d
+			_apply_decor(k)
+			Game.sfx("click", 0.9)
+			if held == "":
+				Game.save_game()
+	return true
 
 
 ## LCD stoi w miejscu CRT: tło za nim odtwarzam z kolumny obok monitora (ściana + blat biurka)
@@ -487,7 +665,14 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 		o.draw_rect(Rect2(cx + 12, cy - 5, 36, 5), body_c)
 		o.draw_rect(Rect2(cx + 4, cy + 6, 60, 2), Color("ffb070").lerp(Color("2a2246"), night))
 	# ten sam widok co z balkonu (góry, las, laboratorium, jezioro), rozjaśniony za dnia i ciepły o zmierzchu
-	o.draw_texture(Game.tex("balcony_view_wide"), Vector2(-320, -60), Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night))
+	var view_col := Color(1.9, 2.0, 1.7).lerp(Color(1.7, 1.15, 0.95), dusk).lerp(Color.WHITE, night)
+	o.draw_texture(Game.tex("balcony_view_wide"), Vector2(-320, -60), view_col)
+	if Game.stage >= 2:  # odnowione obserwatorium z teleskopem (jak w finale przeprowadzki) i jego odbicie w jeziorze
+		var obs_col := Color(1.25, 1.25, 1.25).lerp(Color(1.25, 0.95, 0.82), dusk).lerp(Color.WHITE, night)
+		o.draw_set_transform(Game.margin + Vector2(146, 424 - 143), 0.0, Vector2(1, -1))
+		o.draw_texture(Game.tex("cut_observatory"), Vector2.ZERO, Color(obs_col * Color(0.55, 0.6, 0.8), 0.45))
+		o.draw_set_transform(Game.margin)
+		o.draw_texture(Game.tex("cut_observatory"), Vector2(146, 143), obs_col)
 	var glint := Color("f4f8ff").lerp(Color("ffc890"), dusk).lerp(Color("c8d0ff"), night)
 	for i in 60:  # fale: krótkie błyski dryfujące po jeziorze
 		var y := 224 + (i * 37) % 132
@@ -553,6 +738,8 @@ func _enter(where: String, instant := false) -> void:
 	elif body.position == Vector2.ZERO:
 		body.position = Vector2(300, 220)
 	_apply_phase(true)
+	if where == "pokoik":  # pierwszy raz w pokoiku: da się go urządzać
+		Game.tutorial_once(self, "edycja")
 	if where == "room" and Game.tips.has("tut_tel"):  # po pierwszej nocy przy teleskopie: jak sprzedawać i się rozwijać
 		Game.tutorial_once(self, "pc")
 	var night_music := where == "balcony" or (base and Game.night)  # Etap 2: noc spędza się w kopule
@@ -572,7 +759,7 @@ func _go(where: String) -> void:
 # ---------------------------------------------------------------- pętla
 func _process(dt: float) -> void:
 	t += dt
-	var pointer: bool = busy or (viewport != null and (not viewport.get("is_telescope") or viewport.get("dialog") != null))  # kursor tylko w okienkach, AstroOS i oknie wyboru w okularze
+	var pointer: bool = busy or editing or (viewport != null and (not viewport.get("is_telescope") or viewport.get("dialog") != null))  # kursor tylko w okienkach, AstroOS i oknie wyboru w okularze
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pointer else Input.MOUSE_MODE_HIDDEN
 	if viewport or busy:  # przy komputerze, teleskopie i okienkach Jania stoi (inaczej tupanie gra dalej)
 		jania.set_meta("walking", false)
@@ -610,13 +797,13 @@ func _process(dt: float) -> void:
 		toasts[i].t -= dt
 		if toasts[i].t <= 0:
 			toasts.remove_at(i)
-	if viewport == null and not busy:
+	if viewport == null and not busy and not editing:
 		_move()
 	_animate(dt)
 	if Game.stage >= 2:
 		Game.staff_tick(dt)
 		for i in workers.size():  # pracownicy machają ogonami, każdy w swoim rytmie
-			workers[i][1].frame = [0, 1, 2, 3, 2, 1][int((t + i * 0.7) * 6.0) % 6] if fmod(t + i * 1.9, 5.0) < 1.0 else 0
+			workers[i].frame = [0, 1, 2, 3, 2, 1][int((t + i * 0.7) * 6.0) % 6] if fmod(t + i * 1.9, 5.0) < 1.0 else 0
 	if cat and not cat.get_meta("walking"):  # Arbjooze stoi przodem i czasem mruga; macha chwytakiem na powitanie
 		cat.flip_h = false
 		var mode: int = int(Game.staff[0].mode) if not Game.staff.is_empty() and Game.tips.has("arbjooze") else 0
@@ -689,8 +876,14 @@ func _spots() -> Dictionary:
 	if base and Game.location == "room":
 		var d := BASE_SPOTS.duplicate()
 		for i in workers.size():
-			if workers[i][0].visible:
-				d["pracownik%d" % (i + 1)] = Rect2(DESKS[i].x, DESKS[i].y + 4, 66, 38)
+			if workers[i].visible:
+				d["pracownik%d" % (i + 1)] = Rect2(workers[i].position + Vector2(-26, -6), Vector2(52, 48))  # do przodu blatu (pracownik siedzi za biurkiem)
+		return d
+	if Game.location == "pokoik" and base:  # meble mogły zmienić miejsce: punkty interakcji idą za nimi
+		var d := POKOIK_SPOTS.duplicate()
+		for pair in [["lozko", "room_bed"], ["lampka", "room_nightstand"], ["szafa", "room_wardrobe"], ["lampa", "room_lamp"]]:
+			d[pair[0]] = POKOIK_SPOTS[pair[0]]
+			d[pair[0]].position += _decor_off(pair[1])
 		return d
 	return {"balcony": BALCONY_SPOTS, "pokoik": POKOIK_SPOTS}.get(Game.location, BASE_SPOTS if base else ROOM_SPOTS)
 
@@ -757,6 +950,9 @@ func _cheats() -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if not busy and not viewport and pokoik and _edit_input(e):
+		get_viewport().set_input_as_handled()
+		return
 	if busy or viewport:
 		return
 	if e.is_action_pressed("back") or e.is_action_pressed("pause"):
@@ -768,7 +964,9 @@ func _unhandled_input(e: InputEvent) -> void:
 func _interact(k: String) -> void:
 	match k:
 		"teleskop":
-			if not Game.night:
+			if not Game.night and base:  # Etap 2: noc spędza się przy dużym teleskopie, tu zmienia się pora dnia
+				_ask("Czy zmienić porę dnia?", _toggle_phase)
+			elif not Game.night:
 				_say("Za jasno. Wrócę w nocy.")
 			elif Game.night_left <= 0:
 				_say("Oczy same mi się zamykają... Pora spać.")
@@ -784,8 +982,8 @@ func _interact(k: String) -> void:
 		"drzwi":
 			if Game.location == "pokoik":
 				_go("room")
-			elif Game.night and base:
-				_say("Noc. Teleskop w kopule czeka.")
+			elif base:
+				_say("Teleskop w kopule czeka." if Game.night else "Dziś nigdzie nie wychodzę.")
 			elif Game.night:
 				_go("balcony")
 			else:
@@ -837,14 +1035,33 @@ func _interact(k: String) -> void:
 			lamps[k].light.energy = _lamp_e(k)  # pstryczek działa od razu, bez przenikania
 
 
+## pikselowy wykrzyknik nad głową (zgłoszenie odkrycia): żółta kreska i kropka z ciemnym obrysem, bez ramki
+func _bang(n: CanvasItem, p: Vector2) -> void:
+	n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(6, 11)), Color("1a1426"))
+	n.draw_rect(Rect2(p + Vector2(-1, 11), Vector2(6, 5)), Color("1a1426"))
+	n.draw_rect(Rect2(p, Vector2(4, 9)), Color("ffcf4a"))
+	n.draw_rect(Rect2(p + Vector2(0, 12), Vector2(4, 3)), Color("ffcf4a"))
+	n.draw_rect(Rect2(p, Vector2(1, 9)), Color("fff2b0"))  # blik
+
+
 ## pracownicy 2-5 przy swoich biurkach (zatrudnieni w AstroOS); puste biurka czekają na kolejnych
 func _place_workers() -> void:
+	for ps in opt_props:  # kupione stanowiska i sprzęt stoją w laboratorium (kolider razem z nimi)
+		ps[0].visible = Game.has(ps[1])
+		if shapes.has(ps[2]):
+			shapes[ps[2]].set_deferred("disabled", not ps[0].visible)
+	var used := {1: 0, 2: 0, 3: 0}
 	for i in workers.size():
 		var has_one := i + 1 < Game.staff.size()
-		workers[i][0].visible = has_one
-		workers[i][1].visible = has_one
-		if has_one:
-			workers[i][1].texture = Game.tex("worker_" + Game.staff[i + 1].kind)
+		workers[i].visible = has_one
+		if not has_one:
+			continue
+		var p: Dictionary = Game.staff[i + 1]
+		var m := int(p.mode)
+		var seats: Array = SEATS[m]
+		workers[i].texture = Game.tex("worker_" + p.kind)
+		workers[i].position = seats[mini(used[m], seats.size() - 1)]
+		used[m] += 1
 
 
 ## pracownik przy biurku: zgłoszenie [!] albo tryb pracy i krótka rozmowa
@@ -867,12 +1084,16 @@ func _worker_desk(i: int) -> void:
 	for m in 3:
 		var b := Button.new()
 		b.text = "TRYB %d" % (m + 1)
+		b.tooltip_text = Game.MODES[m] + "\n" + Game.MODE_INFO[m]
 		b.position = Vector2(14 + m * 92, 40)
 		b.custom_minimum_size = Vector2(86, 26)
-		b.disabled = int(p.mode) == m + 1
+		b.disabled = int(p.mode) == m + 1 or not Game.can_switch(p, m + 1)
+		if not Game.can_switch(p, m + 1):
+			b.tooltip_text += "\nBrak wolnego stanowiska tego typu (Sklep: Biuro)."
 		b.pressed.connect(func():
 			p.mode = m + 1
 			close.call()
+			_place_workers()
 			_toast("%s: %s." % [p.name, Game.MODES[m]], "info"))
 		pn.add_child(b)
 		if m == 0:
@@ -908,6 +1129,7 @@ func _cat_desk() -> void:
 	for m in 3:
 		var b := Button.new()
 		b.text = "TRYB %d" % (m + 1)
+		b.tooltip_text = Game.MODES[m] + "\n" + Game.MODE_INFO[m]
 		b.position = Vector2(14 + m * 92, 40)
 		b.custom_minimum_size = Vector2(86, 26)
 		b.disabled = int(me.mode) == m + 1
@@ -1347,7 +1569,8 @@ func _draw_glow() -> void:
 		if at_pc:
 			_px(n, 407, 75, 10, 7, Color("ffe6a0") if not base else Color("e8f0ff"))  # klosz lampki na biurku
 	if lamps.lampka.on and (Game.location == "pokoik" or not base):  # klosz lampki nocnej świeci, gdy jest włączona
-		_px(n, 107, 83, 14, 8, Color("ffe6a0"))
+		var kl := _decor_pt("room_nightstand", Vector2(114, 87)) - Vector2(7, 4)  # pokoik: klosz idzie za przestawioną szafką
+		_px(n, kl.x, kl.y, 14, 8, Color("ffe6a0"))
 
 
 ## punkt pioruna z nieba balkonu w oknie pokoju (lewe okno; ta sama burza, mniejsza skala)
@@ -1474,17 +1697,19 @@ func _draw_hud() -> void:
 		y += 18
 	if viewport:
 		return
+	if editing:  # tryb edycji pokoiku: skrót sterowania na dole
+		var hint := "LPM: przenieś  Q/E: obróć  PPM: anuluj  Tab: wyjdź"
+		Game.metal(n, Rect2(Vector2(320 - _w(hint) / 2 - 8, 330), Vector2(_w(hint) + 16, 24)))
+		_txt(Vector2(320 - _w(hint) / 2, 347).floor(), hint, Color("ffcf6b"))
+		return
 	if base and Game.location == "room":  # zgłoszenia [!] nad głowami zespołu
-		var heads := [cat.position + Vector2(0, -60)] if cat and cat.visible else [Vector2.ZERO]
+		var heads := [cat.position + Vector2(0, -46)] if cat and cat.visible else [Vector2.ZERO]
 		for w in workers:
-			heads.append(w[1].position + Vector2(0, -62))
+			heads.append(w.position + Vector2(0, -36))  # pracownicy są niżsi od Arbjooze (34 px)
 		for i in mini(heads.size(), Game.staff.size()):
 			if Game.staff[i].report == "" or heads[i] == Vector2.ZERO:
 				continue
-			var bp: Vector2 = (heads[i] + Vector2(-9, -18 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor()
-			n.draw_rect(Rect2(bp - Vector2(1, 1), Vector2(20, 18)), Color("1a1426"))
-			n.draw_rect(Rect2(bp, Vector2(18, 16)), Color("ffcf4a"))
-			_txt_on(n, bp + Vector2(5, 13), "!", Color("1a1426"))
+			_bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())
 	if not speech.is_empty():  # monolog Jani nad głową
 		var lines := _wrap(speech.text, 200)
 		for i in lines.size():

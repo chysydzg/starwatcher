@@ -583,21 +583,25 @@ func _sklep() -> void:
 	side.color = Color("2a4a8a")
 	side.size = Vector2(108, body.size.y)
 	body.add_child(side)
-	for i in 3:
+	var s2 := Game.stage >= 2  # Etap 2: Kopuła, Orbita, Biuro, Pokój (ozdoby) i stary sklep z Etapu 1
+	for i in 5 if s2 else 3:
 		var b := Button.new()
-		b.icon = Game.tex("os/" + SHOP_ICONS[i])
-		b.text = (["Kopuła", "Orbita", "Biuro"] if Game.stage >= 2 else SHOP_SHORT)[i]
+		b.icon = Game.tex("os/" + (["cat_optyka", "cat_orbita", "cat_komputer", "cat_pokoj", "cat_retro"] if s2 else SHOP_ICONS)[i])
+		b.text = (["Kopuła", "Orbita", "Biuro", "Pokój", "Etap 1"] if s2 else SHOP_SHORT)[i]
 		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.position = Vector2(6, 6 + i * 92)  # równe odstępy, ten sam rozmiar
-		b.custom_minimum_size = Vector2(96, 84)
-		b.size = Vector2(96, 84)
+		if s2:
+			b.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+			b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.position = Vector2(6, 6 + i * 58) if s2 else Vector2(6, 6 + i * 92)  # równe odstępy, ten sam rozmiar
+		b.custom_minimum_size = Vector2(96, 52) if s2 else Vector2(96, 84)
+		b.size = b.custom_minimum_size
 		b.focus_mode = Control.FOCUS_NONE
 		var on := i == shop_cat
 		b.add_theme_stylebox_override("normal", _box(Color("e6ecf6") if on else Color("3a5aa0"), Color("ffcf4a") if on else Color("1a2a5a"), 2 if on else 1))
 		b.add_theme_stylebox_override("hover", _box(Color("f4f8ff") if on else Color("4a6ab8"), Color("ffcf4a"), 2))
 		for st in ["normal", "hover"]:
-			b.get_theme_stylebox(st).content_margin_top = 8
+			b.get_theme_stylebox(st).content_margin_top = 0 if s2 else 8
 		b.add_theme_color_override("font_color", INK if on else Color.WHITE)
 		b.add_theme_color_override("font_hover_color", INK if on else Color.WHITE)
 		b.pressed.connect(func(): shop_cat = i; _rebuild())
@@ -615,8 +619,8 @@ func _sklep() -> void:
 	grid.add_theme_constant_override("h_separation", 5)
 	grid.add_theme_constant_override("v_separation", 5)
 	sc.add_child(grid)
-	for r in Game.shop_rows():
-		if r[4] != shop_cat:
+	for r in (Game.SHOP if s2 and shop_cat == 4 else Game.shop_rows()):
+		if r[4] != shop_cat and not (s2 and shop_cat == 4):
 			continue
 		var st: String = Game.can_buy_shop(r)
 		if st == "hidden":
@@ -834,21 +838,27 @@ func _zespol() -> void:
 		row.add_theme_stylebox_override("panel", _box(Color("ffffff"), Color("8a9a8a")))
 		body.add_child(row)
 		_label(row, p.name + ("  [!]" if p.report != "" else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" else INK)
-		_label(row, ", ".join(p.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(166, 5), Color("4a6a4a"))
-		_num(row, "$%d/tydz." % p.get("salary", Game.hire_cost(i)[1]), 430, 5, Color("6a6a7a"))
+		var tr: String = Game.TRAITS[p.traits[0]][0] + ("  +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
+		_label(row, tr, Vector2(166, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
+		_num(row, "$%d/tydz." % p.get("salary", Game.hire_cost(i)[1]), 380, 5, Color("6a6a7a"))
 		for m in 3:
 			var on: bool = int(p.mode) == m + 1
 			var b := _button("%d" % (m + 1), func():
 				p.mode = m + 1
 				Game.changed.emit()
 				_rebuild())
-			b.position = Vector2(440 + m * 30, 4)
+			b.position = Vector2(392 + m * 30, 4)
+			b.disabled = not on and not Game.can_switch(p, m + 1)
 			b.size = Vector2(26, 24)
 			if on:
 				b.add_theme_stylebox_override("normal", _box(Color("8ad88a"), Color("1a5a1a"), 2))
-			b.mouse_entered.connect(func(): info.text = "Tryb %d: %s. %s" % [m + 1, Game.MODES[m], ["Nocą generuje PW, czasem zgłasza odkrycie [!].", "Rano poprawia jakość do 8 pomiarów w pamięci.", "Noc trwa 15 s dłużej, serwisuje Sat-Net."][m]])
+			b.tooltip_text = Game.MODES[m] + "\n" + Game.MODE_INFO[m]
+			if b.disabled:
+				b.tooltip_text += "\nBrak wolnego stanowiska tego typu (Sklep: Biuro)."
+			b.mouse_entered.connect(func(): info.text = "Tryb %d: %s" % [m + 1, Game.MODES[m]])
 			row.add_child(b)
-		_label(row, ["Obserwacje", "Raporty", "Sprzęt"][int(p.mode) - 1], Vector2(534, 5), Color("2a5a2a"))
+		_label(row, ["Obserwacje", "Raporty", "Sprzęt"][int(p.mode) - 1], Vector2(486, 5), Color("2a5a2a"))
+		_portrait(row, p, Vector2(578, 1))
 	var cy := 30 + maxi(1, Game.staff.size()) * 34 + 6
 	_label(body, "KANDYDACI (nowe CV każdego dnia)" if Game.staff.size() < Game.STAFF_MAX else "Zespół w komplecie.", Vector2(10, cy), Color("2a4a2a"))
 	for i in Game.candidates.size() if Game.staff.size() < Game.STAFF_MAX else 0:
@@ -860,8 +870,9 @@ func _zespol() -> void:
 		body.add_child(card)
 		_label(card, c.name, Vector2(6, 2))
 		_label(card, "\n".join(c.traits.map(func(k): return Game.TRAITS[k][0])), Vector2(6, 22), Color("6a5a2a"))
-		var cost: Array = Game.hire_cost()
+		var cost: Array = Game.cand_cost(c)
 		_label(card, "$%d + $%d/tydz." % cost, Vector2(6, 66), Color("2a7a3a"))
+		_portrait(card, c, Vector2(154, 4))
 		var hb := _button("ZATRUDNIJ", func():
 			var why := Game.hire(c)
 			if why != "":
@@ -872,24 +883,69 @@ func _zespol() -> void:
 				_rebuild())
 		hb.position = Vector2(6, 86)
 		hb.size = Vector2(190, 26)
-		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or Game.money < cost[0]
+		var seat := [1, 2, 3].any(func(m): return Game.free_stations(m) > 0)
+		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or Game.money < cost[0] or not seat
+		if not seat:
+			hb.text = "BRAK STANOWISKA"
+			hb.tooltip_text = "Pracownik potrzebuje stanowiska: kup biurko lub warsztat w sklepie (Biuro)."
 		card.add_child(hb)
 		card.mouse_entered.connect(func(): info.text = "  ".join(c.traits.map(func(k): return Game.TRAITS[k][0] + ": " + Game.TRAITS[k][1])))
 	_info(Rect2(10, 298, 620, 20), Color("2a3a2a"))
 	info.text = "Tryb pracy zmienisz przyciskami 1-3. Pensje są wypłacane co 7 dni."
 
 
+## portret pracownika w prawym rogu (na razie z kadru sprite'a: głowa z pierwszej klatki; Arbjooze z portretu dialogu)
+func _portrait(parent: Control, p: Dictionary, pos: Vector2) -> void:
+	var fr := Panel.new()
+	fr.position = pos
+	fr.size = Vector2(46, 30) if parent.size.y < 40 else Vector2(46, 44)  # w wierszu zespołu: sama głowa
+	fr.add_theme_stylebox_override("panel", _box(Color("2a3a5a"), Color("1a1426")))
+	fr.clip_contents = true
+	parent.add_child(fr)
+	var at := AtlasTexture.new()
+	var h := fr.size.y - 2  # kadr od czubka uszu w dół: w wierszu głowa, na karcie popiersie
+	if p.kind == "cat":
+		at.atlas = Game.tex("portrait_arbjooze")
+		at.region = Rect2(22, 24, 44, h)
+	else:
+		at.atlas = Game.tex("worker_" + p.kind)
+		at.region = Rect2(0, 27, 44, h)
+	var tr := TextureRect.new()
+	tr.texture = at
+	tr.position = Vector2(1, 1)
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	fr.add_child(tr)
+
+
 # ---------------------------------------------------------------- Sieć Orbitalna (Etap 2)
 func _orbita() -> void:
 	_bg(Color("10183a"))
-	var stars := Control.new()
+	var stars := Control.new()  # Ziemia z naszymi satelitami na orbitach (tylne pół orbity za planetą, przednie przed nią)
 	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stars.size = body.size
+	var up := Game.sats.filter(func(st): return st.left <= 0)
+	var ec := Vector2(548, 186)
 	stars.draw.connect(func():
-		for i in 60:
-			stars.draw_rect(Rect2((i * 97) % 640, (i * 53) % 318, 1, 1), Color(1, 1, 1, 0.5))
-		stars.draw_circle(Vector2(560, 120), 46, Color("3a7ae8"))
-		stars.draw_circle(Vector2(548, 108), 18, Color("5ab85a")))
+		var now := Time.get_ticks_msec() / 1000.0
+		for i in 70:
+			stars.draw_rect(Rect2((i * 97) % 640, (i * 53) % 318, 1, 1), Color(1, 1, 1, 0.3 + 0.3 * sin(now + i)))
+		for front in [false, true]:
+			if front:
+				stars.draw_texture(Game.tex("os/earth"), ec - Vector2(51, 51))
+			for i in up.size():
+				var rr := Vector2(74 + i * 9, 24 + i * 4)
+				for k in 48:  # kropkowana orbita
+					var a := k * TAU / 48
+					if (sin(a) > 0) == front:
+						stars.draw_rect(Rect2((ec + Vector2(cos(a), sin(a)) * rr).floor(), Vector2.ONE), Color(0.6, 0.75, 1, 0.5))
+				var a := fposmod(now * (0.5 - i * 0.06) + i * 1.7, TAU)
+				if (sin(a) > 0) == front:
+					var col := Color(1, 1, 1, 0.35 if Game.solar else 1.0)
+					stars.draw_texture(Game.tex("os/sat"), (ec + Vector2(cos(a), sin(a)) * rr - Vector2(5, 3)).floor(), col)
+					stars.draw_string(Game.font_os, (ec + Vector2(cos(a), sin(a)) * rr + Vector2(8, 4)).floor(), up[i].name, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.8, 0.88, 1, 0.8)))
 	body.add_child(stars)
+	var tw := stars.create_tween().set_loops()  # satelity krążą
+	tw.tween_callback(stars.queue_redraw).set_delay(1.0 / 20.0)
 	var built := Game.sats.filter(func(st): return st.left <= 0).size()
 	_label(body, "SLOTY ORBITALNE  %d/%d   (na orbicie: %d)" % [Game.sats.size(), Game.sat_slots(), built], Vector2(10, 4), Color("c8d8ff"))
 	var warn := "Dziś burza słoneczna: satelity bez przychodu." if Game.solar else ("Jutro burza słoneczna!" if Game.solar_next and Game.has("pogoda") else "")
@@ -917,22 +973,24 @@ func _orbita() -> void:
 		var uses := ["astrotv", "satnet"] if st.get("commercial", false) else ["nauka", "astrotv", "satnet"]
 		for j in uses.size():
 			var u: String = uses[j]
-			var b := _button(Game.SAT_USES[u][0], func():
+			var b := _button({"nauka": "Nauka", "astrotv": "AstroTV", "satnet": "Sat-Net"}[u], func():
 				st.use = u
 				_rebuild())
-			b.position = Vector2(90 + j * 128, y)
-			b.size = Vector2(124, 26)
+			b.position = Vector2(66 + j * 90, y)
+			b.size = Vector2(86, 26)
+			b.tooltip_text = Game.SAT_USES[u][0] + ": " + Game.SAT_USES[u][1]
 			if st.use == u:
 				b.add_theme_stylebox_override("normal", _box(Color("8ad88a"), Color("1a5a1a"), 2))
 			b.mouse_entered.connect(func(): info.text = Game.SAT_USES[u][0] + ": " + Game.SAT_USES[u][1])
 			body.add_child(b)
-		var sell := _button("SPRZEDAJ $%d" % int(st.cost * 1.8), func():
+		var sell := _button("SPRZEDAJ $%d" % Game.sat_value(st), func():
 			Game.sell_sat(st)
 			Game.ding(1.1)
 			bar.queue_redraw()
 			_rebuild())
-		sell.position = Vector2(480, y)
-		sell.size = Vector2(124, 26)
+		sell.position = Vector2(66 + 3 * 90, y)
+		sell.size = Vector2(110, 26)
+		sell.tooltip_text = "Rynek wtórny płaci %d%% ceny budowy. Wynajem zwraca się szybciej." % int(Game.SAT_RESALE * 100)
 		body.add_child(sell)
 	_info(Rect2(10, 280, 620, 38), Color("c8d8ff"))
 	if not Game.has("orbitalna") or not Game.has("antena"):

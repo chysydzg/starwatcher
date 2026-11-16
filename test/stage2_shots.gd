@@ -30,15 +30,45 @@ func _ready() -> void:
 		await get_tree().create_timer(1.5).timeout
 		shot("e2_%02d" % k)
 		await space()
+	for c in ["polka", "dywan", "girlanda", "plakat_saturn", "rakieta", "pluszak"]:
+		Game.shop[c] = true
+	w._refresh()
+	Game.tips["tut_edycja"] = true
 	w._enter("pokoik", true)
 	await get_tree().create_timer(1.0).timeout
 	shot("e2_pokoik")
+	# tryb edycji: podnieś pufę, przesuń, odbij szafkę nocną (lampka idzie za nią)
+	w.busy = false  # test: bez otwartych okienek
+	w._edit_toggle()
+	assert(w.editing)
+	w.hover_item = "room_pufa"
+	w.held = "room_pufa"
+	w.held_from = [0, 0, false]
+	Game.decor["room_pufa"] = [200, -40, false]
+	w._apply_decor("room_pufa")
+	print("pufa ok at +200,-40: ", w._decor_ok("room_pufa"))
+	Game.decor["room_pufa"] = [-20, -200, false]
+	w._apply_decor("room_pufa")
+	assert(not w._decor_ok("room_pufa"))  # na ścianie
+	w._edit_cancel()
+	assert(Game.decor["room_pufa"] == [0, 0, false])
+	Game.decor["room_nightstand"] = [300, 60, true]
+	w._apply_decor("room_nightstand")
+	print("lampka light ", w.own_lights[0].position, " spots lozko ", w._spots().get("lampka"))
+	print("decor at pufa: ", w._decor_at(w.decor_items["room_pufa"].s.position + Vector2(20, -8)))
+	await get_tree().create_timer(0.5).timeout
+	shot("e2_edit")
+	w._edit_toggle()
+	Game.decor = {}
+	for k in w.decor_items:
+		w._apply_decor(k)
 	w._enter("room", true)
 	Game.money = 20000
 	Game.pw = 20000
 	for id in ["spektro", "orbitalna", "filtr_x", "mentoring", "kalibracja", "katalog"]:
 		Game.science[id] = true
-	Game.shop["antena"] = true
+	for id in ["antena", "st_obs", "st_analiza", "ekspres", "legowisko", "montaz_sat", "pogoda", "nas"]:
+		Game.shop[id] = true
 	Game.build_sat(false)
 	Game.hire(Game.candidates[0])
 	Game.hire(Game.candidates[0])

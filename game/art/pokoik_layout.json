@@ -9,7 +9,8 @@
    96,
    100,
    196
-  ]
+  ],
+  "kind": "floor"
  },
  {
   "name": "room_nightstand",
@@ -21,7 +22,8 @@
    108,
    132,
    146
-  ]
+  ],
+  "kind": "floor"
  },
  {
   "name": "room_plant",
@@ -33,7 +35,8 @@
    110,
    478,
    130
-  ]
+  ],
+  "kind": "floor"
  },
  {
   "name": "room_wardrobe",
@@ -45,7 +48,8 @@
    104,
    630,
    128
-  ]
+  ],
+  "kind": "floor"
  },
  {
   "name": "room_pufa",
@@ -57,7 +61,8 @@
    248,
    62,
    274
-  ]
+  ],
+  "kind": "floor"
  },
  {
   "name": "room_lamp",
@@ -69,7 +74,8 @@
    118,
    248,
    132
-  ]
+  ],
+  "kind": "floor"
  },
  {
   "name": "room_basket",
@@ -81,6 +87,97 @@
    314,
    64,
    334
-  ]
+  ],
+  "kind": "floor"
+ },
+ {
+  "name": "pokoik_polka",
+  "x": 379,
+  "y": 71,
+  "base": 124,
+  "foot": [
+   380,
+   112,
+   420,
+   124
+  ],
+  "opt": "polka",
+  "kind": "floor",
+  "nocol": false
+ },
+ {
+  "name": "pokoik_dywan",
+  "x": 398,
+  "y": 238,
+  "base": 0,
+  "foot": [
+   400,
+   240,
+   480,
+   272
+  ],
+  "opt": "dywan",
+  "kind": "rug",
+  "nocol": true
+ },
+ {
+  "name": "pokoik_girlanda",
+  "x": 16,
+  "y": 16,
+  "base": 0,
+  "foot": [
+   16,
+   12,
+   110,
+   32
+  ],
+  "opt": "girlanda",
+  "kind": "wall",
+  "nocol": true
+ },
+ {
+  "name": "pokoik_plakat_saturn",
+  "x": 245,
+  "y": 27,
+  "base": 0,
+  "foot": [
+   246,
+   28,
+   278,
+   70
+  ],
+  "opt": "plakat_saturn",
+  "kind": "wall",
+  "nocol": true
+ },
+ {
+  "name": "pokoik_rakieta",
+  "x": 469,
+  "y": 175,
+  "base": 236,
+  "foot": [
+   466,
+   224,
+   494,
+   236
+  ],
+  "opt": "rakieta",
+  "kind": "floor",
+  "nocol": false
+ },
+ {
+  "name": "pokoik_pluszak",
+  "x": 119,
+  "y": 197,
+  "base": 216,
+  "foot": [
+   118,
+   206,
+   136,
+   216
+  ],
+  "opt": "pluszak",
+  "kind": "floor",
+  "nocol": false
  }
 ]

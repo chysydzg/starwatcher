@@ -21,6 +21,11 @@ const TUTORIALS := {
 		{"img": "tut/shop_buy", "text": "Kliknij KUP przy przedmiocie."},
 		{"img": "tut/shop_parcel", "text": "Gdy wyłączysz komputer, kurier zapuka i zostawi paczkę. Podejdź do niej i wciśnij {interact}, żeby ją otworzyć."},
 	]},
+	"edycja": {"title": "Twój pokój", "pages": [
+		{"img": "tut/edit_tab", "text": "Pokój możesz urządzić po swojemu. Wciśnij {edit}, żeby przejść w tryb edycji."},
+		{"img": "tut/edit_move", "text": "Kliknij mebel, żeby go podnieść, i kliknij jeszcze raz w nowym miejscu. Czerwony znaczy, że tam się nie zmieści."},
+		{"img": "tut/edit_flip", "text": "{prev_next} obraca mebel. Nowe ozdoby kupisz w sklepie, w dziale Pokój."},
+	]},
 	"meteor": {"title": "Meteory", "pages": [
 		{"img": "tut/meteor1", "text": "Gdy przelatuje meteor, okular drży. Najedź na niego celownikiem i wciśnij {confirm}, zanim zniknie."},
 		{"img": "tut/meteor2", "text": "Łączysz gwiazdy? {leave} wychodzi z konstelacji, a ona zostaje tak, jak ją zostawisz. Złap meteor i wróć do niej."},
@@ -103,7 +108,7 @@ func _pages() -> Array:
 func _show() -> void:
 	var pg: Dictionary = _pages()[page]
 	_title.text = "%s  %d/%d" % [TUTORIALS[id].title.to_upper(), page + 1, _pages().size()]
-	_text.text = pg.text.replace("{confirm}", Game.key("confirm")).replace("{interact}", Game.key("interact")).replace("{leave}", Game.key("leave")).replace("{focus}", "Wychylaj prawy drążek" if Game.pad else "Kręć kółkiem myszy")
+	_text.text = pg.text.replace("{confirm}", Game.key("confirm")).replace("{interact}", Game.key("interact")).replace("{leave}", Game.key("leave")).replace("{edit}", Game.key("edit")).replace("{prev_next}", Game.key("prev_next")).replace("{focus}", "Wychylaj prawy drążek" if Game.pad else "Kręć kółkiem myszy")
 	_pic.atlas = Game.tex(pg.img)
 	_f = 0
 	_tick()

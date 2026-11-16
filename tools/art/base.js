@@ -129,7 +129,7 @@ piece("spectro", 126, [242, 110, 300, 130], (T) => {
 });
 // ---- duży teleskop na kolumnie: biała tuba skierowana w górę, w stronę szczeliny kopuły
 shadow(b, 470, 262, 24, 6);
-piece("telescope", 262, [446, 236, 494, 266], (T) => {
+piece("telescope", 262, [452, 254, 488, 266], (T) => {
   obj(T, 452, 196, 36, 70, (s) => {
     slab(s, 8, 18, 28, 68, steel, 0.6, 0.35);
     s.rect(8, 18, 28, 20, steel[3]);
@@ -163,12 +163,79 @@ piece("aux", 300, [216, 292, 238, 304], (T) => {
 });
 // ---- lobby: podium ze starym teleskopem z balkonu (pamiątka)
 shadow(b, 322, 336, 28, 4);
-piece("podium", 336, [296, 316, 348, 340], (T) => {
+piece("podium", 336, [300, 326, 344, 338], (T) => {
   obj(T, 298, 304, 48, 32, (s) => {
     slab(s, 0, 0, 48, 10, white, 1, 0.9); slab(s, 2, 10, 46, 32, steel, 0.6, 0.35);
     s.rect(14, 18, 34, 24, R.gold[2]); s.rect(16, 20, 32, 22, R.gold[0]);
   });
   T.sprite(P.load(out + "/balcony_telescope.png"), 295, 262);
+});
+
+// ---- elementy kupowane w Etapie 2 (layout: "opt" = id zakupu; pokazują się po otwarciu paczki)
+const deskAt = (T, x0, y0, extra) => {  // biały stolik laboratoryjny 64x36 (jak biurko Arbjooze)
+  obj(T, x0, y0, 64, 36, (s) => {
+    slab(s, 0, 0, 64, 14, white, 1, 0.9); slab(s, 0, 14, 64, 20, white, 0.33, 0.33);
+    slab(s, 2, 20, 6, 34, steel, 0.4, 0.3); slab(s, 58, 20, 62, 34, steel, 0.4, 0.3);
+  });
+  extra(T);
+};
+const auxScope = (T, x0, y0, hue) => obj(T, x0, y0, 30, 50, (s) => {  // mały teleskop na trójnogu
+  s.line(15, 24, 5, 48, steel[1]); s.line(15, 24, 25, 48, steel[1]); s.line(15, 24, 15, 48, steel[1]);
+  P.solid(s, [P.cap(6, 22, 24, 6, 3, 4)], P.hueRamp(4, { hue, shift: 20, sat: 0.5, light: [0.34, 0.66] }), { light: [-0.5, -0.7, 0.5] });
+});
+const logbook = (T, x, y) => obj(T, x, y, 14, 8, (s) => { s.rect(0, 0, 14, 8, R.cream[2]); s.rect(7, 0, 8, 8, R.cream[0]); s.rect(2, 2, 6, 3, R.gray[1]); s.rect(9, 4, 12, 5, R.gray[1]); });
+for (const [k, x0, y0, hue] of [["st_obs1", 20, 150, 200], ["st_obs2", 20, 236, 140]]) {  // stanowiska obserwacyjne (Tryb 1)
+  piece(k, y0 + 41, [x0, y0 + 20, x0 + 96, y0 + 41], (T) => deskAt(T, x0 + 2, y0 + 4, (T) => { logbook(T, x0 + 12, y0 + 8); auxScope(T, x0 + 66, y0 - 8, hue); }));
+}
+for (const [k, x0, y0] of [["st_an1", 384, 296], ["st_an2", 476, 296]]) {  // biurka analityków (Tryb 2): monitor, wydruki, kubek
+  piece(k, y0 + 41, [x0, y0 + 20, x0 + 66, y0 + 41], (T) => deskAt(T, x0 + 2, y0 + 4, (T) => {
+    obj(T, x0 + 8, y0 - 10, 20, 18, (s) => { slab(s, 0, 0, 20, 14, dark, 0.6, 0.4); s.rect(2, 2, 18, 12, [40, 70, 110]); for (let x = 3; x < 17; x++) s.pset(x, 9 - Math.round(3 * Math.sin(x * 0.7)), [120, 240, 140]); s.rect(8, 14, 12, 18, steel[1]); });
+    obj(T, x0 + 34, y0 + 4, 16, 8, (s) => { s.rect(0, 0, 16, 8, [250, 250, 252]); for (let y = 2; y < 7; y += 2) s.rect(2, y, 13, y + 1, R.gray[1]); });
+    obj(T, x0 + 54, y0 + 2, 6, 7, (s) => { s.rect(0, 0, 6, 7, R.red[2]); s.rect(1, 0, 5, 1, [90, 50, 30]); });
+  }));
+}
+piece("st_ws1", 192, [560, 172, 626, 192], (T) => {  // warsztat techniczny (Tryb 3): blat, imadło, tablica z narzędziami
+  obj(T, 562, 120, 62, 26, (s) => {
+    slab(s, 0, 0, 62, 26, steelB, 0.6, 0.4); for (let x = 4; x < 60; x += 4) for (let y = 4; y < 24; y += 4) s.pset(x, y, steelB[0]);
+    s.rect(6, 6, 8, 18, R.red[2]); s.rect(4, 4, 10, 7, R.gray[1]); s.rect(16, 8, 18, 20, R.gold[2]); s.rect(26, 6, 34, 9, R.gray[2]); s.rect(29, 9, 31, 20, R.wood[1]);
+    s.rect(42, 6, 44, 20, steel[1]); s.rect(40, 18, 46, 21, steel[0]); s.rect(52, 8, 56, 12, [250, 200, 50]);
+  });
+  obj(T, 562, 150, 62, 40, (s) => {
+    slab(s, 0, 0, 62, 12, R.woodL, 1, 0.9); slab(s, 0, 12, 62, 18, R.woodL, 0.33, 0.33);
+    slab(s, 2, 18, 8, 40, steel, 0.4, 0.3); slab(s, 54, 18, 60, 40, steel, 0.4, 0.3); slab(s, 8, 22, 54, 26, steel, 0.4, 0.3);
+    s.rect(40, 2, 52, 8, steel[1]); s.rect(44, 0, 48, 2, steel[2]);
+  });
+});
+piece("ekspres", 124, [300, 108, 330, 124], (T) => {  // ekspres do kawy na szafce przy ścianie
+  obj(T, 300, 92, 30, 32, (s) => { slab(s, 0, 0, 30, 6, white, 1, 0.9); slab(s, 0, 6, 30, 32, white, 0.4, 0.3); s.rect(14, 12, 16, 28, steel[0]); });
+  obj(T, 304, 70, 22, 24, (s) => {
+    slab(s, 0, 0, 22, 24, dark, 0.7, 0.4); s.rect(3, 3, 19, 7, steel[2]); s.rect(9, 9, 13, 13, steel[1]);
+    s.rect(7, 16, 15, 22, [240, 240, 244]); s.rect(8, 17, 14, 19, [110, 70, 40]); s.pset(17, 4, LED[0]);
+  });
+});
+piece("legowisko", 318, [242, 304, 276, 318], (T) => {  // okrągłe legowisko dla Arbjooze
+  for (let y = 300; y < 320; y++) for (let x = 240; x < 280; x++) {
+    const d = ((x - 259.5) / 19) ** 2 + ((y - 310) / 9) ** 2;
+    if (d <= 1) T.pset(x, y, d > 0.55 ? (y < 308 ? [190, 120, 150] : [160, 96, 128]) : [236, 210, 220]);
+  }
+  for (let x = 252; x < 268; x++) T.pset(x, 308, [214, 186, 198]);
+});
+piece("nas", 124, [502, 112, 518, 124], (T) => obj(T, 502, 80, 16, 44, (s) => {  // macierz NAS obok szaf serwerowych
+  slab(s, 0, 0, 16, 44, dark, 0.5, 0.3); for (let y = 4; y < 40; y += 6) { s.rect(2, y, 14, y + 4, dark[1]); s.pset(3, y + 2, LED[(y / 6) % 3 | 0]); }
+}));
+piece("pogoda", 60, [300, 50, 330, 60], (T) => obj(T, 300, 28, 30, 22, (s) => {  // ekran pogody kosmicznej na ścianie
+  slab(s, 0, 0, 30, 22, dark, 0.7, 0.4); s.rect(2, 2, 28, 20, [20, 26, 50]);
+  P.solid(s, [P.ell(9, 11, 4, 4)], P.hueRamp(3, { hue: 40, shift: 16, sat: 0.9, light: [0.5, 0.75] }));
+  for (let a = -0.8; a < 0.8; a += 0.1) s.pset(Math.round(9 + Math.cos(a) * 9), Math.round(11 + Math.sin(a) * 6), [255, 150, 60]);
+  s.rect(22, 6, 26, 7, LED[0]); s.rect(22, 10, 26, 11, LED[1]); s.rect(22, 14, 24, 15, LED[0]);
+}, { lit: steel[2] }));
+piece("montaz", 178, [148, 158, 206, 178], (T) => {  // stanowisko montażu satelitów: stół i satelita w budowie
+  obj(T, 148, 148, 58, 30, (s) => { slab(s, 0, 0, 58, 10, white, 1, 0.9); slab(s, 0, 10, 58, 16, white, 0.33, 0.33); slab(s, 2, 16, 6, 30, steel, 0.4, 0.3); slab(s, 52, 16, 56, 30, steel, 0.4, 0.3); });
+  obj(T, 162, 126, 30, 26, (s) => {
+    s.rect(10, 6, 20, 20, [220, 224, 232]); s.rect(10, 6, 20, 8, [250, 250, 255]); s.rect(14, 1, 16, 6, steel[1]); s.rect(12, 0, 18, 1, R.gold[2]);
+    for (const x0 of [0, 21]) { s.rect(x0, 9, x0 + 9, 17, [50, 80, 170]); for (let x = x0 + 2; x < x0 + 9; x += 2) s.rect(x, 9, x + 1, 17, [80, 120, 220]); }
+    s.rect(9, 12, 21, 14, steel[0]); s.rect(10, 20, 20, 26, steel[1]);
+  });
 });
 
 light(b, (x, y) => (y > WALL + 2 && y < 250 && x > 174 + (y - WALL) * 0.55 && x < 236 + (y - WALL) * 0.55 ? Math.min(1, (250 - y) / 40) : 0), [255, 246, 220], 0.14);
@@ -177,5 +244,13 @@ savePieces(out, "base");
 const lay = JSON.parse(fs.readFileSync(out + "/base_layout.json"));
 const room = JSON.parse(fs.readFileSync(out + "/room_layout.json"));
 lay.push(room.find((p) => p.name === "room_box"));  // karton z rzeczami z przeprowadzki (na nim radio)
+const OPT = { st_obs1: "st_obs", st_obs2: "st_obs2", st_an1: "st_analiza", st_an2: "st_analiza2", st_ws1: "st_warsztat",
+  ekspres: "ekspres", legowisko: "legowisko", nas: "nas", pogoda: "pogoda", montaz: "montaz_sat" };
+for (const p of lay) {
+  const k = p.name.replace("base_", "");
+  if (OPT[k]) p.opt = OPT[k];
+  if (["telescope", "podium", "aux", "legowisko"].includes(k)) p.footcol = true;  // kolider tylko pod stopą (da się przejść za)
+  if (k === "pogoda") p.nocol = true;
+}
 fs.writeFileSync(out + "/base_layout.json", JSON.stringify(lay, null, 1));
 console.log("base.png", lay.length, "obiektów");

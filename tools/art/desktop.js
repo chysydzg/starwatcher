@@ -132,13 +132,17 @@ icon("icon_zespol", 30, 28, (s) => { // dwie postacie w kitlach: kotek z uszami 
   const coat = [236, 238, 244], fur = [150, 130, 110], rab = [224, 150, 90];
   s.rect(2, 16, 14, 28, coat); s.rect(7, 16, 9, 28, [200, 204, 214]);
   s.rect(3, 6, 13, 15, fur); s.rect(3, 3, 5, 6, fur); s.rect(11, 3, 13, 6, fur); s.rect(6, 9, 7, 10, [120, 200, 70]); s.rect(9, 9, 10, 10, [120, 200, 70]);
+  s.rect(7, 11, 9, 12, [236, 140, 160]);                                            // różowy nosek kota
   s.rect(16, 18, 28, 28, coat); s.rect(21, 18, 23, 28, [200, 204, 214]);
   s.rect(17, 9, 27, 17, rab); s.rect(18, 0, 20, 9, rab); s.rect(24, 0, 26, 9, rab); s.rect(20, 12, 21, 13, DARK); s.rect(23, 12, 24, 13, DARK);
+  s.rect(21, 14, 23, 15, [236, 140, 160]);                                          // nosek królika
 });
 icon("icon_orbita", 30, 28, (s) => { // planeta z orbitą i satelitą
-  for (let a = 0; a < 6.28; a += 0.02) s.pset(Math.round(15 + Math.cos(a) * 14), Math.round(14 + Math.sin(a) * 6), [180, 200, 240]);
+  const orbit = (front) => { for (let a = 0; a < 6.28; a += 0.02) if ((Math.sin(a) > 0) === front) s.pset(Math.round(15 + Math.cos(a) * 14), Math.round(14 + Math.sin(a) * 6), [180, 200, 240]); };
+  orbit(false);                                                                       // tylna połowa orbity za planetą
   for (let y = 0; y < 28; y++) for (let x = 0; x < 30; x++) { const d = Math.hypot(x - 15, y - 14); if (d < 8.5) s.pset(x, y, d < 5 && x < 14 ? [110, 200, 110] : [70, 130, 230]); }
-  s.rect(22, 3, 26, 7, [230, 230, 236]); s.rect(18, 4, 22, 6, R.gold[2]); s.rect(26, 4, 30, 6, R.gold[2]);
+  orbit(true);                                                                        // przednia połowa przed planetą
+  s.rect(24, 16, 27, 19, [230, 230, 236]); s.rect(21, 17, 24, 18, R.gold[2]); s.rect(27, 17, 30, 18, R.gold[2]);  // satelita na przedniej części orbity
 });
 icon("icon_etap", 30, 30, (s) => { // złota gwiazda ETAP 2
   const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 6 : 15; pts.push([15 + Math.cos(a) * r, 16 + Math.sin(a) * r]); }
@@ -164,6 +168,16 @@ icon("cat_pokoj", 22, 24, (s) => { // lampka na stoliku
   s.rect(10, 9, 12, 14, R.gray[1]); s.rect(7, 14, 15, 15, R.gray[0]);
   s.rect(0, 15, 22, 18, R.wood[3]); s.rect(2, 18, 4, 24, R.wood[0]); s.rect(18, 18, 20, 24, R.wood[0]);
   mirror(s);
+});
+icon("cat_orbita", 24, 20, (s) => { // satelita: korpus i dwa panele słoneczne (Etap 2)
+  s.rect(9, 6, 15, 14, [220, 224, 232]); s.rect(9, 6, 15, 7, [250, 250, 255]); s.rect(11, 2, 13, 6, R.gray[1]); s.rect(10, 1, 14, 2, R.gold[2]);
+  for (const x0 of [0, 16]) { s.rect(x0, 7, x0 + 8, 13, [50, 80, 170]); for (let x = x0 + 2; x < x0 + 8; x += 2) s.rect(x, 7, x + 1, 13, [80, 120, 220]); }
+  s.rect(8, 9, 16, 11, R.gray[0]);
+});
+icon("cat_retro", 22, 20, (s) => { // karton ze starego sklepu z naklejoną gwiazdką
+  s.rect(0, 4, 22, 20, [196, 150, 96]); s.rect(0, 4, 22, 6, [214, 172, 116]); s.rect(9, 4, 13, 20, [228, 200, 150]);
+  s.rect(2, 0, 9, 4, [176, 132, 82]); s.rect(13, 0, 20, 4, [176, 132, 82]);
+  for (const [x, y] of [[4, 11], [3, 12], [4, 12], [5, 12], [4, 13]]) s.pset(x, y, R.gold[2]);
 });
 // glify węzłów drzewka (białe, 14x14, bez obrysu – tło węzła rysuje Godot)
 const glyph = (name, draw) => { const s = new P.Buf(14, 14); draw(s); const o = new P.Buf(15, 15); for (let i = 0; i < s.px.length; i++) if (s.px[i] >>> 24) o.pset((i % 14) + 1, ((i / 14) | 0) + 1, [20, 20, 40]); o.sprite(s, 0, 0); P.save(o, out + name + ".png"); };

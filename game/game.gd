@@ -212,8 +212,12 @@ const SHOP2 := [
 	["okular_hr", "Okular Wysokiej Rozdzielczości", 1250, 1, 0, "", "Galaktyki i czarne dziury +20% $."],
 	["antena", "Antena Satelitarna na Dachu", 1500, 1, 1, "", "Łączność z satelitami. Bez niej nie ruszy budowa."],
 	["legowisko", "Legowisko dla Arbjooze", 300, 1, 2, "", "Arbjooze w Trybie 1 +15%."],
+	["st_obs", "Stanowisko Obserwacyjne", 800, 1, 2, "", "Biurko z teleskopem pomocniczym: miejsce dla 1 pracownika w Trybie 1."],
+	["st_analiza", "Biurko Analityka", 600, 1, 2, "", "Monitor i wydruki: miejsce dla 1 pracownika w Trybie 2."],
+	["st_warsztat", "Warsztat Techniczny", 700, 1, 2, "", "Narzędzia i imadło: miejsce dla 1 pracownika w Trybie 3."],
 	["ccd", "Chłodzona Kamera CCD", 3000, 2, 0, "okular_hr", "Jakość pomiaru nigdy poniżej 40%."],
-	["drugi_tel", "Drugi Teleskop Pomocniczy", 2250, 2, 0, "", "Pracownicy w Trybie 1 +30% PW."],
+	["st_obs2", "Drugie Stanowisko Obserwacyjne", 1600, 2, 2, "st_obs", "Miejsce dla kolejnego pracownika w Trybie 1."],
+	["st_analiza2", "Drugie Biurko Analityka", 1200, 2, 2, "st_analiza", "Miejsce dla kolejnego pracownika w Trybie 2."],
 	["montaz_sat", "Stanowisko Montażu Satelitów", 2500, 2, 1, "antena", "Budowa satelity trwa 1 dzień zamiast 2."],
 	["panele", "Panele Słoneczne Gen 2", 1750, 2, 1, "antena", "Satelity naukowe +25% PW."],
 	["pogoda", "Monitor Pogody Kosmicznej", 1500, 2, 1, "antena", "Ostrzega dzień wcześniej przed burzą słoneczną."],
@@ -223,7 +227,19 @@ const SHOP2 := [
 	["nas", "Macierz Serwerowa NAS / RAID", 750, 3, 2, "stacja", "Dysk mieści 50 odkryć więcej."],
 	["heavy", "Kontrakt Budowlany „U-Howl Heavy”", 50000, 3, 2, "wniosek", "Rozbudowa bazy nad jeziorem. Warunek Etapu 3."],
 ]
-const SHOP2_PATHS := ["Kopuła i Teleskop", "Orbita i Satelity", "Centrum i Biuro"]
+const COSMETICS := [  # Pokój Jani (sklep Etapu 2, kategoria Pokój): ozdoby do ustawienia w trybie edycji (Tab)
+	["polka", "Półka z Książkami", 150, 1, 3, "", "Ulubione atlasy nieba. Postaw ją w pokoiku."],
+	["dywan", "Okrągły Dywanik", 180, 1, 3, "", "Miękki dywanik w gwiazdki."],
+	["girlanda", "Girlanda Gwiazdek", 120, 1, 3, "", "Ciepłe światełka na ścianę."],
+	["plakat_saturn", "Plakat z Saturnem", 90, 1, 3, "", "Pierścienie na ścianie."],
+	["rakieta", "Model Rakiety", 250, 1, 3, "", "Duży model rakiety na podstawce."],
+	["pluszak", "Pluszowy Kotek", 60, 1, 3, "", "Wygląda trochę jak Arbjooze."],
+]
+const SHOP2_PATHS := ["Kopuła i Teleskop", "Orbita i Satelity", "Centrum i Biuro", "Pokój Jani", "Stary sklep (Etap 1)"]
+## stanowiska pracy (GDD: pracownik musi mieć na czym pracować): ile osób może pracować w danym trybie;
+## Arbjooze ma własne biurko i nie zajmuje stanowiska
+const STATIONS := {1: ["st_obs", "st_obs2"], 2: ["st_analiza", "st_analiza2"], 3: ["st_warsztat"]}
+const TRAIT_VAL := {"skrupulatny": 1.0, "szybki": 1.2, "nocny_marek": 0.8, "majsterkowicz": 0.6, "bystre_oko": 1.0}
 # pracownicy: [rekrutacja $, pensja $/tydzień] dla 1. (Arbjooze) … 5.
 const HIRE := [[150, 125], [400, 250], [600, 350], [900, 425], [1250, 500]]
 const STAFF_MAX := 5
@@ -233,11 +249,15 @@ const TRAITS := {"skrupulatny": ["Skrupulatny", "+25% PW w Trybie 1, lepsza anal
 const NAMES := ["Lisica Ola", "Szop Kazik", "Królik Bartek", "Niedźwiadek Tosia", "Bóbr Feliks", "Wiewiórka Zuzia", "Jeżyk Staś",
 	"Sowa Halinka", "Borsuk Tadek", "Kuna Ewelina", "Wydra Marcel", "Łasiczka Pola"]
 const MODES := ["Rutynowe Obserwacje", "Analiza Raportów", "Utrzymanie Sprzętu"]
+const MODE_INFO := ["Nocą obserwuje niebo pomocniczym teleskopem: ok. 1 PW/s, czasem zgłasza odkrycie [!].",
+	"W dzień analizuje pomiary: rano do 8 odkryć na dysku zyskuje 20-30% jakości (wyższa cena).",
+	"Dba o sprzęt: noc trwa 15 s dłużej, serwisuje satelity Sat-Net (bez opłat za serwis)."]
 const KIND := {"Lisica": "lis", "Szop": "szop", "Królik": "krolik", "Niedźwiadek": "mis", "Bóbr": "bobr", "Wiewiórka": "wiewiorka",
 	"Jeżyk": "jez", "Sowa": "sowa", "Borsuk": "borsuk", "Kuna": "kuna", "Wydra": "wydra", "Łasiczka": "lasica"}  # sprite worker_<kind>.png
 const SAT_COST := 2000
-const SAT_USES := {"nauka": ["Badania naukowe", "+150 PW dziennie"], "astrotv": ["Wynajem AstroTV", "$120 dziennie"],
-	"satnet": ["Wynajem Sat-Net", "$300 dziennie, serwis co 3 dni"]}
+const SAT_USES := {"nauka": ["Badania naukowe", "+150 PW dziennie"], "astrotv": ["Wynajem AstroTV", "$160 dziennie"],
+	"satnet": ["Wynajem Sat-Net", "$350 dziennie, serwis $150 co 3 dni"]}
+const SAT_RESALE := 0.6  # sprzedaż na rynku wtórnym: wynajem zwraca się w ~1-2 tygodnie, sprzedaż zawsze ze stratą
 # ciała Etapu 2 (duży teleskop): planety z ciekawostką z analizy widmowej, księżyce, czarne dziury, galaktyki, gromady
 const SKY2 := {
 	"merkury": {"name": "Merkury", "cat": "planet", "req": "", "pw": 70, "price": 150, "col": "b8b0a8", "fact": "Kratery, brak atmosfery."},
@@ -276,6 +296,7 @@ var debt := 0               # niezapłacone pensje: potrącane z kolejnych sprze
 var solar := false          # dziś burza słoneczna (satelity bez tarczy tracą przychód)
 var solar_next := false
 var staff_acc := 0.0        # ułamki PW z pracy nocnej
+var decor := {}             # tryb edycji pokoiku: nazwa obiektu -> [dx, dy, odbity]
 var day := 1
 var night := true
 var night_left := NIGHT_BASE
@@ -500,6 +521,7 @@ func _setup_input() -> void:
 		"confirm": [KEY_SPACE, KEY_ENTER, JOY_BUTTON_A],
 		"prev_obj": [KEY_Q, JOY_BUTTON_LEFT_SHOULDER], "next_obj": [KEY_E, JOY_BUTTON_RIGHT_SHOULDER],
 		"focus_in": [KEY_X], "focus_out": [KEY_Z],
+		"edit": [KEY_TAB, JOY_BUTTON_Y],
 	}
 	for a in map:
 		if not InputMap.has_action(a):
@@ -530,7 +552,7 @@ func _input(e: InputEvent) -> void:
 
 ## podpowiedź przycisku zgodna z urządzeniem
 func key(action: String) -> String:
-	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "advance": ["Spacja", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"], "leave": ["PPM", "B"]}
+	var k := {"interact": ["E", "A"], "back": ["ESC", "B"], "confirm": ["LPM", "A"], "advance": ["Spacja", "A"], "focus": ["KÓŁKO", "(R)"], "prev_next": ["Q/E", "LB/RB"], "leave": ["PPM", "B"], "edit": ["Tab", "Y"]}
 	return "[%s]" % k[action][1 if pad else 0]
 
 
@@ -787,7 +809,7 @@ func science_rows(st := stage) -> Array:
 
 
 func shop_rows() -> Array:
-	return SHOP2 if stage >= 2 else SHOP
+	return SHOP2 + COSMETICS if stage >= 2 else SHOP
 
 
 func can_buy_science(row: Array) -> String:
@@ -845,7 +867,7 @@ func unpack_all(quiet := false) -> void:
 
 
 func _shop_name(id: String) -> String:
-	for r in SHOP + SHOP2:
+	for r in SHOP + SHOP2 + COSMETICS:
 		if r[0] == id:
 			return r[1]
 	return id
@@ -875,7 +897,7 @@ func stage2_goals() -> Array:
 func staff_eff(p: Dictionary, mode: int) -> float:
 	var e := 1.0 + (0.10 if has("ekspres") else 0.0) + (0.30 if p.traits.has("szybki") else 0.0)
 	if mode == 1:
-		e += (0.20 if has("mentoring") else 0.0) + (0.30 if has("drugi_tel") else 0.0) + (0.25 if p.traits.has("skrupulatny") else 0.0)
+		e += (0.20 if has("mentoring") else 0.0) + (0.25 if p.traits.has("skrupulatny") else 0.0)
 		e += (0.50 if p.traits.has("nocny_marek") else 0.0) + (0.15 if p.kind == "cat" and has("legowisko") else 0.0)
 	elif mode == 2:
 		e += (0.10 if has("szkolenie") else 0.0) - (0.10 if p.traits.has("nocny_marek") else 0.0)
@@ -899,15 +921,46 @@ func hire_cost(i := staff.size()) -> Array:
 	return HIRE[mini(i, HIRE.size() - 1)]
 
 
+## koszt kandydata zależy od tego, jak się przyda: suma wartości cech (rekrutacja $, pensja $/tydzień)
+func cand_cost(c: Dictionary) -> Array:
+	var v := 0.0
+	for t in c.traits:
+		v += TRAIT_VAL[t]
+	return [int(round((150 + 300 * v) / 10.0)) * 10, int(round((80 + 140 * v) / 5.0)) * 5]
+
+
+## ile stanowisk danego trybu jest wolnych (bez Arbjooze, który ma swoje biurko)
+func free_stations(mode: int, ignore: Dictionary = {}) -> int:
+	var cap := 0
+	for id in STATIONS[mode]:
+		cap += 1 if has(id) else 0
+	for i in range(1, staff.size()):
+		if staff[i] != ignore and int(staff[i].mode) == mode:
+			cap -= 1
+	return cap
+
+
+## może zmienić tryb tylko na taki, dla którego jest wolne stanowisko (Arbjooze: zawsze)
+func can_switch(p: Dictionary, mode: int) -> bool:
+	return staff.find(p) == 0 or free_stations(mode, p) > 0
+
+
 func hire(c: Dictionary) -> String:
 	if staff.size() >= STAFF_MAX:
 		return "Limit pracowników w Etapie 2: %d." % STAFF_MAX
-	var cost: int = hire_cost()[0]
-	if money < cost:
+	var mode := 0
+	for m in [1, 2, 3]:
+		if free_stations(m) > 0:
+			mode = m
+			break
+	if mode == 0:
+		return "Brak wolnego stanowiska. Kup je w sklepie (Biuro)."
+	var cost: Array = cand_cost(c)
+	if money < cost[0]:
 		return "Za mało $."
-	money -= cost
-	today.bought = today.get("bought", []) + [["Rekrutacja: " + c.name, cost, "$"]]
-	staff.append({"name": c.name, "kind": c.kind, "traits": c.traits, "mode": 1, "since": day, "report": "", "salary": hire_cost(staff.size())[1]})
+	money -= cost[0]
+	today.bought = today.get("bought", []) + [["Rekrutacja: " + c.name, cost[0], "$"]]
+	staff.append({"name": c.name, "kind": c.kind, "traits": c.traits, "mode": mode, "since": day, "report": "", "salary": cost[1]})
 	candidates.erase(c)
 	changed.emit()
 	toast.emit("Nowy pracownik: " + c.name, "good")
@@ -966,9 +1019,9 @@ func _staff_morning(out: Array) -> void:
 			"nauka":
 				sat_pw += int(150 * (1.25 if has("panele") else 1.0))
 			"astrotv":
-				sat_usd += int(120 * (1.3 if has("umowa_tv") else 1.0) * (1.25 if has("siec_sat") else 1.0))
+				sat_usd += int(160 * (1.3 if has("umowa_tv") else 1.0) * (1.25 if has("siec_sat") else 1.0))
 			"satnet":
-				sat_usd += int(300 * (1.25 if has("siec_sat") else 1.0))
+				sat_usd += int(350 * (1.25 if has("siec_sat") else 1.0))
 				if (day - int(st.day)) % 3 == 2 and not staff.any(func(p): return p.mode == 3):
 					sat_usd -= 150  # serwis Sat-Net co 3 dni, chyba że ktoś jest w Trybie 3
 	if sat_pw > 0:
@@ -1002,8 +1055,12 @@ func build_sat(commercial: bool) -> String:
 	return ""
 
 
+func sat_value(st: Dictionary) -> int:
+	return int(st.cost * SAT_RESALE)
+
+
 func sell_sat(st: Dictionary) -> int:
-	var v := int(st.cost * 1.8)
+	var v := sat_value(st)
 	sats.erase(st)
 	money += v
 	today.sales = today.get("sales", 0) + v
@@ -1109,6 +1166,7 @@ func new_game() -> void:
 	debt = 0
 	solar = false
 	solar_next = false
+	decor = {}
 	demand_log.clear()
 	analysis = {"uids": [], "left": 0.0}
 	offer = {}
@@ -1120,7 +1178,7 @@ func new_game() -> void:
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "parcels", "journal", "discovered",
 	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history", "stage", "logo",
-	"staff", "candidates", "sats", "reports", "debt", "solar", "solar_next"]
+	"staff", "candidates", "sats", "reports", "debt", "solar", "solar_next", "decor"]
 
 
 func has_save() -> bool:

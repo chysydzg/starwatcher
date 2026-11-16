@@ -726,6 +726,18 @@ func _draw() -> void:
 			var rad: float = c[1] * (0.42 - k * 0.025) * zoom
 			draw_circle((s + o).floor(), rad, Color(0.2, 0.2, 0.28, 0.75 * ca))
 			draw_circle((s + o + Vector2(0, -rad * 0.25)).floor(), rad * 0.7, Color(0.3, 0.3, 0.38, 0.6 * ca))  # wierzch podświetlony Księżycem
+	for tg in targets:  # zgłoszenia pracowników: wykrzyknik nad obiektem, a poza okularem strzałka na krawędzi
+		if tg.done or not Game.reports.has(tg.id):
+			continue
+		var sp := to_screen(tg.pos)
+		var bob := -2.0 if fmod(t, 0.8) < 0.4 else 0.0
+		if sp.distance_to(C) < R - 10:
+			_bang(sp + Vector2(-2, -30 + bob))
+		else:
+			var dir := (sp - C).normalized()
+			var e := C + dir * (R - 22)
+			draw_colored_polygon(PackedVector2Array([e + dir * 12, e + dir.orthogonal() * 6, e - dir.orthogonal() * 6]), Color("ffcf4a"))
+			_bang(e - dir * 16 + Vector2(-2, -8 + bob))
 	if not meteor.is_empty():
 		var s := to_screen(meteor.pos)
 		var a: float = 1.0 - meteor.t / Game.METEOR_WINDOW
@@ -771,6 +783,16 @@ func _draw() -> void:
 	_draw_panels()
 	if state == S.SPECTRUM:
 		_draw_spectrum()
+
+
+## pikselowy wykrzyknik (jak nad głowami pracowników): żółta kreska i kropka z ciemnym obrysem
+func _bang(p: Vector2) -> void:
+	p = p.floor()
+	draw_rect(Rect2(p + Vector2(-1, -1), Vector2(6, 11)), Color("1a1426"))
+	draw_rect(Rect2(p + Vector2(-1, 11), Vector2(6, 5)), Color("1a1426"))
+	draw_rect(Rect2(p, Vector2(4, 9)), Color("ffcf4a"))
+	draw_rect(Rect2(p + Vector2(0, 12), Vector2(4, 3)), Color("ffcf4a"))
+	draw_rect(Rect2(p, Vector2(1, 9)), Color("fff2b0"))
 
 
 func _draw_target(tg: Dictionary, s: Vector2) -> void:

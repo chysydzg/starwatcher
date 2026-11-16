@@ -2,7 +2,7 @@
 // Osobny ekran 640x360, ta sama perspektywa i bryła co pokój z Etapu 1 (okno w 152, drzwi w 520 – do laboratorium),
 // świeżo pomalowany na jasno; meble przyjechały z mieszkania: pokoik_layout.json bierze je z room_layout.json.
 const fs = require("fs");
-const { P, R, slab, obj, shadow, light } = require("./kit.js");
+const { P, R, slab, obj, light, piece, savePieces } = require("./kit.js");
 const W = 640, H = 360, WALL = 112;
 const out = process.argv[2];
 const b = new P.Buf(W, H);
@@ -58,11 +58,58 @@ obj(b, 300, 30, 30, 38, (s) => {  // zdjęcie: Jania z tatą na balkonie
   s.rect(7, 18, 11, 34, [224, 120, 60]); s.rect(8, 14, 9, 18, [224, 120, 60]); s.rect(10, 14, 11, 18, [224, 120, 60]);
   s.rect(15, 16, 21, 34, [130, 110, 100]); s.pset(23, 7, R.gold[3]); s.pset(6, 9, R.gold[3]);
 }, { lit: R.gold[1] });
-for (const [x, y, rx, ry] of [[56, 190, 44, 6], [113, 128, 15, 4], [236, 128, 9, 3], [598, 124, 28, 4], [458, 124, 12, 4], [38, 268, 22, 5], [46, 330, 16, 4]]) shadow(b, x, y, rx, ry);
+// meble da się przestawiać (tryb edycji): bez cieni wpieczonych w podłogę i bez plamy światła lampki
 light(b, (x, y) => (y > WALL + 2 && y < 250 && x > 174 + (y - WALL) * 0.55 && x < 236 + (y - WALL) * 0.55 ? Math.min(1, (250 - y) / 40) : 0), [255, 236, 190], 0.22);
-light(b, (x, y) => { const d = Math.hypot((x - 114) / 46, (y - 112) / 30); return d < 1 ? (1 - d) * 1.6 : 0; }, [255, 200, 120], 0.2);
 P.save(b, out + "/pokoik.png");
+
+// ---- ozdoby ze sklepu (kategoria Pokój): pokazują się po otwarciu paczki, potem do przestawienia w trybie edycji
+piece("polka", 124, [380, 112, 420, 124], (T) => obj(T, 380, 72, 40, 52, (s) => {  // półka z atlasami nieba
+  slab(s, 0, 0, 40, 52, R.woodL, 0.7, 0.5); slab(s, 3, 3, 37, 49, R.wood, 0.4, 0.3);
+  for (const y of [3, 19, 35]) {
+    s.rect(3, y + 13, 37, y + 15, R.woodL[2]);
+    let x = 5;
+    for (let k = 0; x < 34; k++) { const w = 3 + (k * 7 % 3), h = 9 + (k * 5 % 4); s.rect(x, y + 13 - h, x + w, y + 13, [R.red[2], R.navy[3], R.gold[2], [80, 140, 90]][k % 4]); x += w + 1; }
+  }
+}));
+piece("dywan", 0, [400, 240, 480, 272], (T) => {  // okrągły dywanik w gwiazdki (leży pod wszystkim)
+  for (let y = 236; y < 276; y++) for (let x = 396; x < 484; x++) {
+    const d = ((x - 440) / 42) ** 2 + ((y - 256) / 18) ** 2;
+    if (d > 1) continue;
+    T.pset(x, y, d > 0.8 ? [196, 120, 160] : d > 0.7 ? [236, 200, 220] : [150, 90, 140]);
+  }
+  for (const [x, y] of [[424, 252], [452, 258], [440, 248], [432, 262], [458, 250]]) { T.pset(x, y, R.gold[3]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) T.pset(x + dx, y + dy, R.gold[1]); }
+});
+piece("girlanda", 0, [16, 12, 110, 32], (T) => {  // girlanda gwiazdek nad łóżkiem (wisi na ścianie)
+  for (let x = 16; x < 110; x++) T.pset(x, Math.round(16 + 7 * Math.sin((x - 16) / 94 * Math.PI)), [60, 50, 60]);
+  for (let x = 22; x < 108; x += 12) { const y = Math.round(18 + 7 * Math.sin((x - 16) / 94 * Math.PI)); for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) T.pset(x + dx, y + dy + 1, (x / 12) % 2 < 1 ? [255, 230, 140] : [255, 190, 210]); }
+});
+piece("plakat_saturn", 0, [246, 28, 278, 70], (T) => obj(T, 246, 28, 32, 42, (s) => {  // plakat z Saturnem
+  slab(s, 0, 0, 32, 42, [[20, 22, 50], [30, 34, 70], [40, 46, 90]], 0.6, 0.4, { grain: 0 });
+  for (let y = 0; y < 42; y++) for (let x = 0; x < 32; x++) if (Math.hypot(x - 16, y - 18) < 7) s.pset(x, y, y < 16 ? [240, 214, 150] : [214, 180, 120]);
+  for (let a = 0; a < 6.28; a += 0.05) { const x = Math.round(16 + Math.cos(a) * 13), y = Math.round(18 + Math.sin(a) * 3.5); if (Math.sin(a) > 0 || Math.hypot(x - 16, y - 18) >= 7) s.pset(x, y, [250, 236, 190]); }
+  s.rect(6, 33, 26, 35, [250, 236, 190]); for (const [x, y] of [[4, 4], [27, 8], [6, 26], [25, 28]]) s.pset(x, y, [255, 255, 255]);
+}, { lit: R.gold[2] }));
+piece("rakieta", 236, [466, 224, 494, 236], (T) => obj(T, 466, 176, 28, 60, (s) => {  // model rakiety na podstawce
+  slab(s, 4, 52, 24, 60, R.wood, 0.6, 0.4);
+  P.solid(s, [P.cap(14, 10, 14, 42, 2.5, 5)], P.hueRamp(4, { hue: 214, shift: 20, sat: 0.08, light: [0.55, 0.95] }), { light: [-0.5, -0.7, 0.5] });
+  s.rect(12, 0, 16, 8, R.red[2]); s.rect(13, 0, 15, 2, R.red[3]); s.rect(6, 36, 9, 48, R.red[2]); s.rect(19, 36, 22, 48, R.red[2]);
+  s.rect(12, 18, 16, 22, [120, 190, 240]); s.rect(11, 48, 17, 52, R.gray[1]);
+  for (let y = 12; y < 52; y++) { s.pset(23, y, R.gray[1]); s.pset(27, y, R.gray[1]); if (y % 6 === 0) s.rect(23, y, 28, y + 1, R.gray[2]); }  // wieża startowa z prawej (widać obrót Q/E)
+  s.rect(17, 24, 23, 25, R.gray[2]);
+}));
+piece("pluszak", 216, [118, 206, 136, 216], (T) => obj(T, 118, 196, 18, 20, (s) => {  // pluszowy kotek (szarobury, różowy nosek)
+  const fur = [[96, 84, 76], [130, 116, 104], [160, 146, 132]];
+  slab(s, 2, 6, 16, 20, fur, 0.7, 0.5, { grain: 0 }); s.rect(2, 2, 5, 6, fur[1]); s.rect(13, 2, 16, 6, fur[1]);
+  s.rect(6, 12, 12, 20, [236, 232, 220]); s.pset(6, 9, [100, 170, 60]); s.pset(11, 9, [100, 170, 60]); s.pset(9, 11, [236, 140, 160]);
+}));
+savePieces(out, "pokoik");
 const room = JSON.parse(fs.readFileSync(out + "/room_layout.json"));
 const keep = ["room_bed", "room_nightstand", "room_lamp", "room_wardrobe", "room_plant", "room_pufa", "room_basket"];
-fs.writeFileSync(out + "/pokoik_layout.json", JSON.stringify(room.filter((p) => keep.includes(p.name)), null, 1));
+const lay = room.filter((p) => keep.includes(p.name)).map((p) => ({ ...p, kind: "floor" }));
+const KIND = { dywan: "rug", girlanda: "wall", plakat_saturn: "wall" };
+for (const p of JSON.parse(fs.readFileSync(out + "/pokoik_layout.json"))) {
+  const k = p.name.replace("pokoik_", "");
+  lay.push({ ...p, opt: k, kind: KIND[k] || "floor", nocol: !!KIND[k] });
+}
+fs.writeFileSync(out + "/pokoik_layout.json", JSON.stringify(lay, null, 1));
 console.log("pokoik.png");

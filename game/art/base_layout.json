@@ -53,11 +53,12 @@
   "y": 124,
   "base": 262,
   "foot": [
-   446,
-   236,
-   494,
+   452,
+   254,
+   488,
    266
-  ]
+  ],
+  "footcol": true
  },
  {
   "name": "base_catdesk",
@@ -81,7 +82,8 @@
    292,
    238,
    304
-  ]
+  ],
+  "footcol": true
  },
  {
   "name": "base_podium",
@@ -89,11 +91,144 @@
   "y": 262,
   "base": 336,
   "foot": [
-   296,
+   300,
+   326,
+   344,
+   338
+  ],
+  "footcol": true
+ },
+ {
+  "name": "base_st_obs1",
+  "x": 21,
+  "y": 144,
+  "base": 191,
+  "foot": [
+   20,
+   170,
+   116,
+   191
+  ],
+  "opt": "st_obs"
+ },
+ {
+  "name": "base_st_obs2",
+  "x": 21,
+  "y": 230,
+  "base": 277,
+  "foot": [
+   20,
+   256,
+   116,
+   277
+  ],
+  "opt": "st_obs2"
+ },
+ {
+  "name": "base_st_an1",
+  "x": 385,
+  "y": 285,
+  "base": 337,
+  "foot": [
+   384,
    316,
-   348,
-   340
-  ]
+   450,
+   337
+  ],
+  "opt": "st_analiza"
+ },
+ {
+  "name": "base_st_an2",
+  "x": 477,
+  "y": 285,
+  "base": 337,
+  "foot": [
+   476,
+   316,
+   542,
+   337
+  ],
+  "opt": "st_analiza2"
+ },
+ {
+  "name": "base_st_ws1",
+  "x": 561,
+  "y": 119,
+  "base": 192,
+  "foot": [
+   560,
+   172,
+   626,
+   192
+  ],
+  "opt": "st_warsztat"
+ },
+ {
+  "name": "base_ekspres",
+  "x": 299,
+  "y": 69,
+  "base": 124,
+  "foot": [
+   300,
+   108,
+   330,
+   124
+  ],
+  "opt": "ekspres"
+ },
+ {
+  "name": "base_legowisko",
+  "x": 241,
+  "y": 302,
+  "base": 318,
+  "foot": [
+   242,
+   304,
+   276,
+   318
+  ],
+  "opt": "legowisko",
+  "footcol": true
+ },
+ {
+  "name": "base_nas",
+  "x": 501,
+  "y": 79,
+  "base": 124,
+  "foot": [
+   502,
+   112,
+   518,
+   124
+  ],
+  "opt": "nas"
+ },
+ {
+  "name": "base_pogoda",
+  "x": 299,
+  "y": 27,
+  "base": 60,
+  "foot": [
+   300,
+   50,
+   330,
+   60
+  ],
+  "opt": "pogoda",
+  "nocol": true
+ },
+ {
+  "name": "base_montaz",
+  "x": 147,
+  "y": 125,
+  "base": 178,
+  "foot": [
+   148,
+   158,
+   206,
+   178
+  ],
+  "opt": "montaz_sat"
  },
  {
   "name": "room_box",
