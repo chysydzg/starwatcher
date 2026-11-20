@@ -33,7 +33,7 @@ func _ready() -> void:
 	tel.state = tel.S.FOCUS
 	await get_tree().create_timer(0.4).timeout
 	tel._after_focus()
-	var r := Rect2i(160, 168, 320, 180)  # obiekt u góry, widmo i paski na dole
+	var r := Rect2i(Vector2i(160, 168) + Vector2i(Game.margin), Vector2i(320, 180))  # obiekt u góry, widmo i paski na dole (szeroki ekran: przesunięcie)
 	var aim_at := func(v: float): tel.aim.x = tel.C.x + v / 0.45 * (tel.R - 6)
 	# 1) widmo i dryfujące linie, wzorzec daleko
 	for i in 14:

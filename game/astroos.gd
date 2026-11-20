@@ -936,7 +936,7 @@ func _zespol() -> void:
 		body.add_child(row)
 		_label(row, p.name + ("  [!]" if p.report != "" else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" else INK)
 		var tr: String = Game.TRAITS[p.traits[0]][0] + (" +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
-		_label(row, tr, Vector2(166, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
+		_label(row, tr, Vector2(186, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
 		_num(row, "$%d/dzień" % Game.wage(p), 380, 5, Color("6a6a7a"))
 		row.tooltip_text = "%s\nPensja: $%d/dzień\nW tym trybie: %s" % [p.name, Game.wage(p), Game.yield_text(p, int(p.mode))]
 		for m in 3:
@@ -970,7 +970,7 @@ func _zespol() -> void:
 		_portrait(card, c, Vector2(4, 22), Vector2(60, 62))
 		for k in c.traits.size():
 			_label(card, Game.TRAITS[c.traits[k]][0], Vector2(70, 18 + k * 16), Color("6a5a2a"))
-		_label(card, "Pensja $%d/dzień" % Game.wage(c), Vector2(70, 52), Color("2a7a3a"))
+		_label(card, "$%d/dzień" % Game.wage(c), Vector2(70, 52), Color("2a7a3a"))
 		_label(card, Game.yield_text(c, 1), Vector2(70, 68), Color("2a5a8a"))
 		var hb := _button("ZATRUDNIJ", func():
 			var why := Game.hire(c)
@@ -990,7 +990,7 @@ func _zespol() -> void:
 		card.add_child(hb)
 		card.mouse_entered.connect(func(): info.text = "  ".join(c.traits.map(func(k): return Game.TRAITS[k][0] + ": " + Game.TRAITS[k][1])))
 	_info(Rect2(10, 298, 620, 20), Color("2a3a2a"))
-	info.text = "Tryb pracy zmienisz przyciskami 1-3. Pensje schodzą co rano. Zatrudnienie nic nie kosztuje."
+	info.text = "Tryb zmienisz przyciskami 1-3. Pensje schodzą rano, zatrudnienie jest za darmo."
 
 
 ## portret pracownika: kadr twarzy z portretu rozmowy (88x88, tools/art/staff.js; Józek ma własny) w ramce `size`

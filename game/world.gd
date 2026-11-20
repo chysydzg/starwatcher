@@ -1091,6 +1091,8 @@ func _bang(n: CanvasItem, p: Vector2) -> void:
 ## pracownicy 2-5 przy swoich biurkach (zatrudnieni w AstroOS); puste biurka czekają na kolejnych
 func _place_workers() -> void:
 	for ps in opt_props:  # kupione stanowiska i sprzęt stoją w laboratorium (kolider razem z nimi)
+		if ps[1] == "":  # element bez zakupu (duży dywan w pokoiku): zawsze jest
+			continue
 		ps[0].visible = Game.has(ps[1])
 		if shapes.has(ps[2]):
 			shapes[ps[2]].set_deferred("disabled", not ps[0].visible)
