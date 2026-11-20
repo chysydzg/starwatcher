@@ -846,13 +846,12 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 	var pulse := 0.75 + 0.25 * sin(t * 2.5 + tg.phase)
 	if tg.done:
 		_check(s + Vector2(14, -22))
-		if info.has("pts"):
-			var c2 := Color(0.55, 0.85, 0.65, 0.55)
+		if info.has("pts"):  # połączona konstelacja: złote kreski i błyszczące gwiazdy, jak w trakcie łączenia
 			var pts := star_points(tg)
 			for e in info.edges:
-				draw_line(pts[e[0]], pts[e[1]], Color(1, 0.8, 0.4, 0.3))
-			for p in pts:
-				_px(p.x - 1, p.y - 1, 2, 2, c2)
+				draw_line(pts[e[0]], pts[e[1]], Color("ffcf6b", 0.8), 1.0)
+			for i in pts.size():
+				_glint(pts[i], Color("ffcf6b"), 3.0, 0.85 + 0.15 * sin(t * 3.0 + i))
 			return
 		pulse = 1.0  # Księżyc, mgławice, planety: po odkryciu ostre, w pełnej postaci
 	var blur := 0.0

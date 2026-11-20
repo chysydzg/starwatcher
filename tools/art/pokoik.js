@@ -2,7 +2,7 @@
 // Osobny ekran 640x360, ta sama perspektywa i bryła co pokój z Etapu 1 (okno w 152, drzwi w 520 – do laboratorium),
 // świeżo pomalowany na jasno; meble przyjechały z mieszkania: pokoik_layout.json bierze je z room_layout.json.
 const fs = require("fs");
-const { P, R, slab, obj, light, piece, savePieces } = require("./kit.js");
+const { P, R, slab, obj, light, piece, savePieces, saturn } = require("./kit.js");
 const W = 640, H = 360, WALL = 112;
 const out = process.argv[2];
 const b = new P.Buf(W, H);
@@ -87,8 +87,7 @@ piece("girlanda", 0, [16, 12, 110, 32], (T) => {  // girlanda gwiazdek nad łó�
 });
 piece("plakat_saturn", 0, [246, 28, 278, 70], (T) => obj(T, 246, 28, 32, 42, (s) => {  // plakat z Saturnem
   slab(s, 0, 0, 32, 42, [[20, 22, 50], [30, 34, 70], [40, 46, 90]], 0.6, 0.4, { grain: 0 });
-  for (let y = 0; y < 42; y++) for (let x = 0; x < 32; x++) if (Math.hypot(x - 16, y - 18) < 7) s.pset(x, y, y < 16 ? [240, 214, 150] : [214, 180, 120]);
-  for (let a = 0; a < 6.28; a += 0.05) { const x = Math.round(16 + Math.cos(a) * 13), y = Math.round(18 + Math.sin(a) * 3.5); if (Math.sin(a) > 0 || Math.hypot(x - 16, y - 18) >= 7) s.pset(x, y, [250, 236, 190]); }
+  saturn(s, 16, 18, 7, 13, 3.5, [240, 214, 150], [214, 180, 120], [250, 236, 190]);
   s.rect(6, 33, 26, 35, [250, 236, 190]); for (const [x, y] of [[4, 4], [27, 8], [6, 26], [25, 28]]) s.pset(x, y, [255, 255, 255]);
 }, { lit: R.gold[2] }));
 piece("rakieta", 236, [466, 224, 494, 236], (T) => obj(T, 466, 176, 28, 60, (s) => {  // model rakiety na podstawce

@@ -120,40 +120,71 @@ func _ready() -> void:
 		_cert_offer.call_deferred()
 
 
-## Etap 1, koniec: okienko na środku pulpitu z Certyfikatem Terenu do kupienia
+## Etap 1, koniec: systemowe okno na środku pulpitu (pasek tytułu jak w Windows) z Certyfikatem Terenu do kupienia;
+## szerokość według najdłuższej linii tekstu, przycisk KUP lekko pulsuje
 func _cert_offer() -> void:
 	var row: Array = Game.SHOP.filter(func(r): return r[0] == "certyfikat")[0]
-	var box := Panel.new()
-	box.add_theme_stylebox_override("panel", _box(Color("fff8e6"), Color("c89a2a"), 3))
-	box.size = Vector2(300, 168)
-	box.position = Vector2(170, 92)
-	add_child(box)
+	var lines := ["Łał! Manifest Naukowy gotowy.", "Za $%d kupisz działkę nad jeziorem" % row[2], "i postawisz WŁASNE obserwatorium!"]
+	var tw := 0.0
+	for l in lines:
+		tw = maxf(tw, Game.font_os.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x)
+	var w := ceilf(maxf(tw + 96, 320))
+	var win_box := Control.new()
+	win_box.size = Vector2(w, 150)
+	win_box.position = ((Vector2(640, 360 + BAR) - win_box.size) / 2).floor()
+	win_box.draw.connect(func():
+		var n := win_box
+		n.draw_rect(Rect2(4, 4, w, 150), Color(0, 0, 0, 0.35))  # cień okna
+		n.draw_rect(Rect2(0, 0, w, 150), Color("d6d6de"))
+		_frame(n, Rect2(0, 0, w, 150), INK)
+		n.draw_rect(Rect2(1, 1, w - 2, 1), Color.WHITE)
+		for x in range(2, w - 2, 2):  # pasek tytułu: gradient granat -> błękit w pionowych pasach co 2 px
+			n.draw_rect(Rect2(x, 2, 2, 20), Color("0a246a").lerp(Color("3a6ea5"), x / w))
+		n.draw_string(Game.font_os, Vector2(8, 18), "AstroOS - Nowa wiadomość", HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS, Color.WHITE)
+		n.draw_rect(Rect2(w - 20, 4, 16, 14), Color("d6d6de"))
+		_frame(n, Rect2(w - 20, 4, 16, 14), INK)
+		for i in 8:  # X z pikseli jak w oknie programu
+			n.draw_rect(Rect2(w - 16 + i, 7 + i, 2, 1), INK)
+			n.draw_rect(Rect2(w - 10 - i, 7 + i, 2, 1), INK))
+	add_child(win_box)
 	var ic := TextureRect.new()
 	ic.texture = Game.tex("os/certificate_icon")
-	ic.position = Vector2(14, 16)
+	ic.position = Vector2(14, 34)
 	ic.scale = Vector2(2, 2)
 	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	box.add_child(ic)
-	_label(box, "Łał!", Vector2(90, 10), Color("c8501a")).add_theme_font_size_override("font_size", Game.OS_FS * 2)
-	_label(box, "Za $%d kupisz działkę nad jeziorem.\nTo będzie Twoje własne obserwatorium!" % row[2], Vector2(90, 46), INK, 200)
-	_label(box, row[1], Vector2(14, 92), Color("6a4a1a"), 272)
+	win_box.add_child(ic)
+	for i in lines.size():
+		_label(win_box, lines[i], Vector2(84, 28 + i * 20), Color("c8501a") if i == 0 else INK)
 	var buy := _button("KUP CERTYFIKAT  $%d" % row[2], func():
 		Game.buy_shop(row)
-		box.queue_free()
+		win_box.queue_free()
 		_certificate())
-	buy.position = Vector2(14, 128)
-	buy.size = Vector2(190, 28)
+	buy.position = Vector2(14, 108)
+	buy.size = Vector2(w - 124, 30)
+	buy.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))
+	buy.add_theme_stylebox_override("hover", _box(Color("4ad87a"), Color("0a3a1a"), 2))
+	buy.add_theme_color_override("font_color", Color.WHITE)
 	buy.disabled = Game.money < row[2]
 	if buy.disabled:
 		buy.tooltip_text = "Brakuje $%d." % (row[2] - Game.money)
-	box.add_child(buy)
-	var later := _button("PÓŹNIEJ", box.queue_free)
-	later.position = Vector2(210, 128)
-	later.size = Vector2(76, 28)
-	box.add_child(later)
+	else:  # zachęta: przycisk pulsuje jaśniej i ciemniej
+		var tw2 := buy.create_tween().set_loops()
+		tw2.tween_property(buy, "self_modulate", Color(1.3, 1.3, 1.3), 0.5).set_trans(Tween.TRANS_SINE)
+		tw2.tween_property(buy, "self_modulate", Color.WHITE, 0.5).set_trans(Tween.TRANS_SINE)
+	win_box.add_child(buy)
+	var later := _button("PÓŹNIEJ", win_box.queue_free)
+	later.position = Vector2(w - 102, 108)
+	later.size = Vector2(88, 30)
+	win_box.add_child(later)
+	var x_btn := Button.new()  # niewidoczny przycisk na rysowanym X
+	x_btn.flat = true
+	x_btn.position = Vector2(w - 20, 4)
+	x_btn.size = Vector2(16, 14)
+	x_btn.pressed.connect(win_box.queue_free)
+	win_box.add_child(x_btn)
 
 
-## po zakupie: pikselowy certyfikat na cały ekran
+## po zakupie: pikselowy certyfikat na cały ekran (papier 380x250, napisy w środku ramki)
 func _certificate() -> void:
 	Game.sfx("music/sting_win", 1.0, -4.0, "Music")
 	var o := ColorRect.new()
@@ -162,33 +193,32 @@ func _certificate() -> void:
 	add_child(o)
 	var paper := TextureRect.new()
 	paper.texture = Game.tex("os/certificate")
-	paper.position = Vector2(170, 70) + Game.margin
+	paper.position = Vector2(130, 32) + Game.margin
 	paper.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	o.add_child(paper)
-	for it in [["CERTYFIKAT", 26, Color("8a5a10"), Game.font_title, 16], ["Terenu pod Bazy Kosmiczne", 56, INK, Game.font_os, Game.OS_FS],
-			["Niniejszym poświadcza się, że", 86, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["JANIA", 108, Color("2a3a8a"), Game.font_title, 16],
-			["jest właścicielką działki nad jeziorem", 132, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["Dzień %d" % Game.day, 156, Color("5a4a3a"), Game.font_os, Game.OS_FS]]:
+	for it in [["CERTYFIKAT", 36, Color("8a5a10"), Game.font_title, 16], ["Terenu pod Bazy Kosmiczne", 76, INK, Game.font_os, Game.OS_FS],
+			["Niniejszym poświadcza się, że", 112, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["JANIA", 140, Color("2a3a8a"), Game.font_title, 16],
+			["jest właścicielką działki nad jeziorem", 168, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["Dzień %d" % Game.day, 206, Color("5a4a3a"), Game.font_os, Game.OS_FS]]:
 		var l := Label.new()
 		l.text = it[0]
 		l.add_theme_font_override("font", it[3])
 		l.add_theme_font_size_override("font_size", it[4])
 		l.add_theme_color_override("font_color", it[2])
-		l.size = Vector2(300, 20)
+		l.size = Vector2(380, 20)
 		l.position = Vector2(0, it[1] - 12)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if it[0].begins_with("Dzień"):
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-			l.position.x = 40
+			l.position.x = 50
 		paper.add_child(l)
-	paper.pivot_offset = Vector2(150, 100)
+	paper.pivot_offset = Vector2(190, 125)
 	paper.scale = Vector2(0.2, 0.2)
 	paper.create_tween().tween_property(paper, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var ok := _button("HURA!", o.queue_free)
-	ok.position = Vector2(270, 282) + Game.margin
+	ok.position = Vector2(270, 292) + Game.margin
 	ok.size = Vector2(100, 28)
 	o.add_child(ok)
 	ok.grab_focus.call_deferred()
-
 
 
 func _process(dt: float) -> void:
@@ -758,8 +788,7 @@ func _desc(r: Array, st: String, is_shop: bool) -> String:
 	var cost := ("$%d" if is_shop else "%d PW") % r[2]
 	var why: String = {"owned": "Paczka czeka w pokoju." if r[0] in Game.parcels else "Posiadane.",
 		"ok": "Kliknij KUP, aby zamówić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
-		"tier": "Wymaga %s." % ("3 umiejętności z 1. rzędu" if r[3] == 2 else "4 umiejętności z 2. rzędu"),
-		"branch": "Najpierw coś z %d. rzędu tej ścieżki." % (r[3] - 1)}.get(st, "")
+		"tier": "Wymaga %s." % ("3 umiejętności z 1. rzędu" if r[3] == 2 else "4 umiejętności z 2. rzędu")}.get(st, "")
 	return "%s  [%s]  %s\n%s" % [r[1], cost, why, r[6]]
 
 
@@ -775,14 +804,17 @@ func _badania() -> void:
 	body.draw.connect(_draw_tree)
 	body.mouse_filter = Control.MOUSE_FILTER_STOP
 	body.gui_input.connect(_tree_input)
-	var groups := {}
-	for r in Game.science_rows(tree_stage):
-		var k: Vector2i = Vector2i(r[4], r[3])
-		groups[k] = groups.get(k, []) + [r]
-	for k in groups:
-		var g: Array = groups[k]
-		for i in g.size():
-			nodes.append([Vector2(110 + k.x * 210 + (i - (g.size() - 1) / 2.0) * (58 if g.size() < 4 else 50), 30 + k.y * 78), g[i]])
+	var rows: Array = Game.science_rows(tree_stage)
+	for tier in [1, 2, 3]:  # rząd po rzędzie: dzieci w kolejności rodziców, gałęzie się nie krzyżują
+		for path in 3:
+			var g: Array = rows.filter(func(r): return r[3] == tier and r[4] == path)
+			var row: Array = g.filter(func(r): return not g.any(func(q): return q[0] == r[5]))
+			row.sort_custom(func(a, b): return _parent(a).x < _parent(b).x)
+			for r in g:  # następca z tego samego rzędu stoi tuż obok poprzednika (łańcuch I → II)
+				if not row.has(r):
+					row.insert(row.find(g.filter(func(q): return q[0] == r[5])[0]) + 1, r)
+			for i in row.size():
+				nodes.append([Vector2(110 + path * 210 + (i - (row.size() - 1) / 2.0) * (58 if row.size() < 4 else 50), 30 + tier * 78), row[i]])
 
 
 func _node_at(p: Vector2) -> int:
@@ -819,9 +851,10 @@ func _parent(r: Array) -> Vector2:
 		for n in nodes:
 			if n[1][0] == r[5]:
 				return n[0]
-	for n in nodes:  # pierwszy węzeł tej ścieżki z poprzedniego tieru, inaczej korzeń
-		if n[1][4] == r[4] and n[1][3] == r[3] - 1:
-			return n[0]
+	if r[3] > 1:  # Wniosek: zwieńczenie ścieżki, z ostatniego węzła rzędu niżej
+		var prev := nodes.filter(func(n): return n[1][4] == r[4] and n[1][3] == r[3] - 1)
+		if not prev.is_empty():
+			return prev[-1][0]
 	return Vector2(320, 30)
 
 
@@ -842,7 +875,9 @@ func _draw_tree() -> void:
 		if is_equal_approx(a.y, b.y):
 			n.draw_line(a, b, col, w)
 		else:
-			var my := a.y + 30
+			var my := b.y - 30  # łokieć tuż nad dzieckiem: gałąź przez dwa rzędy nie przecina środkowego
+			if a.y < 40:
+				my = a.y + 30  # wspólna szyna pod Poziomem Wiedzy
 			n.draw_polyline(PackedVector2Array([a, Vector2(a.x, my), Vector2(b.x, my), b]), col, w)
 	# korzeń: Poziom Wiedzy (punkty do wydania)
 	var root := Rect2(240, 4, 160, 54)
@@ -857,7 +892,7 @@ func _draw_tree() -> void:
 		var r: Array = nodes[i][1]
 		var st: String = Game.can_buy_science(r)
 		var base: Color = PATH_COL[r[4]]
-		var fill: Color = {"owned": base, "ok": base, "cost": Color("50566e"), "req": Color("50566e"), "tier": Color("50566e"), "branch": Color("50566e")}.get(st, Color("50566e"))
+		var fill: Color = {"owned": base, "ok": base, "cost": Color("50566e"), "req": Color("50566e"), "tier": Color("50566e")}.get(st, Color("50566e"))
 		var rect := Rect2(c - Vector2(15, 15), Vector2(30, 30))
 		if i == hover:  # pod kursorem węzeł lekko się powiększa
 			rect = rect.grow(3)
@@ -870,7 +905,7 @@ func _draw_tree() -> void:
 		if st == "ok":  # dostępne: pulsujące białe obramowanie
 			n.draw_rect(rect.grow(4), Color(1, 1, 1, 0.5 + 0.5 * sin(t * 6.0)), false, 2)
 		n.draw_string(Game.font_os, Vector2(c.x - 20, c.y + 33), "%d/1" % int(st == "owned"), HORIZONTAL_ALIGNMENT_CENTER, 40, Game.OS_FS, Color("ffcf4a") if st == "owned" else Color("8a90b0"))
-		if st in ["req", "tier", "branch"]:  # kłódka
+		if st in ["req", "tier"]:  # kłódka
 			n.draw_rect(Rect2(c + Vector2(6, 6), Vector2(9, 7)), Color("c8c8d8"))
 			n.draw_arc(c + Vector2(10.5, 6), 3, PI, TAU, 6, Color("c8c8d8"), 1.5)
 	for i in 3:  # zakładki etapów: odblokowane można przełączać, dalsze wyszarzone

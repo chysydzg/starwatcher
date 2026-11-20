@@ -501,7 +501,7 @@ func _build_balcony() -> void:
 	balcony_sort = _scene("balcony", balcony)
 	sky_fx = preload("res://game/sky_fx.gd").new()
 	balcony.add_child(sky_fx)
-	balcony.move_child(sky_fx, 1)  # nad tłem, pod rekwizytami
+	balcony.move_child(sky_fx, balcony_sort.get_index())  # nad oboma tłami (szerokie i zwykłe), pod rekwizytami
 	rain_front = preload("res://game/sky_fx.gd").new()
 	rain_front.front = true  # ulewa przed rekwizytami: przyciemnienie, smugi, rozbryzgi
 	balcony.add_child(rain_front)
@@ -664,10 +664,7 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 	var sun := (c + Vector2.from_angle(lerpf(-PI / 2, 0.3, prog)) * Vector2(250, 200)).floor()
 	if dawn:  # o świcie Słońce wschodzi po przeciwnej stronie niż zachodziło
 		sun.x = 640 - sun.x
-	for k in 3:  # poświata Słońca w trzech pierścieniach, lekko pulsuje
-		o.draw_circle(sun, 22 + k * 10 + roundf(sin(now * 2.0 + k) * 1.5), Color(1, 0.8, 0.45, 0.16 - k * 0.04))
-	o.draw_circle(sun, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
-	o.draw_circle(sun + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
+	Game.draw_sun(o, sun, dusk, now)
 	var m := clampf((prog - 0.35) / 0.65, 0, 1)
 	if m > 0:  # Księżyc wschodzi tam, gdzie potem wisi nad balkonem (492, 74)
 		var moon := Vector2(lerpf(660, 492, m), 74 + 190 * (1.0 - sin(m * PI / 2))).floor()
@@ -1795,6 +1792,8 @@ func _draw_hud() -> void:
 			Game.bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())
 	if Game.cert_ready() and Game.location == "room":  # Manifest gotowy: nad komputerem czeka Certyfikat Terenu
 		Game.bang(n, Vector2(379, 58 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
+	if props.luggage.visible and Game.location == "room":  # walizki spakowane: kliknij, żeby ruszyć z przeprowadzką
+		Game.bang(n, Vector2(532, 276 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
 	if not speech.is_empty():  # monolog Jani nad głową
 		var lines := _wrap(speech.text, 200)
 		for i in lines.size():

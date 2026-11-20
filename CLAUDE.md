@@ -39,6 +39,9 @@
   czterech krawędziach. Żadnych przypadkowych wcięć, ząbków, „ściętych” rogów ani krzywizn (drzwi, nogi krzeseł,
   doniczki, ramki, przyciski, karty, X). Zaokrąglenie rogu tylko celowe i takie samo w każdym rogu.
   Sprawdzenie: powiększony podgląd każdego sprite'a/przycisku + automatyczny test symetrii i ciągłości outline'u.
+- **Reużywaj propów, nie wymyślaj ich od nowa:** ten sam obiekt (Słońce, Księżyc, Saturn, wykrzyknik...) w każdej scenie
+  rysuje ta sama funkcja / ten sam sprite (np. `Game.draw_sun`, `Game.bang`, `saturn()` w `tools/art/kit.js`).
+  Nowy wariant tylko wtedy, gdy autor o niego prosi.
 - Efekty ekranu (CRT itp.) nie przesuwają pikseli: żadnego zakrzywiania ani próbkowania o ułamek piksela – to gubi
   outline i wygina proste krawędzie. Wolno tylko przyciemniać (linie skanowania, winieta).
 

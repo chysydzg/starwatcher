@@ -8,6 +8,9 @@ func _ready() -> void:
 	for i in 30: await get_tree().process_frame
 	var w = get_tree().root.get_node("World")
 	assert(w.name == "World", "world loaded")
+	for bg in w.balcony.get_children().slice(0, w.sky_fx.get_index()):  # gwiazdy i odbicie księżyca nad tłami
+		assert(bg is Sprite2D, "pod sky_fx są tylko tła balkonu")
+	assert(w.sky_fx.get_index() >= 1 and w.balcony.get_child(w.sky_fx.get_index() + 1) == w.balcony_sort, "sky_fx tuż pod rekwizytami, nad tłami")
 	w._enter("balcony", true)
 	assert(Game._loops["music/night"].playing and Game._loops["music/night"].stream.loop, "night loop on balcony")
 	w._interact("teleskop")

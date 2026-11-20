@@ -101,4 +101,9 @@ function tube45(b, bx, by, s0, s1, r, ramp, sx = 1) {
   }
 }
 
-module.exports = { tube45,  P, R, INK, slab, obj, ink, shadow, light, ramp, BAND, piece, savePieces };
+// Saturn z plakatu w pokoiku (też pieczęć certyfikatu): tarcza o promieniu r, pierścień rx x ry; przednia połowa pierścienia na tarczy
+const saturn = (s, cx, cy, r, rx, ry, top, bottom, ring) => {
+  for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) if (Math.hypot(x - cx, y - cy) < r) s.pset(x, y, y < cy - 2 ? top : bottom);
+  for (let a = 0; a < 6.28; a += Math.min(0.05, 1 / rx)) { const x = Math.round(cx + Math.cos(a) * rx), y = Math.round(cy + Math.sin(a) * ry); if (Math.sin(a) > 0 || Math.hypot(x - cx, y - cy) >= r) s.pset(x, y, ring); }
+};
+module.exports = { tube45,  P, R, INK, slab, obj, ink, shadow, light, ramp, BAND, piece, savePieces, saturn };

@@ -165,9 +165,20 @@ func _ready() -> void:
 	w._yawn()
 	await get_tree().create_timer(0.3).timeout
 	await shot("ziewanie")
-	Game.science["manifest"] = true  # Etap 2 gotowy: walizki w prawym dolnym rogu pokoju
-	Game.shop["certyfikat"] = true
+	Game.science["manifest"] = true  # Manifest kupiony: na pulpicie wyskakuje okno z Certyfikatem
 	Game.discovered["mars"] = true
+	var cash: int = Game.money
+	Game.money = 6000
+	w._interact("komputer")
+	await shot("cert_okno")
+	var row: Array = Game.SHOP.filter(func(r): return r[0] == "certyfikat")[0]
+	Game.buy_shop(row)
+	assert(Game.shop.has("certyfikat") and not "certyfikat" in Game.parcels, "certyfikat działa od razu, bez paczki")
+	w.viewport._certificate()
+	await shot("certyfikat")
+	w.viewport.close()
+	Game.money = cash
+	await get_tree().create_timer(0.5).timeout
 	w._refresh()
 	w.body.position = Vector2(470, 316)
 	await shot("walizki")

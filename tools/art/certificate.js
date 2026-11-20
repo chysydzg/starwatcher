@@ -1,7 +1,8 @@
-// Certyfikat Terenu (koniec Etapu 1): pergamin z podwójną złotą ramką, narożnikami w gwiazdki, wstęgą i lakową pieczęcią.
+// Certyfikat Terenu (koniec Etapu 1): pergamin z podwójną złotą ramką, narożnikami w gwiazdki i złotym Saturnem
+// (ten sam co na plakacie w pokoiku) zamiast pieczęci.
 // Tekst dopisuje gra (czytelna czcionka), tu tylko papier i ozdoby. node certificate.js <out>
-const { P, INK } = require("./kit.js");
-const W = 300, H = 200, b = new P.Buf(W, H);
+const { P, INK, saturn } = require("./kit.js");
+const W = 380, H = 250, b = new P.Buf(W, H);
 const paper = P.hueRamp(4, { hue: 40, shift: 12, sat: 0.4, light: [0.7, 0.93] });
 const gold = P.hueRamp(4, { hue: 42, shift: 20, sat: 0.7, light: [0.34, 0.78] });
 const wax = P.hueRamp(4, { hue: 356, shift: 16, sat: 0.62, light: [0.26, 0.6] });
@@ -17,21 +18,13 @@ for (const [cx, cy] of [[12, 12], [W - 13, 12], [12, H - 13], [W - 13, H - 13]])
   for (let k = -3; k <= 3; k++) { b.pset(cx + k, cy + k, gold[2]); b.pset(cx + k, cy - k, gold[2]); }
   b.pset(cx, cy, [255, 250, 220]);
 }
-for (let x = 70; x < 230; x++) if (x % 4 !== 1) b.pset(x, 48, gold[1]);  // linia pod tytułem
-for (let x = 40; x < 140; x++) b.pset(x, 170, paper[0]);                // linia podpisu
-// wstęga za pieczęcią
-for (let k = 0; k < 22; k++) for (let w = -3; w <= 3; w++) { b.pset(232 - Math.round(k * 0.4) + w, 160 + k, wax[w < -1 ? 1 : 2]); b.pset(248 + Math.round(k * 0.4) + w, 160 + k, wax[w < -1 ? 1 : 2]); }
-for (let w = -3; w <= 3; w++) { b.pset(223 + w + 3, 181 - Math.abs(w), paper[3]); b.pset(257 + w - 3, 181 - Math.abs(w), paper[3]); }   // wcięcia końców wstęgi
-// pieczęć: falisty brzeg, wypukła tarcza, gwiazda w środku
-for (let y = -18; y <= 18; y++) for (let x = -18; x <= 18; x++) {
-  const a = Math.atan2(y, x), r = Math.hypot(x, y), edge = 15 + 1.6 * Math.sin(a * 12);
-  if (r > edge) continue;
-  b.pset(240 + x, 158 + y, wax[r > edge - 1.2 ? 0 : r > 10.5 && r < 11.6 ? 1 : (x < -2 && y < -2 && r < 10) ? 3 : 2]);  // brzeg, rant, odblask z lewej u góry
-}
-for (let i = 0; i < 5; i++) {                                           // gwiazda pięcioramienna w laku
-  const a0 = -Math.PI / 2 + i * 2 * Math.PI / 5;
-  for (let r = 0; r <= 7; r++) { b.pset(Math.round(240 + Math.cos(a0) * r), Math.round(158 + Math.sin(a0) * r), wax[0]); }
-}
+for (let x = 100; x < 280; x++) if (x % 4 !== 1) b.pset(x, 56, gold[1]);  // linia pod tytułem
+for (let x = 46; x < 170; x++) b.pset(x, 214, paper[0]);                // linia podpisu
+// pieczęć: złoty Saturn w ciemnej obwódce, wokół drobne gwiazdki
+for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) saturn(b, 312 + dx, 196 + dy, 15, 30, 8, gold[0], gold[0], gold[0]);
+saturn(b, 312, 196, 15, 30, 8, gold[2], gold[1], gold[3]);
+for (let a = 0; a < 6.28; a += 0.02) { const x = Math.round(312 + Math.cos(a) * 30), y = Math.round(196 + Math.sin(a) * 8); if (Math.sin(a) > 0) b.pset(x, y + 1, gold[1]); }  // cień pod przednim pierścieniem
+for (const [x, y] of [[276, 176], [348, 180], [284, 216], [342, 218], [312, 172]]) { b.pset(x, y, gold[2]); b.pset(x - 1, y, gold[1]); b.pset(x + 1, y, gold[1]); b.pset(x, y - 1, gold[1]); b.pset(x, y + 1, gold[1]); }
 P.save(b, process.argv[2] + "/certificate.png");
 // ikona na pulpit (32x24): mini pergamin z pieczęcią
 const ic = new P.Buf(32, 24);
@@ -40,5 +33,5 @@ for (let x = 3; x < 27; x++) { ic.pset(x, 2, gold[2]); ic.pset(x, 19, gold[2]); 
 for (let y = 2; y < 20; y++) { ic.pset(3, y, gold[2]); ic.pset(26, y, gold[2]); }
 for (let x = 8; x < 22; x += 1) if (x % 3) ic.pset(x, 7, paper[0]);
 for (let x = 8; x < 18; x += 1) if (x % 3) ic.pset(x, 11, paper[0]);
-for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) if (x * x + y * y <= 17) ic.pset(22 + x, 17 + y, wax[x + y < -2 ? 3 : 2]);
+saturn(ic, 22, 16, 4, 7, 2, gold[2], gold[1], gold[0]);  // mini Saturn jak na certyfikacie
 P.save(P.outline(ic, INK), process.argv[2] + "/certificate_icon.png");

@@ -128,6 +128,7 @@ func _build_sky() -> void:
 
 
 # ---------------------------------------------------------------- drzewko naukowe PW (GDD 11)
+## [id, nazwa, koszt PW, rząd, ścieżka, rodzic, opis]: drzewko jak drzewo, każdy węzeł poza 1. rzędem rośnie z rodzica
 const SCIENCE := [
 	["stab1", "Stabilizacja Obrazu I", 10, 1, 0, "", "Znacznik ostrości buja się o 25% słabiej."],
 	["stab2", "Stabilizacja Obrazu II", 25, 1, 0, "stab1", "Bujanie słabsze o kolejne 25%."],
@@ -138,25 +139,25 @@ const SCIENCE := [
 	["nocny1", "Nocny Marek I", 30, 1, 1, "", "Noc trwa 10 s dłużej."],
 	["podstawowe", "Podstawowe Gwiazdozbiory", 20, 1, 2, "", "Nowe gwiazdozbiory, znaki zodiaku i 5 gwiazdozbiorów na noc zamiast 4."],
 	["meteory", "Szybkie Spadające Gwiazdy", 60, 1, 2, "podstawowe", "Na niebie przelatują meteory: +25 PW."],
-	["mikro", "Pokrętło Mikro-Ruchów", 180, 2, 0, "", "Usuwa drgania celownika."],
-	["czyste1", "Czyste Soczewki I", 120, 2, 0, "", "Zielone pole ostrości szersze o 30%."],
+	["mikro", "Pokrętło Mikro-Ruchów", 180, 2, 0, "kursor1", "Usuwa drgania celownika."],
+	["czyste1", "Czyste Soczewki I", 120, 2, 0, "stab2", "Zielone pole ostrości szersze o 30%."],
 	["czyste2", "Czyste Soczewki II", 220, 2, 0, "czyste1", "Zielone pole szersze o kolejne 30%."],
-	["pamiec1", "Pamięć Fotograficzna I", 120, 2, 1, "", "+10% PW ze wszystkich źródeł."],
+	["pamiec1", "Pamięć Fotograficzna I", 120, 2, 1, "nawyk2", "+10% PW ze wszystkich źródeł."],
 	["pamiec2", "Pamięć Fotograficzna II", 250, 2, 1, "pamiec1", "Kolejne +15% PW."],
-	["instytuty", "Oferty Instytutów", 200, 2, 1, "", "Rano 30% szans, że instytut kupi jedno odkrycie za 150% ceny."],
+	["instytuty", "Oferty Instytutów", 200, 2, 1, "kawa", "Rano 30% szans, że instytut kupi jedno odkrycie za 150% ceny."],
 	["nocny2", "Nocny Marek II", 160, 2, 1, "nocny1", "Noc trwa kolejne 15 s dłużej."],
-	["encyklopedia", "Encyklopedia Astronomiczna", 300, 2, 1, "", "+0,5 PW/s nocy za każdy odkryty obiekt (maks. 20)."],
+	["encyklopedia", "Encyklopedia Astronomiczna", 300, 2, 1, "nocny2", "+0,5 PW/s nocy za każdy odkryty obiekt (maks. 20)."],
 	["obloki", "Głębokie Obłoki Gazu", 150, 2, 2, "podstawowe", "Na niebie pojawiają się mgławice (30 PW)."],
-	["kometa", "Kometa Okresowa", 280, 2, 2, "", "Co kilka nocy przylatuje kometa i zostaje 3 noce (150 PW)."],
+	["kometa", "Kometa Okresowa", 280, 2, 2, "meteory", "Co kilka nocy przylatuje kometa i zostaje 3 noce (150 PW)."],
 	["planety", "Sąsiednie Planety", 450, 2, 2, "obloki", "Na niebie pojawia się Mars, Wenus albo Jowisz (60 PW)."],
-	["samoistne", "Samoistne Łączenie Gwiazd", 600, 3, 0, "", "Jedno kliknięcie łączy całą figurę."],
-	["szukacz", "Automatyczne Wyszukiwanie", 450, 3, 0, "", "Q/E przeskakuje między obiektami na niebie."],
-	["auto1", "Autofokus DIY I", 500, 3, 0, "", "Wyostrza sam po 1 s bez kręcenia."],
+	["samoistne", "Samoistne Łączenie Gwiazd", 600, 3, 0, "mikro", "Jedno kliknięcie łączy całą figurę."],
+	["szukacz", "Automatyczne Wyszukiwanie", 450, 3, 0, "mikro", "Q/E przeskakuje między obiektami na niebie."],
+	["auto1", "Autofokus DIY I", 500, 3, 0, "czyste2", "Wyostrza sam po 1 s bez kręcenia."],
 	["auto2", "Autofokus DIY II", 850, 3, 0, "auto1", "Autofokus ostrzy od razu, bez czekania."],
-	["wzor", "Wzór Empiryczny", 700, 3, 1, "", "+1 PW za każde zarobione $4."],
-	["notatki", "Udostępnianie Notatek", 1000, 3, 1, "", "+50% wszystkich PW."],
+	["wzor", "Wzór Empiryczny", 700, 3, 1, "pamiec2", "+1 PW za każde zarobione $4."],
+	["notatki", "Udostępnianie Notatek", 1000, 3, 1, "encyklopedia", "+50% wszystkich PW."],
 	["kolekcjonerzy", "Oferty Kolekcjonerów", 600, 3, 1, "instytuty", "Rano 20% szans, że kolekcjoner kupi jedno odkrycie za 250% ceny."],
-	["gleb_pole", "Głębokie Pole Obserwacji", 900, 3, 2, "", "Gwiazdy podwójne i odległe galaktyki (80 do 120 PW)."],
+	["gleb_pole", "Głębokie Pole Obserwacji", 900, 3, 2, "kometa", "Gwiazdy podwójne i odległe galaktyki (80 do 120 PW)."],
 	["manifest", "Manifest Naukowy „Nasze Miejsce w Kosmosie”", 5000, 3, 2, "planety", "Pozwala kupić działkę pod własne Centrum Naukowe."],
 ]
 const SCIENCE_PATHS := ["Skanowanie i Optyka", "Analiza i Metodologia", "Kartografia i Kosmos"]
@@ -198,15 +199,15 @@ const SCIENCE2 := [
 	["mentoring", "Mentoring Józka", 500, 1, 2, "", "Pracownicy w Trybie 1 dają +20% PW."],
 	["orbitalna", "Mechanika Orbitalna", 1250, 1, 2, "", "Pozwala zlecić budowę satelity (Orbita w AstroOS)."],
 	["wielopunkt", "Wielopunktowa Kalibracja", 2500, 2, 0, "kalibracja", "Na niebie pojawiają się głębokie galaktyki."],
-	["zoom_orbity", "Zoom Bliskiej Orbity", 2250, 2, 0, "orbitalna", "Księżyce planet do odkrycia."],
+	["zoom_orbity", "Zoom Bliskiej Orbity", 2250, 2, 0, "kalibracja", "Księżyce planet do odkrycia."],
 	["filtry", "Precyzyjne Filtry Pasmowe", 3150, 2, 1, "katalog", "Szersze okno w analizie widmowej. Analizy +25% $."],
 	["auto_widmo", "Automatyczne Porównanie Widm", 3750, 2, 1, "filtry", "Wzorzec widma sam ustawia się blisko, wystarczy potwierdzić."],
-	["protokol", "Protokół Zgłoszeń", 1900, 2, 2, "", "Pracownicy zgłaszają odkrycia o 50% częściej."],
-	["szkolenie", "Szkolenie Analityków", 2750, 2, 2, "", "Tryb 2 podnosi jakość pomiarów o dodatkowe 10%."],
+	["protokol", "Protokół Zgłoszeń", 1900, 2, 2, "mentoring", "Pracownicy zgłaszają odkrycia o 50% częściej."],
+	["szkolenie", "Szkolenie Analityków", 2750, 2, 2, "protokol", "Tryb 2 podnosi jakość pomiarów o dodatkowe 10%."],
 	["mapa_nieba", "Mapa Głębokiego Nieba", 7500, 3, 0, "wielopunkt", "Odległe gromady galaktyk (2x wartość galaktyk)."],
-	["spektro_bh", "Spektroskopia Czarnych Dziur", 9400, 3, 1, "filtr_x", "Analiza czarnej dziury warta 2x więcej."],
-	["siec_sat", "Sieć Satelitarna", 6250, 3, 2, "zoom_orbity", "+2 sloty orbitalne. Satelity komercyjne +25% $."],
-	["autonomia", "Autonomiczne Skanowanie Nocne", 8150, 3, 2, "mentoring", "Tryb 1 działa też za dnia (50%)."],
+	["spektro_bh", "Spektroskopia Czarnych Dziur", 9400, 3, 1, "auto_widmo", "Analiza czarnej dziury warta 2x więcej."],
+	["siec_sat", "Sieć Satelitarna", 6250, 3, 2, "orbitalna", "+2 sloty orbitalne. Satelity komercyjne +25% $."],
+	["autonomia", "Autonomiczne Skanowanie Nocne", 8150, 3, 2, "protokol", "Tryb 1 działa też za dnia (50%)."],
 	["wniosek", "Wniosek „Program Kosmiczny nad Jeziorem”", 37500, 3, 2, "", "Węzeł przełomowy (dowolne 4 węzły z 3. rzędu). Warunek Etapu 3."],
 ]
 const SCIENCE2_PATHS := ["Głęboki Kosmos", "Spektroskopia i Analiza", "Zespół i Orbita"]
@@ -843,9 +844,6 @@ func can_buy_science(row: Array) -> String:
 	var tier3 := table.filter(func(r): return r[3] == 3 and science.has(r[0])).size()
 	if row[3] == 2 and tier1 < 3 or row[3] == 3 and tier2 < 4 or row[0] == "wniosek" and tier3 < 4:
 		return "tier"
-	# drzewko jak drzewo: wyższy rząd ścieżki rośnie z niższego (bez skakania od góry do dołu kolumny)
-	if row[3] > 1 and row[0] != "wniosek" and not table.any(func(r): return r[4] == row[4] and r[3] == row[3] - 1 and science.has(r[0])):
-		return "branch"
 	return "ok" if pw >= row[2] else "cost"
 
 
@@ -877,6 +875,10 @@ func can_buy_shop(row: Array) -> String:
 func buy_shop(row: Array) -> void:
 	money -= row[2]
 	today.bought = today.get("bought", []) + [["Zakup: " + row[1], row[2], "$"]]
+	if row[0] == "certyfikat":  # dokument, nie paczka: od razu ważny, w pokoju czekają walizki do przeprowadzki
+		shop[row[0]] = true
+		changed.emit()
+		return
 	parcels.append(row[0])
 	arriving = true  # kurier zapuka, gdy Jania wyłączy komputer
 	changed.emit()
@@ -1298,6 +1300,15 @@ func _fit() -> void:
 		l.offset = margin
 	for c in get_tree().get_nodes_in_group("cover"):
 		cover(c)
+
+
+## Słońce z ekranu zmierzchu (też przeprowadzka): tarcza z odblaskiem, poświata w trzech pulsujących pierścieniach;
+## dusk 0..1 barwi je od żółtego południa do pomarańczowego zachodu
+func draw_sun(n: CanvasItem, p: Vector2, dusk: float, now: float) -> void:
+	for k in 3:
+		n.draw_circle(p, 22 + k * 10 + roundf(sin(now * 2.0 + k) * 1.5), Color(1, 0.8, 0.45, 0.16 - k * 0.04))
+	n.draw_circle(p, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
+	n.draw_circle(p + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
 
 
 ## pikselowy wykrzyknik (nad pracownikami, celami teleskopu, komputerem): żółta kreska i kropka z ciemnym obrysem
