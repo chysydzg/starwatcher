@@ -28,18 +28,8 @@ var engine := true                     # silnik pracuje (spaliny); zaparkowana c
 
 func _ready() -> void:
 	add_child(cam)
-	var ui := CanvasLayer.new()
-	ui.layer = 20
-	add_child(ui)
-	fade.color = Color.BLACK
-	Game.cover(fade)
-	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui.add_child(fade)
-	skip_ui.draw.connect(_draw_skip)
-	ui.add_child(skip_ui)
+	_screen()
 	fx.draw.connect(func(): if fx_draw.is_valid(): fx_draw.call())
-	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
-	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	Game.loop("music/moving", -8.0, "Music")  # utwór autora (moving_out.mp3), zmasterowany na -16 LUFS jak pozostałe
 	_run()
 
@@ -373,15 +363,7 @@ func _draw_exhaust_puffs(pipe: Vector2, every: float) -> void:
 	for i in puffs.size():
 		var age: float = st - puffs[i][1]
 		var p: Vector2 = (puffs[i][0] + Vector2(-5.0 * age - 1.0 - (i % 3), -10.0 * age)).floor()
-		var r := 1 if age < 0.2 else 2 if age < 0.6 else 3
-		var c := Color8(70, 70, 80) if age < 0.25 else Color8(104, 104, 114) if age < 0.7 else Color8(136, 136, 146)
-		for dy in range(-r, r + 1):
-			for dx in range(-r, r + 1):
-				if absi(dx) + absi(dy) > r + (1 if r > 1 else 0):
-					continue  # zaokrąglone rogi kłębu
-				if age > 0.9 and (dx + dy) % 2 != 0:
-					continue  # rozpada się w kratkę
-				fx.draw_rect(Rect2(p + Vector2(dx, dy), Vector2.ONE), c * Color(tint.r, tint.g, tint.b, 1.0))
+		_puff(p, age, 0.9, Color(tint.r, tint.g, tint.b, 1.0))
 
 
 func _end() -> void:

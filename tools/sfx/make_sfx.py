@@ -459,7 +459,6 @@ def main():
     save('ding', b('mallet/celesta', pitch='G6'))
     save('lens_click', lens_click())
     save('focus_tick', b('hover_tick/detent'), -10)
-    save('star_glass', b('pro_hover_tick/glass'), -14)
     save('pencil', pencil(r), -8)
     save('chimes', b('mallet/up4'))
     save('miss', b('tap/finger'), -16)

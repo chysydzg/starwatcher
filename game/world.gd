@@ -1080,14 +1080,6 @@ func _chat(n: CanvasItem, p: Vector2) -> void:
 			n.draw_rect(Rect2(p + Vector2(3 + k * 4, 3), Vector2(2, 2)), Color("4a4060"))
 
 
-func _bang(n: CanvasItem, p: Vector2) -> void:
-	n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(6, 11)), Color("1a1426"))
-	n.draw_rect(Rect2(p + Vector2(-1, 11), Vector2(6, 5)), Color("1a1426"))
-	n.draw_rect(Rect2(p, Vector2(4, 9)), Color("ffcf4a"))
-	n.draw_rect(Rect2(p + Vector2(0, 12), Vector2(4, 3)), Color("ffcf4a"))
-	n.draw_rect(Rect2(p, Vector2(1, 9)), Color("fff2b0"))  # blik
-
-
 ## pracownicy 2-5 przy swoich biurkach (zatrudnieni w AstroOS); puste biurka czekają na kolejnych
 func _place_workers() -> void:
 	for ps in opt_props:  # kupione stanowiska i sprzęt stoją w laboratorium (kolider razem z nimi)
@@ -1800,9 +1792,9 @@ func _draw_hud() -> void:
 		for i in mini(heads.size(), Game.staff.size()):
 			if Game.staff[i].report == "" or heads[i] == Vector2.ZERO:
 				continue
-			_bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())
+			Game.bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())
 	if Game.cert_ready() and Game.location == "room":  # Manifest gotowy: nad komputerem czeka Certyfikat Terenu
-		_bang(n, Vector2(379, 58 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
+		Game.bang(n, Vector2(379, 58 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
 	if not speech.is_empty():  # monolog Jani nad głową
 		var lines := _wrap(speech.text, 200)
 		for i in lines.size():

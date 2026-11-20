@@ -780,12 +780,12 @@ func _draw() -> void:
 		var sp := to_screen(tg.pos)
 		var bob := -2.0 if fmod(t, 0.8) < 0.4 else 0.0
 		if sp.distance_to(C) < R - 10:
-			_bang(sp + Vector2(-2, -30 + bob))
+			Game.bang(self, sp + Vector2(-2, -30 + bob))
 		else:
 			var dir := (sp - C).normalized()
 			var e := C + dir * (R - 22)
 			draw_colored_polygon(PackedVector2Array([e + dir * 12, e + dir.orthogonal() * 6, e - dir.orthogonal() * 6]), Color("ffcf4a"))
-			_bang(e - dir * 16 + Vector2(-2, -8 + bob))
+			Game.bang(self, e - dir * 16 + Vector2(-2, -8 + bob))
 	if not meteor.is_empty():
 		var s := to_screen(meteor.pos)
 		var a: float = 1.0 - meteor.t / Game.METEOR_WINDOW
@@ -834,16 +834,6 @@ func _draw() -> void:
 		for k in 3:
 			draw_arc(ts.floor(), 14.0 + k * 5.0 + 2.0 * sin(t * 3.0 + k), 0, TAU, 32, Color.from_hsv(fposmod(t * 0.4 + k * 0.18, 1.0), 0.7, 1.0, 0.55 - k * 0.15), 1.0, false)
 		_draw_spectrum()
-
-
-## pikselowy wykrzyknik (jak nad głowami pracowników): żółta kreska i kropka z ciemnym obrysem
-func _bang(p: Vector2) -> void:
-	p = p.floor()
-	draw_rect(Rect2(p + Vector2(-1, -1), Vector2(6, 11)), Color("1a1426"))
-	draw_rect(Rect2(p + Vector2(-1, 11), Vector2(6, 5)), Color("1a1426"))
-	draw_rect(Rect2(p, Vector2(4, 9)), Color("ffcf4a"))
-	draw_rect(Rect2(p + Vector2(0, 12), Vector2(4, 3)), Color("ffcf4a"))
-	draw_rect(Rect2(p, Vector2(1, 9)), Color("fff2b0"))
 
 
 func _draw_target(tg: Dictionary, s: Vector2) -> void:

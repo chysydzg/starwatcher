@@ -1300,6 +1300,16 @@ func _fit() -> void:
 		cover(c)
 
 
+## pikselowy wykrzyknik (nad pracownikami, celami teleskopu, komputerem): żółta kreska i kropka z ciemnym obrysem
+func bang(n: CanvasItem, p: Vector2) -> void:
+	p = p.floor()
+	n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(6, 11)), Color("1a1426"))
+	n.draw_rect(Rect2(p + Vector2(-1, 11), Vector2(6, 5)), Color("1a1426"))
+	n.draw_rect(Rect2(p, Vector2(4, 9)), Color("ffcf4a"))
+	n.draw_rect(Rect2(p + Vector2(0, 12), Vector2(4, 3)), Color("ffcf4a"))
+	n.draw_rect(Rect2(p, Vector2(1, 9)), Color("fff2b0"))  # blik
+
+
 ## prostokąt na cały ekran (zaciemnienie, wygaszenie, CRT) w warstwie przesuniętej o margin
 func cover(c: Control) -> void:
 	c.position = -margin

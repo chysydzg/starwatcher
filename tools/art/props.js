@@ -27,6 +27,4 @@ one(28, 30, (s) => { // monitor LCD 19" (zastępuje CRT)
   slab(s, 0, 0, 28, 20, R.gray, 0.33, 0.33); slab(s, 2, 2, 26, 18, R.navy, 0.67, 0.4); s.rect(3, 3, 9, 4, [150, 190, 255]);
   s.rect(12, 20, 16, 26, R.gray[1]); s.rect(7, 26, 21, 29, R.gray[1]); s.pset(24, 18, [120, 230, 120]);
 }, "lcd");
-one(22, 8, (s) => { slab(s, 0, 0, 22, 8, R.teal, 1, 0.33); s.rect(2, 2, 20, 3, R.cream[2]); }, "pillow", { night: true, lit: R.teal[2] });
-one(6, 14, (s) => { slab(s, 0, 2, 6, 14, R.red, 0.67, 0.67); s.rect(1, 0, 5, 2, R.gray[2]); s.rect(0, 6, 6, 7, R.cream[2]); }, "thermos", { night: true, lit: R.red[2] });
 console.log("props ok");

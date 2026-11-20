@@ -165,7 +165,6 @@ func _certificate() -> void:
 	paper.position = Vector2(170, 70) + Game.margin
 	paper.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	o.add_child(paper)
-	var cx := 150.0
 	for it in [["CERTYFIKAT", 26, Color("8a5a10"), Game.font_title, 16], ["Terenu pod Bazy Kosmiczne", 56, INK, Game.font_os, Game.OS_FS],
 			["Niniejszym poświadcza się, że", 86, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["JANIA", 108, Color("2a3a8a"), Game.font_title, 16],
 			["jest właścicielką działki nad jeziorem", 132, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["Dzień %d" % Game.day, 156, Color("5a4a3a"), Game.font_os, Game.OS_FS]]:

@@ -140,31 +140,4 @@ for (const [name, d] of Object.entries(DOGS)) {
   sheets.push(...front.slice(0, 9).map((b) => ({ buf: b, scale: 3 })), ...side.slice(0, 9).map((b) => ({ buf: b, scale: 3 })));
 }
 P.save(P.sheet(sheets, { cols: 9 }), __dirname + "/_dogs_sprites.png");
-// pracownicy obserwatorium (Etap 2, GDD: króliki, liski, szopy...): ta sama budowa co psy, biały kitel bez czapki;
-// arkusz 4 klatek przodem (machanie ogonem), stoją przy biurkach
-const COAT = P.hueRamp(4, { hue: 214, shift: 16, sat: 0.08, light: [0.6, 0.95] });
-const H = (hue, sat, l0, l1) => P.hueRamp(4, { hue, shift: 20, sat, light: [l0, l1] });
-const M = (hue, sat, l0, l1) => P.hueRamp(2, { hue, shift: 10, sat, light: [l0, l1] });
-const WORKERS = {
-  lis: { head: H(22, 0.7, 0.32, 0.62), muz: M(40, 0.1, 0.82, 0.94), ears: "up", tail: "long" },
-  szop: { head: H(230, 0.08, 0.26, 0.56), muz: M(220, 0.06, 0.78, 0.9), tan: M(230, 0.1, 0.12, 0.2), ears: "up", tail: "long" },
-  krolik: { head: H(32, 0.35, 0.42, 0.72), muz: M(40, 0.2, 0.84, 0.94), ears: "up", tail: "short" },
-  mis: { head: H(26, 0.45, 0.22, 0.46), muz: M(32, 0.4, 0.56, 0.7), ears: "lop", tail: "short" },
-  bobr: { head: H(20, 0.4, 0.2, 0.42), muz: M(30, 0.3, 0.5, 0.64), ears: "lop", tail: "long" },
-  wiewiorka: { head: H(16, 0.7, 0.3, 0.56), muz: M(36, 0.3, 0.82, 0.92), ears: "up", tail: "long" },
-  jez: { head: H(30, 0.25, 0.26, 0.5), muz: M(34, 0.25, 0.7, 0.84), ears: "lop", tail: "short" },
-  sowa: { head: H(28, 0.35, 0.3, 0.58), muz: M(40, 0.3, 0.78, 0.9), ears: "up", tail: "short" },
-  borsuk: { head: H(220, 0.05, 0.3, 0.62), muz: M(220, 0.04, 0.86, 0.96), tan: M(220, 0.05, 0.1, 0.18), ears: "lop", tail: "short" },
-  kuna: { head: H(24, 0.45, 0.24, 0.48), muz: M(38, 0.45, 0.76, 0.88), ears: "up", tail: "long" },
-  wydra: { head: H(26, 0.3, 0.24, 0.46), muz: M(32, 0.2, 0.62, 0.76), ears: "lop", tail: "long" },
-  lasica: { head: H(24, 0.55, 0.36, 0.62), muz: M(42, 0.2, 0.86, 0.96), ears: "up", tail: "long" },
-};
-const wsheet = [];
-for (const [k, w] of Object.entries(WORKERS)) {
-  const d = { K: 0.92, body: w.head, suit: COAT, cap: false, ...w };
-  const fr = WAG.map((g) => frame(d, 0, -1, false, g));
-  P.save(P.pack(fr, { cols: 4, pad: 0 }), `${out}/worker_${k}.png`);
-  wsheet.push({ buf: fr[0], scale: 3, label: k.toUpperCase() });
-}
-P.save(P.sheet(wsheet, { cols: 6 }), __dirname + "/_workers.png");
 console.log("cut_lili.png cut_myszka.png", FW, FH, COLS);

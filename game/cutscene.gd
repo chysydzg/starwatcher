@@ -42,6 +42,19 @@ func _ready() -> void:
 	add_child(cam)
 	cam.zoom = Vector2(4, 4)
 	cam.position = MOON + Vector2(-10, 6)
+	_screen()
+	Game.loop("music/intro", -12.0, "Music")
+	Game.loop("lake", -16.0)
+	var tw := create_tween()
+	tw.tween_property(fade, "color:a", 0.0, 1.5)
+	tw.tween_interval(2.0)  # chwila na Księżyc, gwiazdy i komety
+	tw.tween_method(_pull_back, 0.0, 1.0, 7.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_interval(0.8)
+	tw.tween_callback(_talk)
+
+
+## czarne wygaszenie i napis „Pomiń” nad sceną; bez kursora, kamera przesuwa się o piksele okna (też przeprowadzka)
+func _screen() -> void:
 	var ui := CanvasLayer.new()
 	ui.layer = 20
 	add_child(ui)
@@ -52,16 +65,7 @@ func _ready() -> void:
 	skip_ui.draw.connect(_draw_skip)
 	ui.add_child(skip_ui)
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
-	# intro rysowane w rozdzielczości okna: kamera przesuwa się i przybliża o piksele ekranu, nie o piksele gry
 	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	Game.loop("music/intro", -12.0, "Music")
-	Game.loop("lake", -16.0)
-	var tw := create_tween()
-	tw.tween_property(fade, "color:a", 0.0, 1.5)
-	tw.tween_interval(2.0)  # chwila na Księżyc, gwiazdy i komety
-	tw.tween_method(_pull_back, 0.0, 1.0, 7.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_interval(0.8)
-	tw.tween_callback(_talk)
 
 
 func _sprite(tex: String, pos: Vector2) -> Sprite2D:
@@ -536,15 +540,20 @@ func _draw_exhaust() -> void:
 			continue
 		var pipe := Vector2(226 + floorf(_drive(born)) + 38, 176)  # wylot rury (od momentu wydmuchu kłąb zostaje w powietrzu)
 		var p := (pipe + Vector2(-6.0 * age - (k % 3), -12.0 * age)).floor()
-		var r := 1 if age < 0.2 else 2 if age < 0.6 else 3
-		var c := Color8(70, 70, 80) if age < 0.25 else Color8(104, 104, 114) if age < 0.7 else Color8(136, 136, 146)
-		for dy in range(-r, r + 1):
-			for dx in range(-r, r + 1):
-				if absi(dx) + absi(dy) > r + (1 if r > 1 else 0):
-					continue  # zaokrąglone rogi kłębu
-				if age > 1.0 and (dx + dy) % 2 != 0:
-					continue  # rozpada się w kratkę
-				fx.draw_rect(Rect2(p + Vector2(dx, dy), Vector2.ONE), c)
+		_puff(p, age, 1.0, Color.WHITE)
+
+
+## pikselowy kłąb spalin (bez półprzezroczystości): rośnie i jaśnieje z wiekiem, po `crumble` s rozpada się w kratkę
+func _puff(p: Vector2, age: float, crumble: float, tint: Color) -> void:
+	var r := 1 if age < 0.2 else 2 if age < 0.6 else 3
+	var c := Color8(70, 70, 80) if age < 0.25 else Color8(104, 104, 114) if age < 0.7 else Color8(136, 136, 146)
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			if absi(dx) + absi(dy) > r + (1 if r > 1 else 0):
+				continue  # zaokrąglone rogi kłębu
+			if age > crumble and (dx + dy) % 2 != 0:
+				continue  # rozpada się w kratkę
+			fx.draw_rect(Rect2(p + Vector2(dx, dy), Vector2.ONE), c * tint)
 
 
 ## dźwięk/zdarzenie sceny: raz, gdy czas sceny minie `at`
