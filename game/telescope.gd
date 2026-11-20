@@ -387,10 +387,8 @@ func _process(dt: float) -> void:
 				_after_focus()
 		else:
 			sharp_t = 0.0
-	if state == S.SPECTRUM:  # wzorzec widma idzie za celownikiem w poziomie (z Automatycznym Porównaniem stoi sam)
-		cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
-		if not Game.has("auto_widmo"):
-			spec.off = clampf((aim.x - C.x) / (R - 6) * 0.45, -0.45, 0.45)
+	if state == S.SPECTRUM:
+		_spectrum_tick(dt)
 	if Game.has("meteory") and state != S.FULL:
 		next_meteor -= dt
 		if next_meteor <= 0 and meteor.is_empty():
@@ -533,10 +531,8 @@ func _lock_or_confirm() -> void:
 				_center("Za rozmyte")
 				return
 			_after_focus()
-		S.SPECTRUM:
-			spec_ok = absf(spec.off - spec.goal) < 0.035 + (0.025 if Game.has("filtry") else 0.0)
-			Game.sfx("chimes" if spec_ok else "miss", 1.0, -4.0)
-			_finish()
+		S.SPECTRUM:  # kliknięcie nic nie zatwierdza: wzorzec trzeba utrzymać na liniach, aż pasek się zapełni
+			_center("Trzymaj wzorzec na liniach!", 1.2)
 		S.RESULT:
 			state = S.SCAN
 
@@ -558,14 +554,59 @@ func _after_focus() -> void:
 		_finish()
 
 
-## analiza widmowa: trzy ciemne linie absorpcyjne; gracz przesuwa wzorzec (celownikiem w poziomie) i klika
+## analiza widmowa jak łapanie ostrości: linie absorpcyjne dryfują (przesunięcie ku czerwieni + drgania atmosfery),
+## gracz trzyma na nich wzorzec (celownik w poziomie), aż pasek dopasowania się zapełni; po czasie widmo „ucieka”.
+## Trudniejsze obiekty dryfują szybciej i dalej; Filtry Pasmowe poszerzają okno, Automatyczne Porównanie samo podąża.
+const SPEC_LOCK := 1.4    # s trzymania na liniach
+const SPEC_TIME := 10.0   # s na analizę
+const SPEC_DRIFT := {"planet": [0.06, 0.8], "moons": [0.07, 0.9], "nebula": [0.09, 1.1], "deep": [0.11, 1.3], "blackhole": [0.13, 1.6]}
+
 func _start_spectrum() -> void:
-	var goal := _rng.randf_range(-0.3, 0.3)
-	spec = {"lines": [_rng.randf_range(0.15, 0.3), _rng.randf_range(0.42, 0.58), _rng.randf_range(0.7, 0.85)], "goal": goal,
-		"off": goal + (0.01 if Game.has("auto_widmo") else 0.0)}
+	var d: Array = SPEC_DRIFT.get(target.info.cat, [0.08, 1.0])
+	var g0 := _rng.randf_range(-0.25, 0.25)
+	spec = {"lines": [_rng.randf_range(0.15, 0.3), _rng.randf_range(0.42, 0.58), _rng.randf_range(0.7, 0.85)], "g0": g0, "goal": g0,
+		"off": 0.0, "amp": d[0], "spd": d[1], "ph": _rng.randf() * TAU, "lock": 0.0, "time": 0.0, "tick": 0}
 	spec_ok = false
 	state = S.SPECTRUM
-	_center("Analiza widmowa: nałóż wzorzec na ciemne linie i kliknij. %s pomija." % ("PPM" if not Game.pad else "[B]"), 3.0)
+	if Game.tips.has("tut_widmo"):
+		_center("Analiza widmowa: trzymaj wzorzec na ciemnych liniach. %s pomija." % ("PPM" if not Game.pad else "[B]"), 3.0)
+	Game.tutorial_once(self, "widmo")
+
+
+func _spec_win() -> float:
+	return 0.028 + (0.02 if Game.has("filtry") else 0.0)
+
+
+func _spectrum_tick(dt: float) -> void:
+	cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
+	spec.time += dt
+	var u: float = spec.time * spec.spd + spec.ph
+	spec.goal = clampf(spec.g0 + spec.amp * (sin(u) + 0.5 * sin(u * 2.3 + 1.0)), -0.42, 0.42)
+	if Game.has("auto_widmo"):  # wzorzec sam podąża za liniami (wolniej niż one dryfują przy szybkich obiektach)
+		spec.off = move_toward(spec.off, spec.goal, 0.12 * dt)
+	else:
+		spec.off = clampf((aim.x - C.x) / (R - 6) * 0.45, -0.45, 0.45)
+	var miss: float = absf(spec.off - spec.goal)
+	var on := miss < _spec_win()
+	spec.lock = clampf(spec.lock + dt / SPEC_LOCK * (1.0 if on else -0.7), 0.0, 1.0)
+	var tick := int(spec.lock * 10.0)
+	if tick > spec.tick:  # rosnące „pyknięcia” przy każdych 10% dopasowania
+		Game.sfx("focus_tick", 1.0 + tick * 0.06, -6.0)
+	spec.tick = tick
+	var close := clampf(1.0 - miss / 0.25, 0.0, 1.0)  # buczenie analizatora: wyżej i głośniej, im bliżej linii
+	hum.volume_db = lerpf(hum.volume_db, -34.0 + 26.0 * close, minf(1.0, dt * 8.0))
+	hum.pitch_scale = 0.7 + 1.1 * close + (0.3 if on else 0.0)
+	if spec.lock >= 1.0:
+		spec_ok = true
+		hum.volume_db = -60.0
+		Game.sfx("chimes", 1.0, -4.0)
+		_finish()
+	elif spec.time > SPEC_TIME:
+		spec_ok = false
+		hum.volume_db = -60.0
+		Game.sfx("miss", 1.0, -4.0)
+		_center("Widmo uciekło – zapis bez analizy.", 2.0)
+		_finish()
 
 
 func _click_star() -> void:
@@ -789,6 +830,9 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO)
 	_draw_panels()
 	if state == S.SPECTRUM:
+		var ts := to_screen(target.pos)  # analizowany obiekt mieni się barwami widma
+		for k in 3:
+			draw_arc(ts.floor(), 14.0 + k * 5.0 + 2.0 * sin(t * 3.0 + k), 0, TAU, 32, Color.from_hsv(fposmod(t * 0.4 + k * 0.18, 1.0), 0.7, 1.0, 0.55 - k * 0.15), 1.0, false)
 		_draw_spectrum()
 
 
@@ -944,11 +988,18 @@ func _draw_crosshair() -> void:
 
 ## pasek widma pod okularem: tęcza, ciemne linie absorpcyjne obiektu i białe znaczniki wzorca
 func _draw_spectrum() -> void:
-	var r := Rect2(170, 318, 300, 18)
+	var r := Rect2(170, 314, 300, 18)
 	draw_rect(r.grow(3), Color("0d0a16"))
-	for x in int(r.size.x):
-		draw_rect(Rect2(r.position.x + x, r.position.y, 1, r.size.y), Color.from_hsv(0.78 - 0.78 * x / r.size.x, 0.75, 0.95))
-	var hit := absf(spec.off - spec.goal) < 0.035 + (0.025 if Game.has("filtry") else 0.0)
+	var band := fposmod(t * 90.0, r.size.x + 60.0) - 30.0  # jasna fala przesuwa się po widmie
+	for x in int(r.size.x):  # widmo mieni się: barwy lekko falują, a pasy 4 px migoczą
+		var hue := 0.78 - 0.78 * x / r.size.x + 0.015 * sin(t * 3.0 + x * 0.08)
+		var v := 0.86 + 0.08 * sin(t * 5.0 + floorf(x / 4.0)) + (0.12 if absf(x - band) < 6 else 0.0)
+		draw_rect(Rect2(r.position.x + x, r.position.y, 1, r.size.y), Color.from_hsv(hue, 0.75, minf(v, 1.0)))
+	var hit := absf(spec.off - spec.goal) < _spec_win()
+	_px(r.position.x, r.end.y + 9, r.size.x, 4, Color("2a2a40"))  # pasek dopasowania (jak ostrość: zapełnia się, gdy trafiasz)
+	_px(r.position.x, r.end.y + 9, roundf(r.size.x * spec.lock), 4, Color("8affa0") if hit else Color("4a9a6a"))
+	var left: float = clampf(1.0 - spec.time / SPEC_TIME, 0.0, 1.0)  # czas: cienka kreska nad widmem
+	_px(r.position.x, r.end.y + 16, roundf(r.size.x * left), 1, Color("ff9a6a") if left < 0.3 else Color("8a90c0"))
 	for l in spec.lines:
 		var gx: float = r.position.x + (l + spec.goal * 0.5) * r.size.x
 		draw_rect(Rect2(floorf(gx) - 1, r.position.y, 3, r.size.y), Color("120c18"))

@@ -21,6 +21,11 @@ const TUTORIALS := {
 		{"img": "tut/shop_buy", "text": "Kliknij KUP przy przedmiocie."},
 		{"img": "tut/shop_parcel", "text": "Gdy wyłączysz komputer, kurier zapuka i zostawi paczkę. Podejdź do niej i wciśnij {interact}, żeby ją otworzyć."},
 	]},
+	"widmo": {"title": "Analiza widmowa", "pages": [
+		{"img": "tut/spec_bar", "text": "Po wyostrzeniu planety, mgławicy, galaktyki albo czarnej dziury pojawia się widmo. Ciemne kreski to linie absorpcyjne."},
+		{"img": "tut/spec_hold", "text": "Celownikiem w poziomie przesuwasz wzorzec (białe znaczniki). Trzymaj go na liniach, aż zielony pasek się zapełni. Linie dryfują!"},
+		{"img": "tut/spec_done", "text": "Udana analiza: odkrycie warte więcej $ i PW. Gdy czas minie albo wciśniesz {leave}, zapis idzie bez widma."},
+	]},
 	"edycja": {"title": "Twój pokój", "pages": [
 		{"img": "tut/edit_tab", "text": "Pokój możesz urządzić po swojemu. Wciśnij {edit}, żeby przejść w tryb edycji."},
 		{"img": "tut/edit_move", "text": "Kliknij mebel, żeby go podnieść, i kliknij jeszcze raz w nowym miejscu. Czerwony znaczy, że tam się nie zmieści."},

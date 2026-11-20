@@ -95,6 +95,7 @@ func _ready() -> void:
 	await get_tree().create_timer(2.0).timeout
 	shot("e2_noc")
 	Game.tips["tut_tel"] = true
+	Game.tips["tut_widmo"] = true
 	w._interact("teleskop")
 	await get_tree().create_timer(1.5).timeout
 	shot("e2_tel")
