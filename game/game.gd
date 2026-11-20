@@ -1241,6 +1241,8 @@ func load_game() -> bool:
 			pw = int(pw)
 			_id_seq = int(_id_seq)
 			moon_done = _int_keys(moon_done)
+			for k in comet:  # JSON oddaje liczby jako float, a nazwa komety liczy seed % 9
+				comet[k] = int(comet[k])
 			for p in staff:  # zapis sprzed zmiany imienia kota
 				if p.name == "Arbjooze":
 					p.name = "Józek"

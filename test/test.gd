@@ -169,6 +169,18 @@ func _ready() -> void:
 	assert(not is_instance_valid(dl[0]) and cut.door_a > 0.0, "po dialogu pukanie i napis na drzwiach")
 	cut.free()
 	Game.loop("music/intro", -INF)
+	# zapis i odczyt komety: JSON oddaje float, a nazwa liczy seed % 9 (crash 20.11)
+	var real := [Game.SAVE, Game.SAVE_BAK]
+	Game.SAVE = "user://test_save.json"
+	Game.SAVE_BAK = "user://test_save.bak.json"
+	Game.comet = {"left": 3, "gap": 0, "seed": 123457}
+	Game.save_game()
+	assert(Game.load_game(), "odczyt zapisu testowego")
+	assert(Game.obj_info("comet").name.ends_with("/2030"), "nazwa komety po odczycie zapisu")
+	for f in [Game.SAVE, Game.SAVE_BAK]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(f))
+	Game.SAVE = real[0]
+	Game.SAVE_BAK = real[1]
 	print("TEST OK")
 	FileAccess.open("res://debug_shots/test_result.txt", FileAccess.WRITE).store_string("TEST OK")  # wynik czytelny po wyjściu z gry
 	Game.quit()
