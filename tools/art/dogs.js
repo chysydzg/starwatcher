@@ -13,7 +13,7 @@ const DOGS = {
   lili: { K: 0.88, head: P.hueRamp(4, { hue: 24, shift: 22, sat: 0.52, light: [0.3, 0.64] }), body: P.hueRamp(3, { hue: 30, shift: 14, sat: 0.1, light: [0.46, 0.66] }),
     muz: P.hueRamp(2, { hue: 34, shift: 12, sat: 0.45, light: [0.66, 0.8] }), ears: "up", tongue: true, tail: "short" },
   myszka: { K: 1.28, head: P.hueRamp(4, { hue: 224, shift: 12, sat: 0.12, light: [0.1, 0.3] }), body: P.hueRamp(3, { hue: 224, shift: 12, sat: 0.12, light: [0.12, 0.28] }),
-    muz: P.hueRamp(2, { hue: 40, shift: 10, sat: 0.08, light: [0.74, 0.88] }), tan: P.hueRamp(2, { hue: 32, shift: 14, sat: 0.45, light: [0.6, 0.74] }), ears: "lop", tail: "long" },
+    muz: P.hueRamp(2, { hue: 40, shift: 10, sat: 0.08, light: [0.74, 0.88] }), tan: P.hueRamp(2, { hue: 32, shift: 14, sat: 0.45, light: [0.6, 0.74] }), ears: "lop", tail: "long", eye: [112, 66, 34] },  // brązowe oczy jak na portrecie
 };
 const TOP = { light: [0, -0.62, 0.78] };
 const WAG = [-1, -0.6, 0.6, 1];  // z przodu ogon zawsze wystaje zza bioder, raz z jednej, raz z drugiej strony
@@ -73,7 +73,7 @@ function frame(d, dir, walk, carry, wag) {
     const ey = Math.round(Y(20 + bob)), ny = Math.round(Y(23.4 + bob)), e0 = px(4), eh = px(3);
     fill(CX, Y(25 + bob), 4.4 * K, 2.6 * K, d.muz[1]);
     if (d.tan) { for (const dd of [e0, e0 + 1]) sym(dd, ey - 2, d.tan[1]); sym(e0 + 2, ey + eh, d.tan[0]); sym(e0 + 3, ey + eh - 1, d.tan[0]); }
-    for (const dd of [e0, e0 + 1]) for (let y = ey; y < ey + eh; y++) sym(dd, y, EYE);
+    for (const dd of [e0, e0 + 1]) for (let y = ey; y < ey + eh; y++) sym(dd, y, d.eye && y > ey ? d.eye : EYE);  // tęczówka pod źrenicą
     b.pset(L - e0 - 1, ey, SHINE); b.pset(Rr + e0, ey, SHINE);
     sym(0, ny, NOSE); sym(1, ny, NOSE); sym(0, ny + 1, NOSE);
     if (K > 1.1) { sym(2, ny, NOSE); sym(1, ny + 1, NOSE); }
@@ -106,7 +106,7 @@ function frame(d, dir, walk, carry, wag) {
     if (d.ears === "lop") S([C(12, 16 + sb, 10.5, 20.5 + sb, 2.4, 1.8)], d.head, { dark: 0.85 });
     fill(X(22), Y(25 + sb), 3.4 * K, 2.2 * K, d.muz[1]);
     const ey = Math.round(Y(19.8 + sb)), ex = Math.round(X(18.5)), nx = Math.round(X(25)), ny = Math.round(Y(23 + sb)), eh = px(3);
-    for (let y = ey; y < ey + eh; y++) { b.pset(ex, y, EYE); b.pset(ex + 1, y, EYE); }
+    for (let y = ey; y < ey + eh; y++) { b.pset(ex, y, d.eye && y > ey ? d.eye : EYE); b.pset(ex + 1, y, d.eye && y > ey ? d.eye : EYE); }
     b.pset(ex, ey, SHINE);
     if (d.tan) { b.pset(ex, ey - 2, d.tan[1]); b.pset(ex + 1, ey - 2, d.tan[1]); }
     b.pset(nx, ny, NOSE); b.pset(nx - 1, ny, NOSE); b.pset(nx, ny + 1, NOSE);

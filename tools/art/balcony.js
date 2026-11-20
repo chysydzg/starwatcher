@@ -180,6 +180,20 @@ piece("chair", 341, [416, 330, 450, 346], (T) => obj(T, 418, 302, 30, 38, (s) =>
   slab(s, 2, 17, 28, 21, R.wood, 1, 0.67);                              // siedzisko
   slab(s, 9, 14, 23, 18, R.red, 0.9, 0.6);                              // złożony koc
 }));
+piece("poduszka", 346, [318, 334, 372, 348], (T) => obj(T, 318, 322, 56, 26, (s) => {  // duża poducha do siedzenia z psią łapką
+  const top = P.hueRamp(4, { hue: 18, shift: 14, sat: 0.5, light: [0.42, 0.78] });
+  for (let y = 0; y < 26; y++) for (let x = 0; x < 56; x++) {
+    const d = Math.abs((x - 27.5) / 27) ** 2.6 + Math.abs((y - 9) / 9) ** 2.6, side = y > 9 && Math.abs((x - 27.5) / 27) ** 2.6 + Math.abs((y - 15) / 10) ** 2.6 < 1;
+    if (d < 1) s.pset(x, y, top[y < 3 ? 3 : y < 6 ? 2 : 2]);
+    else if (side) s.pset(x, y, top[y > 21 ? 0 : 1]);
+  }
+  for (let x = 6; x < 50; x += 4) s.pset(x, 17, top[2]);                       // przeszycie wzdłuż boku
+  const paw = [244, 232, 214];                                                // łapka: poduszka i cztery paluszki
+  for (let y = 0; y < 26; y++) for (let x = 0; x < 56; x++) {
+    if (((x - 28) / 6.5) ** 2 + ((y - 11) / 3.6) ** 2 < 1) s.pset(x, y, paw);
+    for (const [cx, cy] of [[19, 7], [24.5, 4.6], [31.5, 4.6], [37, 7]]) if (((x - cx) / 2.6) ** 2 + ((y - cy) / 1.8) ** 2 < 1) s.pset(x, y, paw);
+  }
+}));
 shadow(b, 488, 338, 14, 3);
 piece("crate", 339, [472, 330, 504, 344], (T) => obj(T, 474, 312, 28, 26, (s) => {
   slab(s, 0, 8, 28, 26, R.woodL, 0.6, 0.35, { grain: 0.1 }); s.rect(0, 16, 28, 17, R.woodL[1]);

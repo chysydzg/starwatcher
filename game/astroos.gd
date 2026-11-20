@@ -23,7 +23,7 @@ const HELP2 := """OBSERWATORIUM (Etap 2)
 • Analiza widmowa (Spektrometr): po wyostrzeniu przesuń wzorzec na ciemne linie widma i kliknij. Analizowane odkrycia są warte więcej.
 • Zespół: zatrudniaj pracowników i ustawiaj im tryb pracy. Tryb 1: nocą PW same, czasem zgłoszenie [!]. Tryb 2: rano lepsza jakość pomiarów. Tryb 3: dłuższa noc.
 • Zgłoszenie [!]: porozmawiaj przy biurku, a następnej nocy znajdź obiekt teleskopem (2x PW i $).
-• Pensje zespołu są wypłacane co 7 dni.
+• Pensje zespołu schodzą codziennie rano (zatrudnienie jest bez opłaty).
 • Orbita: satelity naukowe dają PW, wynajęte dają $. Burza słoneczna zabiera dzień przychodu.
 • Pokoik Jani: drzwi po lewej stronie laboratorium. Do łóżka idzie się nocą."""
 
@@ -116,6 +116,79 @@ func _ready() -> void:
 		if e is InputEventMouseButton and e.pressed and e.position.x > 570:
 			close())
 	Game.changed.connect(bar.queue_redraw)
+	if Game.cert_ready():
+		_cert_offer.call_deferred()
+
+
+## Etap 1, koniec: okienko na środku pulpitu z Certyfikatem Terenu do kupienia
+func _cert_offer() -> void:
+	var row: Array = Game.SHOP.filter(func(r): return r[0] == "certyfikat")[0]
+	var box := Panel.new()
+	box.add_theme_stylebox_override("panel", _box(Color("fff8e6"), Color("c89a2a"), 3))
+	box.size = Vector2(300, 168)
+	box.position = Vector2(170, 92)
+	add_child(box)
+	var ic := TextureRect.new()
+	ic.texture = Game.tex("os/certificate_icon")
+	ic.position = Vector2(14, 16)
+	ic.scale = Vector2(2, 2)
+	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	box.add_child(ic)
+	_label(box, "Łał!", Vector2(90, 10), Color("c8501a")).add_theme_font_size_override("font_size", Game.OS_FS * 2)
+	_label(box, "Za $%d kupisz działkę nad jeziorem.\nTo będzie Twoje własne obserwatorium!" % row[2], Vector2(90, 46), INK, 200)
+	_label(box, row[1], Vector2(14, 92), Color("6a4a1a"), 272)
+	var buy := _button("KUP CERTYFIKAT  $%d" % row[2], func():
+		Game.buy_shop(row)
+		box.queue_free()
+		_certificate())
+	buy.position = Vector2(14, 128)
+	buy.size = Vector2(190, 28)
+	buy.disabled = Game.money < row[2]
+	if buy.disabled:
+		buy.tooltip_text = "Brakuje $%d." % (row[2] - Game.money)
+	box.add_child(buy)
+	var later := _button("PÓŹNIEJ", box.queue_free)
+	later.position = Vector2(210, 128)
+	later.size = Vector2(76, 28)
+	box.add_child(later)
+
+
+## po zakupie: pikselowy certyfikat na cały ekran
+func _certificate() -> void:
+	Game.sfx("music/sting_win", 1.0, -4.0, "Music")
+	var o := ColorRect.new()
+	o.color = Color(0.04, 0.03, 0.08, 0.82)
+	Game.cover(o)
+	add_child(o)
+	var paper := TextureRect.new()
+	paper.texture = Game.tex("os/certificate")
+	paper.position = Vector2(170, 70) + Game.margin
+	paper.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	o.add_child(paper)
+	var cx := 150.0
+	for it in [["CERTYFIKAT", 26, Color("8a5a10"), Game.font_title, 16], ["Terenu pod Bazy Kosmiczne", 56, INK, Game.font_os, Game.OS_FS],
+			["Niniejszym poświadcza się, że", 86, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["JANIA", 108, Color("2a3a8a"), Game.font_title, 16],
+			["jest właścicielką działki nad jeziorem", 132, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["Dzień %d" % Game.day, 156, Color("5a4a3a"), Game.font_os, Game.OS_FS]]:
+		var l := Label.new()
+		l.text = it[0]
+		l.add_theme_font_override("font", it[3])
+		l.add_theme_font_size_override("font_size", it[4])
+		l.add_theme_color_override("font_color", it[2])
+		l.size = Vector2(300, 20)
+		l.position = Vector2(0, it[1] - 12)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if it[0].begins_with("Dzień"):
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			l.position.x = 40
+		paper.add_child(l)
+	paper.pivot_offset = Vector2(150, 100)
+	paper.scale = Vector2(0.2, 0.2)
+	paper.create_tween().tween_property(paper, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var ok := _button("HURA!", o.queue_free)
+	ok.position = Vector2(270, 282) + Game.margin
+	ok.size = Vector2(100, 28)
+	o.add_child(ok)
+	ok.grab_focus.call_deferred()
 
 
 
@@ -413,8 +486,8 @@ func _day_summary(h: Dictionary) -> String:
 
 func _breakdown(e: Dictionary) -> String:
 	var p := Game.price(e)
-	return "%s – gotowe do wysyłki.\nBazowa $%d × jakość %d%% × popyt ×%.2f × (1+bonusy %d%%) × instytut ×%.1f = $%d" % [
-		e.name, p.base, p.quality, p.demand, int(p.bonus * 100), p.inst, p.total]
+	return "%s – gotowe do wysyłki.\nBazowa $%d × jakość %d%% × popyt ×%.2f × (1+bonusy %d%%)%s = $%d" % [
+		e.name, p.base, p.quality, p.demand, int(p.bonus * 100), (" × ponowny pomiar ×%.1f" % p.inst) if e.get("repeat", false) else (" × widmo ×%.2f" % p.inst if p.inst != 1.0 else ""), p.total]
 
 
 # ---------------------------------------------------------------- Giełda (ticker, wykres popytu, portfel)
@@ -482,6 +555,8 @@ func _gielda() -> void:
 		_num(cb, "$%d" % Game.price(e).total, MKT_P, 0, Color("d8f0e0"))
 		cb.button_pressed = selected.get(e.uid, false)
 		cb.custom_minimum_size.y = 20
+		for k in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color", "font_hover_pressed_color"]:
+			cb.add_theme_color_override(k, Color(CAT_COL.get(e.cat, "d8f0e0")))  # kolor kategorii jak w notowaniach
 		cb.toggled.connect(func(on):
 			selected[e.uid] = on
 			cb.text = ("[x] " if on else "[ ] ") + txt
@@ -630,7 +705,7 @@ func _sklep() -> void:
 		if r[4] != shop_cat and not (s2 and shop_cat == 4):
 			continue
 		var st: String = Game.can_buy_shop(r)
-		if st == "hidden":
+		if st == "hidden" or r[0] == "certyfikat":  # Certyfikat kupuje się z pulpitu (okienko na środku), nie z listy
 			continue
 		grid.add_child(_card(r, st))
 
@@ -640,8 +715,21 @@ func _card(r: Array, st: String) -> Panel:
 	c.custom_minimum_size = Vector2(168, 88)  # 3 linie nazwy (np. „Licencja Niezależnego Badacza”)
 	var bg: Color = {"owned": Color("d8f4d8"), "ok": Color("ffffff"), "cost": Color("d4d6de"), "req": Color("d4d6de")}[st]  # nie stać nas = szare jak zablokowane
 	c.add_theme_stylebox_override("panel", _box(bg, Color("6a6a80")))
-	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 156)
+	var deco := Game.COSMETICS.has(r)  # ozdoba do pokoiku: miniatura, żeby było widać, co się kupuje
+	var title := _label(c, r[1], Vector2(6, 2), INK if st in ["ok", "owned"] else Color("6a6a7a"), 104 if deco else 156)
 	title.max_lines_visible = 3
+	if deco:
+		var tex := Game.tex("pokoik_" + r[0])
+		var k := maxf(1.0, floorf(minf(52.0 / tex.get_width(), 64.0 / tex.get_height())))  # całkowita skala: piksele zostają ostre
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.size = Vector2(52, 64) if k * tex.get_width() > 52 or k * tex.get_height() > 64 else tex.get_size() * k
+		tr.position = Vector2(112 + (52 - tr.size.x) / 2, 2 + (64 - tr.size.y) / 2).floor()
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.add_child(tr)
 	var price := _label(c, "$%d" % r[2], Vector2(6, 66), Color("2a7a3a") if st == "ok" else (Color("c83a2a") if st == "cost" else Color("6a6a7a")))
 	if st == "owned":
 		price.text = ""
@@ -671,7 +759,8 @@ func _desc(r: Array, st: String, is_shop: bool) -> String:
 	var cost := ("$%d" if is_shop else "%d PW") % r[2]
 	var why: String = {"owned": "Paczka czeka w pokoju." if r[0] in Game.parcels else "Posiadane.",
 		"ok": "Kliknij KUP, aby zamówić.", "cost": "Za mało środków.", "req": "Wymaga: " + _name_of(r[5]),
-		"tier": "Wymaga %s." % ("3 umiejętności z 1. rzędu" if r[3] == 2 else "4 umiejętności z 2. rzędu")}.get(st, "")
+		"tier": "Wymaga %s." % ("3 umiejętności z 1. rzędu" if r[3] == 2 else "4 umiejętności z 2. rzędu"),
+		"branch": "Najpierw coś z %d. rzędu tej ścieżki." % (r[3] - 1)}.get(st, "")
 	return "%s  [%s]  %s\n%s" % [r[1], cost, why, r[6]]
 
 
@@ -769,7 +858,7 @@ func _draw_tree() -> void:
 		var r: Array = nodes[i][1]
 		var st: String = Game.can_buy_science(r)
 		var base: Color = PATH_COL[r[4]]
-		var fill: Color = {"owned": base, "ok": base, "cost": Color("50566e"), "req": Color("50566e"), "tier": Color("50566e")}.get(st, Color("50566e"))
+		var fill: Color = {"owned": base, "ok": base, "cost": Color("50566e"), "req": Color("50566e"), "tier": Color("50566e"), "branch": Color("50566e")}.get(st, Color("50566e"))
 		var rect := Rect2(c - Vector2(15, 15), Vector2(30, 30))
 		if i == hover:  # pod kursorem węzeł lekko się powiększa
 			rect = rect.grow(3)
@@ -782,7 +871,7 @@ func _draw_tree() -> void:
 		if st == "ok":  # dostępne: pulsujące białe obramowanie
 			n.draw_rect(rect.grow(4), Color(1, 1, 1, 0.5 + 0.5 * sin(t * 6.0)), false, 2)
 		n.draw_string(Game.font_os, Vector2(c.x - 20, c.y + 33), "%d/1" % int(st == "owned"), HORIZONTAL_ALIGNMENT_CENTER, 40, Game.OS_FS, Color("ffcf4a") if st == "owned" else Color("8a90b0"))
-		if st in ["req", "tier"]:  # kłódka
+		if st in ["req", "tier", "branch"]:  # kłódka
 			n.draw_rect(Rect2(c + Vector2(6, 6), Vector2(9, 7)), Color("c8c8d8"))
 			n.draw_arc(c + Vector2(10.5, 6), 3, PI, TAU, 6, Color("c8c8d8"), 1.5)
 	for i in 3:  # zakładki etapów: odblokowane można przełączać, dalsze wyszarzone
@@ -834,6 +923,7 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 func _zespol() -> void:
 	_bg(Color("eef0e6"))
 	_label(body, "ZESPÓŁ  %d/%d" % [Game.staff.size(), Game.STAFF_MAX], Vector2(10, 4), Color("2a4a2a"))
+	_label(body, "Koszt zespołu: $%d/dzień (pobierany rano)" % Game.team_wage(), Vector2(200, 4), Color("8a3a2a"))
 	if Game.debt > 0:
 		_label(body, "Zaległe pensje: $%d (zejdą z kolejnych sprzedaży)" % Game.debt, Vector2(250, 4), Color("c83a2a"))
 	for i in Game.staff.size():
@@ -847,7 +937,8 @@ func _zespol() -> void:
 		_label(row, p.name + ("  [!]" if p.report != "" else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" else INK)
 		var tr: String = Game.TRAITS[p.traits[0]][0] + (" +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
 		_label(row, tr, Vector2(166, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
-		_num(row, "$%d/tydz." % p.get("salary", Game.hire_cost(i)[1]), 380, 5, Color("6a6a7a"))
+		_num(row, "$%d/dzień" % Game.wage(p), 380, 5, Color("6a6a7a"))
+		row.tooltip_text = "%s\nPensja: $%d/dzień\nW tym trybie: %s" % [p.name, Game.wage(p), Game.yield_text(p, int(p.mode))]
 		for m in 3:
 			var on: bool = int(p.mode) == m + 1
 			var b := _button("%d" % (m + 1), func():
@@ -878,9 +969,9 @@ func _zespol() -> void:
 		_label(card, c.name, Vector2(6, 2))
 		_portrait(card, c, Vector2(4, 22), Vector2(60, 62))
 		for k in c.traits.size():
-			_label(card, Game.TRAITS[c.traits[k]][0], Vector2(70, 20 + k * 20), Color("6a5a2a"))
-		var cost: Array = Game.cand_cost(c)
-		_label(card, "$%d + $%d/tyg." % cost, Vector2(70, 64), Color("2a7a3a"))
+			_label(card, Game.TRAITS[c.traits[k]][0], Vector2(70, 18 + k * 16), Color("6a5a2a"))
+		_label(card, "Pensja $%d/dzień" % Game.wage(c), Vector2(70, 52), Color("2a7a3a"))
+		_label(card, Game.yield_text(c, 1), Vector2(70, 68), Color("2a5a8a"))
 		var hb := _button("ZATRUDNIJ", func():
 			var why := Game.hire(c)
 			if why != "":
@@ -892,17 +983,17 @@ func _zespol() -> void:
 		hb.position = Vector2(6, 90)
 		hb.size = Vector2(190, 24)
 		var seat := [1, 2, 3].any(func(m): return Game.free_stations(m) > 0)
-		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or Game.money < cost[0] or not seat
+		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or not seat
 		if not seat:
 			hb.text = "BRAK STANOWISKA"
 			hb.tooltip_text = "Pracownik potrzebuje stanowiska: kup biurko lub warsztat w sklepie (Biuro)."
 		card.add_child(hb)
 		card.mouse_entered.connect(func(): info.text = "  ".join(c.traits.map(func(k): return Game.TRAITS[k][0] + ": " + Game.TRAITS[k][1])))
 	_info(Rect2(10, 298, 620, 20), Color("2a3a2a"))
-	info.text = "Tryb pracy zmienisz przyciskami 1-3. Pensje są wypłacane co 7 dni."
+	info.text = "Tryb pracy zmienisz przyciskami 1-3. Pensje schodzą co rano. Zatrudnienie nic nie kosztuje."
 
 
-## portret pracownika: kadr twarzy z portretu rozmowy (88x88, tools/art/staff.js; Arbjooze ma własny) w ramce `size`
+## portret pracownika: kadr twarzy z portretu rozmowy (88x88, tools/art/staff.js; Józek ma własny) w ramce `size`
 func _portrait(parent: Control, p: Dictionary, pos: Vector2, size := Vector2(44, 30)) -> void:
 	var fr := Panel.new()
 	fr.position = pos

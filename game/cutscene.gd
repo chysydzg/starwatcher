@@ -7,7 +7,7 @@ const LINES := [
 	{"who": "maciej", "text": "Na pewno. Czuję, córeczko, że niedługo je odkryjemy w swoim obserwatorium."},
 ]
 const MOON := Vector2(492, 74)
-const COMETS := [[Vector2(96, 30), Vector2(4.0, 1.2)], [Vector2(330, 18), Vector2(2.6, 0.9)]]  # start, px/s
+const COMETS := [[Vector2(160, 26), Vector2(-100, 44), 3.1, 0.4], [Vector2(420, 14), Vector2(-90, 40), 4.3, 2.2]]  # start, px/s, co ile s, przesunięcie
 var t := 0.0
 var door_a := 0.0          # napis na drzwiach
 var cam := Camera2D.new()
@@ -237,18 +237,21 @@ func _hospital() -> void:
 	fx_draw = Callable()
 
 
-## Jania idzie prosto do `to` (40 px/s) jak w grze: bokiem 4 klatki, przodem i tyłem 2; cicho tupta
+## Jania idzie prosto do `to` (40 px/s) tym samym cyklem chodu co w grze (jania_walk: 8 klatek na kierunek); cicho tupta
 func _go(j: Sprite2D, to: Vector2) -> void:
 	var d := to - j.position
 	var face := 1 if absf(d.x) > absf(d.y) else (0 if d.y > 0 else 2)
 	j.flip_h = face == 1 and d.x < 0
+	var idle := j.texture
+	j.texture = Game.tex("jania_walk")
 	while j.position.distance_to(to) > 0.5:
 		j.position = j.position.move_toward(to, 40.0 * get_process_delta_time())
-		var f := 1 + int(st * 14.0) % 4 if face == 1 else 1 + int(st * 10.0) % 2
-		if f != j.frame % 8 and (face != 1 or f in [1, 3]):
+		var f := int(st * 16.0) % 8
+		if f != j.frame % 8 and f in [0, 4]:  # kontakt stopy z podłogą
 			Game.sfx("step%d" % (randi() % 4), randf_range(1.0, 1.1), -18.0)
 		j.frame = face * 8 + f
 		await get_tree().process_frame
+	j.texture = idle
 	j.position = to
 	j.frame = face * 8
 
@@ -632,14 +635,13 @@ func _draw_skip() -> void:
 
 
 func _draw_obs() -> void:
-	for c in COMETS:  # komety suną powoli przez niebo: głowa i rozmyty warkocz
-		var h: Vector2 = (c[0] + c[1] * t).floor()
-		for k in 16:
-			var dir: Vector2 = c[1]
-			var q: Vector2 = (h - dir.normalized() * k * 1.4).floor()
-			if k < 3 or (int(q.x) + int(q.y)) % 2 == 0:
-				obs.draw_rect(Rect2(q, Vector2.ONE), Color(0.85, 0.92, 1.0, 0.75 - k * 0.045))
-		obs.draw_rect(Rect2(h - Vector2.ONE, Vector2(2, 2)), Color(1, 1, 0.96))
+	for c in COMETS:  # spadające gwiazdy: przelatują szybko jak na niebie z sky_fx.gd, co kilka sekund
+		var u := fmod(t + c[3], c[2])
+		if u > 0.9:
+			continue
+		var h: Vector2 = (c[0] + c[1] * u).floor()
+		for i in 10:
+			obs.draw_rect(Rect2(h + Vector2(i * 2, -i), Vector2.ONE), Color(1, 0.97, 0.85, (1.0 - i / 10.0) * (1.0 - u)))
 	obs.draw_line(Vector2(217, 178), Vector2(217, 170), Color("aab4c8"), 1.0)  # maszt anteny na dachu
 	var w := roundf(4.0 * cos(t * 0.7))  # czasza obraca się wokół masztu
 	for k in range(-absi(int(w)), absi(int(w)) + 1):

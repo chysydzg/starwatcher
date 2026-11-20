@@ -48,6 +48,18 @@
   ]
  },
  {
+  "name": "balcony_poduszka",
+  "x": 318,
+  "y": 322,
+  "base": 346,
+  "foot": [
+   318,
+   334,
+   372,
+   348
+  ]
+ },
+ {
   "name": "balcony_crate",
   "x": 473,
   "y": 311,

@@ -3,7 +3,7 @@
 // Arkusz 7x3: rząd 0 przód [stoi, chód1, chód2, mrug, ucho opada, łapka podnosi ucho, radość],
 // rząd 1 bok (w prawo) [stoi, chód 1-4], rząd 2 tył [stoi, chód1, chód2].
 const P = require(process.env.CODIXEL);
-const { ink } = require("./kit.js");
+const { ink, INK } = require("./kit.js");
 const K = +(process.env.JANIA_K || 1.1), FW = 36, FH = 54, CX = 17.5; // projekt w siatce 32x48 (środek x=16), skalowany x1.1
 const X = (x) => (x - 16) * K + CX, Y = (y) => y * K;
 const E = (x, y, rx, ry) => P.ell(X(x), Y(y), rx * K, ry * K);
@@ -146,7 +146,10 @@ function frame(dir, f, o = {}) {
       S([E(16 + swS, 38 + hb - Math.abs(swS) * 0.2, 2, 1.8)], R.cream);
     }
   }
-  return ink(P.rimLight(b, R.fur, { dir: dir === 1 ? [-1, -1] : [0, -1] }));
+  // pojedynczy obrys (kit.ink dokłada pod spodem drugą linię „podłogi”, która przy stopach wyglądała jak podwójny kontur)
+  const ol = P.outline(P.rimLight(b, R.fur, { dir: dir === 1 ? [-1, -1] : [0, -1] }), INK, { corners: true }), out = new P.Buf(ol.w, ol.h + 1);
+  out.sprite(ol, 0, 0);
+  return out;
 }
 
 // oddech (kolumna 7): klatka spoczynkowa z górą ciała opuszczoną o 1 px (wydech); stopy zostają, jeden rząd w pasie

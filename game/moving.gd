@@ -325,8 +325,9 @@ func _scenery(parent: Node, tod: String, building := "", at := Vector2.ZERO) -> 
 			sky.draw_rect(Rect2(-320, i * 14 - 40, 1280, 14), (d[0] as Color).lerp(d[1], i / 15.0))
 		var sun: Vector2 = d[4]
 		if sun != Vector2.ZERO:
-			sky.draw_circle(sun, 26, Color(1, 0.85, 0.6, 0.3))
-			sky.draw_circle(sun, 13, Color("ffe0a0") if tod != "noon" else Color("fff2c0"))
+			for k in 2:  # poświata: dwa pikselowe kręgi, potem pikselowa tarcza z promieniami (art/sun*.png)
+				sky.draw_circle(sun.floor(), 30.0 - k * 8.0, Color(1, 0.85, 0.6, 0.14 + k * 0.1), true, -1.0, false)
+			sky.draw_texture(Game.tex("sun_noon" if tod == "noon" else "sun"), (sun - Vector2(24, 24)).floor())
 		if tod in ["sunset", "dusk"]:  # pierwsze gwiazdy pojawiają się powoli
 			for i in 24:
 				var p := Vector2((i * 97) % 600 + 20, (i * 37) % 90 + 6)

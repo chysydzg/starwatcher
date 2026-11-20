@@ -91,6 +91,21 @@
   "kind": "floor"
  },
  {
+  "name": "pokoik_dywan_duzy",
+  "x": 217,
+  "y": 196,
+  "base": 0,
+  "foot": [
+   196,
+   186,
+   410,
+   290
+  ],
+  "opt": "",
+  "kind": "rug",
+  "nocol": true
+ },
+ {
   "name": "pokoik_polka",
   "x": 379,
   "y": 71,

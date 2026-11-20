@@ -30,14 +30,16 @@ slab(b, 0, WALL, W, WALL + 4, R.wood, 0.12, 0.3, { grain: 0 });
 const cap = (x0, y0, x1, y1) => b.rect(x0, y0, x1, y1, [58, 36, 58]);
 cap(0, 0, W, 10); b.rect(0, 10, W, 11, [86, 58, 82]);
 cap(0, 0, 12, H); cap(628, 0, W, H); cap(0, 348, W, H); b.rect(12, 348, 628, 349, [86, 58, 82]);
-for (let y = 186; y < 290; y++) for (let x = 196; x < 410; x++) {  // dywan w gwiazdy
-  const d = ((x - 303) / 86) ** 2 + ((y - 238) / 42) ** 2;
-  if (d > 1) continue;
-  let c = R.navy[P.band(0.55 - d * 0.25 + (P.fbm(x * 0.2, y * 0.2, 2, 9) - 0.5) * 0.2, 5, x, y)];
-  if (d > 0.82) c = R.red[P.band(0.6 - (d - 0.82) * 2, 5, x, y)]; else if (d > 0.76) c = R.gold[1];
-  b.pset(x, y, c);
-}
-for (const [sx, sy] of [[250, 220], [300, 210], [352, 228], [280, 252], [330, 258], [305, 236]]) { b.pset(sx, sy, R.gold[3]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) b.pset(sx + dx, sy + dy, R.gold[1]); }
+piece("dywan_duzy", 0, [196, 186, 410, 290], (T) => {  // duży dywan w gwiazdy: osobny element, da się go przesunąć w trybie edycji
+  for (let y = 186; y < 290; y++) for (let x = 196; x < 410; x++) {
+    const d = ((x - 303) / 86) ** 2 + ((y - 238) / 42) ** 2;
+    if (d > 1) continue;
+    let c = R.navy[P.band(0.55 - d * 0.25 + (P.fbm(x * 0.2, y * 0.2, 2, 9) - 0.5) * 0.2, 5, x, y)];
+    if (d > 0.82) c = R.red[P.band(0.6 - (d - 0.82) * 2, 5, x, y)]; else if (d > 0.76) c = R.gold[1];
+    T.pset(x, y, c);
+  }
+  for (const [sx, sy] of [[250, 220], [300, 210], [352, 228], [280, 252], [330, 258], [305, 236]]) { T.pset(sx, sy, R.gold[3]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) T.pset(sx + dx, sy + dy, R.gold[1]); }
+});
 obj(b, 152, 22, 78, 60, (s) => {  // okno z zasłonami (geometria jak w pokoju)
   slab(s, 0, 0, 78, 3, R.wood, 0.3, 0.3, { grain: 0 });
   slab(s, 8, 4, 70, 54, R.woodL, 0.7, 0.55, { grain: 0.1 });
@@ -106,10 +108,10 @@ savePieces(out, "pokoik");
 const room = JSON.parse(fs.readFileSync(out + "/room_layout.json"));
 const keep = ["room_bed", "room_nightstand", "room_lamp", "room_wardrobe", "room_plant", "room_pufa", "room_basket"];
 const lay = room.filter((p) => keep.includes(p.name)).map((p) => ({ ...p, kind: "floor" }));
-const KIND = { dywan: "rug", girlanda: "wall", plakat_saturn: "wall" };
+const KIND = { dywan: "rug", dywan_duzy: "rug", girlanda: "wall", plakat_saturn: "wall" };
 for (const p of JSON.parse(fs.readFileSync(out + "/pokoik_layout.json"))) {
   const k = p.name.replace("pokoik_", "");
-  lay.push({ ...p, opt: k, kind: KIND[k] || "floor", nocol: !!KIND[k] });
+  lay.push({ ...p, opt: k === "dywan_duzy" ? "" : k, kind: KIND[k] || "floor", nocol: !!KIND[k] });  // duży dywan jest od początku
 }
 fs.writeFileSync(out + "/pokoik_layout.json", JSON.stringify(lay, null, 1));
 console.log("pokoik.png");

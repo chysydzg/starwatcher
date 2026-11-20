@@ -19,10 +19,10 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.seed = 7
-	for i in 70:
-		var p := Vector2(_rng.randi_range(80, 636), _rng.randi_range(4, 150))
+	for i in 130:
+		var p := Vector2(_rng.randi_range(80, 636), _rng.randi_range(4, 170))
 		if p.distance_to(MOON) > 34:
-			_stars.append([p, _rng.randf() * TAU, _rng.randf_range(0.7, 2.0), _rng.randf() < 0.2])
+			_stars.append([p, _rng.randf() * TAU, _rng.randf_range(0.7, 2.4), _rng.randf() < 0.3, [Color(1, 0.96, 0.82), Color(0.8, 0.9, 1.0), Color(1, 0.86, 0.7)][i % 3]])
 
 
 func _process(dt: float) -> void:
@@ -60,14 +60,20 @@ func _draw() -> void:
 		_draw_rain()
 		return
 	var dim := 0.35 if raining else 1.0
+	# poświata księżyca: trzy pikselowe kręgi, powoli pulsują (deszcz ją gasi)
+	for k in 3:
+		draw_circle(MOON, 20.0 + k * 9.0, Color(0.98, 0.93, 0.74, (0.07 - k * 0.018) * (0.85 + 0.15 * sin(t * 0.8)) * dim), true, -1.0, false)
 	for s in _stars:
-		var a: float = (0.3 + 0.7 * absf(sin(t * s[2] + s[1]))) * dim
-		var c := Color(1, 0.96, 0.82, a)
+		var a: float = (0.25 + 0.75 * pow(absf(sin(t * s[2] + s[1])), 2.0)) * dim
+		var c: Color = s[4]
+		c.a = a
 		_px(s[0].x, s[0].y, 1, 1, c)
-		if s[3] and a > 0.8:
-			c.a = (a - 0.8) * 4.0
-			for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
-				_px(s[0].x + o.x, s[0].y + o.y, 1, 1, c)
+		if s[3] and a > 0.75:  # jasne gwiazdy błyskają krzyżykiem, najjaśniejsze dłuższym
+			var arm := 2 if a > 0.92 else 1
+			for k in range(1, arm + 1):
+				c.a = (a - 0.75) * 4.0 / k
+				for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+					_px(s[0].x + o.x * k, s[0].y + o.y * k, 1, 1, c)
 	if not shooting.is_empty():
 		var head: Vector2 = shooting.p + Vector2(-90, 40) * shooting.t
 		for i in 10:
@@ -92,11 +98,13 @@ func _draw() -> void:
 			c.a = 0.6 + 0.4 * sin(t * 2.0 + x * 0.4)
 			_px(x, 263 + sag, 1, 2, c)
 			_px(x - 1, 264 + sag, 3, 1, Color(c, c.a * 0.25))
-	if comet and not raining:  # kometa: jasna głowa i długi warkocz
-		var hp := Vector2(180, 46)
+	if comet and not raining:  # kometa: jasna głowa i długi warkocz; sunie powoli przez niebo (90 s na przelot)
+		var u := fmod(t, 90.0) / 90.0
+		var hp := (Vector2(330, 34) + Vector2(-190, 30) * u).floor()
+		var fa := clampf(minf(u, 1.0 - u) * 10.0, 0.0, 1.0)  # wlatuje i wylatuje z nieba bez przeskoku
 		for i in 26:
-			_px(hp.x + i * 2, hp.y - i * 0.6, 1 + int(i < 6), 1, Color(0.8, 0.9, 1.0, 0.7 * (1.0 - i / 26.0)))
-		_px(hp.x - 1, hp.y - 1, 3, 3, Color(1, 1, 0.95, 0.9 + 0.1 * sin(t * 6.0)))
+			_px(hp.x + i * 2, hp.y - i * 0.6, 1 + int(i < 6), 1, Color(0.8, 0.9, 1.0, 0.7 * (1.0 - i / 26.0) * fa))
+		_px(hp.x - 1, hp.y - 1, 3, 3, Color(1, 1, 0.95, (0.9 + 0.1 * sin(t * 6.0)) * fa))
 
 
 ## ulewa: przyciemnione, sine powietrze, ukośne smugi deszczu, rozbryzgi i kręgi na jeziorze

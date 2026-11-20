@@ -21,7 +21,7 @@ const ROOM_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "lozko": Rect2(12, 96,
 	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "lampa": Rect2(224, 118, 24, 14), "lampka": Rect2(96, 108, 36, 24),
 	"bagaze": Rect2(500, 296, 62, 38)}
 ## Etap 2 (base.js): ta sama bryła co pokój (biurko, łóżko, drzwi, szafa i karton w tych samych miejscach),
-## nowe: duży teleskop na platformie, biurko Arbjooze, podium ze starym teleskopem z balkonu
+## nowe: duży teleskop na platformie, biurko Józka, podium ze starym teleskopem z balkonu
 const BASE_SPOTS := {"komputer": Rect2(334, 104, 94, 48), "drzwi": Rect2(518, 104, 46, 18), "pokoik": Rect2(24, 104, 40, 18),
 	"paczka": Rect2(291, 234, 26, 12), "radio": Rect2(572, 312, 48, 22), "teleskop": Rect2(440, 226, 60, 40),
 	"arbjooze": Rect2(134, 266, 68, 38), "podium": Rect2(296, 312, 52, 28), "spektrograf": Rect2(242, 104, 58, 26),
@@ -34,9 +34,12 @@ const ROOM_LIGHTS := [[Vector2(114, 88), "ffc070", 1.0, 1.1], [Vector2(412, 82),
 ## laboratorium nocą: chłodne światło nad teleskopem, lampka i monitor na biurku, okno, zielone diody szaf, drzwi
 const LAB_LIGHTS := [[Vector2(470, 170), "e8f0ff", 0.7, 1.8], [Vector2(412, 82), "e8f0ff", 0.9, 0.9], [Vector2(363, 82), "c8e4ff", 1.0, 0.9],
 	[Vector2(191, 60), "8aa8ff", 0.6, 1.4], [Vector2(472, 80), "8affb0", 0.5, 1.0], [Vector2(541, 70), "8aa8ff", 0.4, 1.0]]
-const CAT_DESK := Vector2(168, 284)  # stopy Arbjooze za jego biurkiem (biurko zasłania nogi)
+const CAT_DESK := Vector2(168, 284)  # stopy Józka za jego biurkiem (biurko zasłania nogi)
 ## miejsca pracowników przy stanowiskach (base.js): stopy za blatem; tryb 1 obserwacje, 2 analiza, 3 warsztat
 const SEATS := {1: [Vector2(55, 160), Vector2(55, 246)], 2: [Vector2(428, 306), Vector2(520, 306)], 3: [Vector2(548, 204)]}
+## wolna podłoga laboratorium: tu pracownicy spacerują i gadają, gdy nie mają zmiany (proste odcinki między nimi omijają meble)
+const IDLE_SPOTS := [Vector2(170, 212), Vector2(215, 198), Vector2(262, 222), Vector2(310, 205), Vector2(330, 160),
+	Vector2(270, 165), Vector2(230, 240), Vector2(300, 250)]
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
@@ -92,7 +95,7 @@ const TIRED := "Późno już, nie mam sił.\nPora spać."
 var toasts := []
 var tip := ""
 var base := false          # Etap 2: wnętrze obserwatorium zamiast pokoju (ten sam układ, inne tło i meble)
-var cat: Sprite2D          # Arbjooze (arbjooze.png: 5x3 klatek 40x58; przód 0-4, bok 5-9, protezy 10-13)
+var cat: Sprite2D          # Józek (arbjooze.png: 5x3 klatek 40x58; przód 0-4, bok 5-9, protezy 10-13)
 var cat_wave := false
 var workers := []          # sprite'y pracowników 2-5 (worker_<rodzaj>.png, 4 klatki machania) przy stanowiskach
 
@@ -188,7 +191,7 @@ func _scene(where: String, root: Node2D) -> Node2D:
 		props[p.name] = s
 		if p.has("opt"):
 			opt_props.append([s, p.opt, p.name])
-		if p.name in ["balcony_newton", "balcony_parasol"] or p.get("nocol", false):  # stoją tam, gdzie teleskop / wiszą na ścianie
+		if p.name in ["balcony_newton", "balcony_parasol", "balcony_poduszka"] or p.get("nocol", false):  # stoją tam, gdzie teleskop / wiszą na ścianie
 			continue
 		# kolider = cały obrys obiektu (bez 1 px obrysu): przez mebel nie da się przejść ani wejść w niego;
 		# wysokie obiekty w laboratorium (teleskopy, legowisko) tylko pod stopą, żeby dało się przejść za nimi
@@ -522,6 +525,7 @@ func _refresh() -> void:
 	props.balcony_telescope.visible = not Game.has("newton")
 	props.balcony_newton.visible = Game.has("newton")
 	props.balcony_parasol.visible = Game.has("parasol")
+	props.balcony_poduszka.visible = Game.has("poduszka")
 	crt.visible = Game.settings.crt
 	sky_fx.raining = Game.rain
 	rain_front.raining = Game.rain
@@ -581,18 +585,19 @@ func _toggle_phase() -> void:
 ## okienko z pytaniem Tak/Nie (kursor widać, bo busy)
 func _ask(q: String, yes: Callable) -> void:
 	busy = true
-	var p := _panel(Vector2(260, 92))
+	var pw := maxf(260.0, ceilf(_w(q)) + 48.0)  # okno rośnie z pytaniem, tekst nie wychodzi za ramkę
+	var p := _panel(Vector2(pw, 92))
 	var l := Label.new()
 	l.text = q
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.size = Vector2(260, 20)
+	l.size = Vector2(pw, 20)
 	l.position = Vector2(0, 16)
 	p.add_child(l)
 	var close := func(): p.get_parent().queue_free(); busy = false
 	for i in 2:
 		var b := Button.new()
 		b.text = ["TAK", "NIE"][i]
-		b.position = Vector2(30 + i * 110, 50)
+		b.position = Vector2(pw / 2 - 100 + i * 110, 50)
 		b.custom_minimum_size = Vector2(90, 26)
 		b.pressed.connect(func():
 			close.call()
@@ -698,10 +703,17 @@ func _draw_dusk(o: Control, prog: float, u: float, dawn: bool) -> void:
 				var w := 6.0 + 6.0 * absf(sin(now * 3.0 + r * 1.3)) - r * 0.2
 				o.draw_rect(Rect2(floorf(body_pos[0].x - w / 2), 226 + r * 6, floorf(w), 1), Color(body_pos[1], 0.8 - r * 0.045))
 	if Game.rain if dawn else Game.rain_next:  # deszcz tej nocy (zmierzch) albo tej, która minęła (świt)
-		o.draw_rect(Rect2(lx, -Game.margin.y, vw, Game.view.y), Color(0.12, 0.14, 0.22, 0.3))
-		for i in 140:
-			var p := Vector2(fposmod(i * 53.3 - now * 40.0, 700.0) - 30.0, fposmod(now * (260.0 + i % 5 * 30.0) + i * 37.0, 400.0) - 20.0).floor()
-			o.draw_line(p, p + Vector2(-3, 11), Color(0.75, 0.82, 1.0, 0.25 + i % 3 * 0.08), 1.0)
+		o.draw_rect(Rect2(lx, -Game.margin.y, vw, Game.view.y), Color(0.1, 0.12, 0.2, 0.45))  # szare, ciężkie niebo
+		for i in 220:  # ukośne smugi deszczu, wyraźne także na jasnym niebie zmierzchu
+			var p := Vector2(fposmod(i * 53.3 - now * 60.0, 700.0) - 30.0, fposmod(now * (300.0 + i % 5 * 40.0) + i * 37.0, 400.0) - 20.0).floor()
+			var rc := Color(0.8, 0.86, 1.0, 0.4 + i % 3 * 0.12)
+			for k in 4:  # pikselowa smuga: schodki 1:3
+				o.draw_rect(Rect2(p + Vector2(-k, k * 3), Vector2(1, 3)), rc)
+		for i in 18:  # kręgi na jeziorze
+			var ph := fposmod(now * 1.4 + i * 0.37, 1.0)
+			var q := Vector2(fposmod(i * 97.0, 640.0), 300.0 + fposmod(i * 23.0, 50.0)).floor()
+			var w := floorf(2.0 + ph * 8.0)
+			o.draw_rect(Rect2(q - Vector2(w, 0), Vector2(w * 2, 1)), Color(0.8, 0.86, 1.0, 0.5 * (1.0 - ph)))
 	if u > 0.75:
 		var a := (u - 0.75) * 4.0
 		_outlined(o, Game.font_title, 16, 100, "Nowy dzień" if dawn else "Zapada noc", a)
@@ -820,9 +832,11 @@ func _process(dt: float) -> void:
 	_animate(dt)
 	if Game.stage >= 2:
 		Game.staff_tick(dt)
-		for i in workers.size():  # pracownicy machają ogonami, każdy w swoim rytmie
+		for i in workers.size():  # pracownicy machają ogonami, każdy w swoim rytmie; po pracy spacerują
 			workers[i].frame = [0, 1, 2, 3, 2, 1][int((t + i * 0.7) * 6.0) % 6] if fmod(t + i * 1.9, 5.0) < 1.0 else 0
-	if cat and not cat.get_meta("walking"):  # Arbjooze stoi przodem i czasem mruga; macha chwytakiem na powitanie
+			if workers[i].visible and i + 1 < Game.staff.size() and Game.location == "room":
+				_wander(workers[i], Game.staff[i + 1], dt)
+	if cat and not cat.get_meta("walking"):  # Józek stoi przodem i czasem mruga; macha chwytakiem na powitanie
 		cat.flip_h = false
 		var mode: int = int(Game.staff[0].mode) if not Game.staff.is_empty() and Game.tips.has("arbjooze") else 0
 		var tool: int = [0, 10, 11, 12][mode]  # proteza do pracy: lupa (obserwacje), rysik (raporty), młoteczek (sprzęt)
@@ -1043,7 +1057,7 @@ func _interact(k: String) -> void:
 		"spektrograf":
 			_say("Spektrograf. Rozszczepi światło gwiazd na tęczę.")
 		"serwery":
-			_say("Szafy z danymi. Mruczą jak Arbjooze.")
+			_say("Szafy z danymi. Mruczą jak Józek.")
 		"tablica":
 			_say("Obliczenia z wczoraj. Chyba się zgadzają.")
 		"podium":
@@ -1055,6 +1069,17 @@ func _interact(k: String) -> void:
 
 
 ## pikselowy wykrzyknik nad głową (zgłoszenie odkrycia): żółta kreska i kropka z ciemnym obrysem, bez ramki
+## dymek rozmowy: pikselowa chmurka z trzema kropkami
+func _chat(n: CanvasItem, p: Vector2) -> void:
+	n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(18, 10)), Color("1a1426"))
+	n.draw_rect(Rect2(p, Vector2(16, 8)), Color("f4ecdc"))
+	n.draw_rect(Rect2(p + Vector2(3, 8), Vector2(3, 2)), Color("1a1426"))
+	n.draw_rect(Rect2(p + Vector2(4, 8), Vector2(1, 1)), Color("f4ecdc"))
+	for k in 3:
+		if fmod(t * 3.0, 3.0) >= k:
+			n.draw_rect(Rect2(p + Vector2(3 + k * 4, 3), Vector2(2, 2)), Color("4a4060"))
+
+
 func _bang(n: CanvasItem, p: Vector2) -> void:
 	n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(6, 11)), Color("1a1426"))
 	n.draw_rect(Rect2(p + Vector2(-1, 11), Vector2(6, 5)), Color("1a1426"))
@@ -1079,8 +1104,45 @@ func _place_workers() -> void:
 		var m := int(p.mode)
 		var seats: Array = SEATS[m]
 		workers[i].texture = Game.tex("worker_" + p.kind)
-		workers[i].position = seats[mini(used[m], seats.size() - 1)]
+		var seat: Vector2 = seats[mini(used[m], seats.size() - 1)]
 		used[m] += 1
+		workers[i].set_meta("seat", seat)
+		if _on_shift(p):
+			workers[i].position = seat
+		elif not workers[i].has_meta("goal") or workers[i].position == seat or workers[i].position == Vector2.ZERO:
+			workers[i].position = IDLE_SPOTS[(i * 3) % IDLE_SPOTS.size()]
+			workers[i].set_meta("goal", workers[i].position)
+			workers[i].set_meta("wait", randf_range(0.5, 3.0))
+
+
+## zmiana pracownika: Tryb 1 i 3 pracują nocą (Tryb 1 z Autonomią także za dnia), Tryb 2 analizuje za dnia
+func _on_shift(p: Dictionary) -> bool:
+	var m := int(p.mode)
+	return Game.night and m != 2 or not Game.night and (m == 2 or m == 1 and Game.has("autonomia"))
+
+
+## po pracy: spacer między wolnymi punktami podłogi, przystanki; dwoje blisko siebie „gada” (dymek nad głową)
+func _wander(w: Sprite2D, p: Dictionary, dt: float) -> void:
+	if _on_shift(p):
+		if w.position != w.get_meta("seat"):
+			w.position = w.get_meta("seat")
+		return
+	if w.position == w.get_meta("seat", Vector2.ZERO):  # koniec zmiany (ekran świtu/zmierzchu): wstaje od biurka na wolną podłogę
+		w.position = IDLE_SPOTS.pick_random()
+		w.set_meta("goal", w.position)
+		w.set_meta("wait", randf_range(1.0, 4.0))
+	var goal: Vector2 = w.get_meta("goal", w.position)
+	if w.position.distance_to(goal) > 0.5:
+		w.position = w.position.move_toward(goal, 28.0 * dt)
+		w.offset.y = -62 - (1.0 if fmod(t * 8.0 + w.get_index(), 2.0) < 1.0 else 0.0)  # krok: lekkie podskakiwanie
+		w.flip_h = goal.x < w.position.x
+		return
+	w.offset.y = -62
+	var wait: float = w.get_meta("wait", 0.0) - dt
+	w.set_meta("wait", wait)
+	if wait <= 0.0:
+		w.set_meta("goal", IDLE_SPOTS.pick_random())
+		w.set_meta("wait", randf_range(3.0, 8.0))
 
 
 ## pracownik przy biurku: zgłoszenie [!] albo tryb pracy i krótka rozmowa
@@ -1125,7 +1187,7 @@ func _worker_desk(i: int) -> void:
 	pn.add_child(x)
 
 
-## biurko Arbjooze: najpierw zgłoszenie [!], potem menu: tryb pracy, pogłaskanie, rozmowa
+## biurko Józka: najpierw zgłoszenie [!], potem menu: tryb pracy, pogłaskanie, rozmowa
 func _cat_desk() -> void:
 	var me: Dictionary = Game.staff[0] if not Game.staff.is_empty() else {}
 	if me.is_empty():
@@ -1142,7 +1204,7 @@ func _cat_desk() -> void:
 	var p := _panel(Vector2(300, 150))
 	var close := func(): p.get_parent().queue_free(); busy = false
 	var l := Label.new()
-	l.text = "Arbjooze · %s" % Game.MODES[int(me.mode) - 1]
+	l.text = "Józek · %s" % Game.MODES[int(me.mode) - 1]
 	l.position = Vector2(14, 10)
 	p.add_child(l)
 	for m in 3:
@@ -1155,7 +1217,7 @@ func _cat_desk() -> void:
 		b.pressed.connect(func():
 			me.mode = m + 1
 			close.call()
-			_toast("Arbjooze: %s." % Game.MODES[m], "info"))
+			_toast("Józek: %s." % Game.MODES[m], "info"))
 		p.add_child(b)
 	for i in 2:
 		var b := Button.new()
@@ -1167,7 +1229,7 @@ func _cat_desk() -> void:
 			if i == 0:
 				cat_wave = true
 				Game.tips.petted = true
-				_toast("Mrrrr... Arbjooze mruczy z zadowolenia.", "good")
+				_toast("Mrrrr... Józek mruczy z zadowolenia.", "good")
 				await get_tree().create_timer(1.2).timeout
 				cat_wave = false
 			else:
@@ -1195,7 +1257,7 @@ func _talk(lines: Array) -> void:
 	busy = false
 
 
-## Arbjooze idzie do `to`: najpierw w pionie (przodem), potem w poziomie (bokiem)
+## Józek idzie do `to`: najpierw w pionie (przodem), potem w poziomie (bokiem)
 func _cat_walk(to: Vector2) -> void:
 	cat.set_meta("walking", true)
 	for leg in [Vector2(cat.position.x, to.y), to]:
@@ -1214,7 +1276,7 @@ func _cat_walk(to: Vector2) -> void:
 	cat.set_meta("walking", false)
 
 
-## Etap 2, pierwszy dzień: pukanie, wchodzi Arbjooze w kitlu, wita się chwytakiem i zostaje pierwszym pracownikiem
+## Etap 2, pierwszy dzień: pukanie, wchodzi Józek w kitlu, wita się chwytakiem i zostaje pierwszym pracownikiem
 func _arbjooze_arrives() -> void:
 	busy = true
 	await get_tree().create_timer(1.6).timeout
@@ -1229,10 +1291,10 @@ func _arbjooze_arrives() -> void:
 	cat_wave = true
 	Game.sfx("click")
 	var d = preload("res://game/dialogue.gd").new().play([
-		{"who": "arbjooze", "text": "Dzień dobry! Arbjooze, do usług. Słyszałem, że szukacie kogoś do patrzenia w gwiazdy?"},
+		{"who": "arbjooze", "text": "Dzień dobry! Józek, do usług. Słyszałem, że szukacie kogoś do patrzenia w gwiazdy?"},
 		{"who": "jania_laugh", "text": "Kotek w kitlu! I to z chwytakiem!"},
 		{"who": "arbjooze", "text": "Moja proteza. Mam też lupę, młoteczek i kubeczek na mleczko. Na każdą okazję!"},
-		{"who": "jania", "text": "Witaj w zespole, Arbjooze. Twoje biurko już na Ciebie czeka."},
+		{"who": "jania", "text": "Witaj w zespole, Józku. Twoje biurko już na Ciebie czeka."},
 		{"who": "arbjooze", "text": "Dziękuję, Szefowo! Biorę się do pracy."},
 	])
 	d.line_shown.connect(func(l: Dictionary): cat_wave = false; happy_t = 1.6 if l.who == "jania_laugh" else 0.0)
@@ -1242,7 +1304,7 @@ func _arbjooze_arrives() -> void:
 	Game.tips.arbjooze = true
 	Game.save_game()
 	busy = false
-	_toast("Nowy pracownik: Arbjooze!", "good")
+	_toast("Nowy pracownik: Józek!", "good")
 
 
 ## koniec nocy: Jania ziewa raz (zwrócona przodem)
@@ -1724,11 +1786,21 @@ func _draw_hud() -> void:
 	if base and Game.location == "room":  # zgłoszenia [!] nad głowami zespołu
 		var heads := [cat.position + Vector2(0, -46)] if cat and cat.visible else [Vector2.ZERO]
 		for w in workers:
-			heads.append(w.position + Vector2(0, -36))  # pracownicy są niżsi od Arbjooze (34 px)
+			heads.append(w.position + Vector2(0, -36))  # pracownicy są niżsi od Józka (34 px)
+		for i in range(1, mini(heads.size(), Game.staff.size())):  # dwoje stojących obok siebie po pracy: dymek „...”
+			var w: Sprite2D = workers[i - 1]
+			if _on_shift(Game.staff[i]) or w.position.distance_to(w.get_meta("goal", w.position)) > 0.5:
+				continue
+			for j in range(1, mini(heads.size(), Game.staff.size())):
+				if j != i and not _on_shift(Game.staff[j]) and w.position.distance_to(workers[j - 1].position) < 60.0 and fmod(t + i * 1.3, 4.0) < 2.0 and (int(t / 4.0) + i) % 2 == 0:
+					_chat(n, (heads[i] + Vector2(-8, -14)).floor())
+					break
 		for i in mini(heads.size(), Game.staff.size()):
 			if Game.staff[i].report == "" or heads[i] == Vector2.ZERO:
 				continue
 			_bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())
+	if Game.cert_ready() and Game.location == "room":  # Manifest gotowy: nad komputerem czeka Certyfikat Terenu
+		_bang(n, Vector2(379, 58 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
 	if not speech.is_empty():  # monolog Jani nad głową
 		var lines := _wrap(speech.text, 200)
 		for i in lines.size():

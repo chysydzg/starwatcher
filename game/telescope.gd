@@ -64,8 +64,8 @@ func _ready() -> void:
 	size = Vector2(640, 360)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	zoom = 1.0 / 1.3 if _big() else 1.0  # Newton: pole widzenia +30%
-	if _big():
-		sky_size = Vector2(1700, 900)
+	if _big():  # Newton i duży teleskop: dużo większe niebo do przemierzania (obiekty dalej od siebie, więcej gwiazd tła)
+		sky_size = Vector2(2600, 1400)
 	_rng.seed = Game.day * 977
 	_build_sky()
 	_build_frame()
@@ -104,7 +104,7 @@ func _build_sky() -> void:
 	var img := Image.create(int(sky_size.x), int(sky_size.y), false, Image.FORMAT_RGBA8)
 	for y in int(sky_size.y):
 		img.fill_rect(Rect2i(0, y, int(sky_size.x), 1), Color("0a0d24").lerp(Color("15193f"), float(y) / sky_size.y))
-	for i in 900:
+	for i in int(900.0 * sky_size.x * sky_size.y / 840000.0):  # ta sama gęstość gwiazd tła na większym niebie
 		var p := Vector2i(_rng.randi_range(0, int(sky_size.x) - 1), _rng.randi_range(0, int(sky_size.y) - 1))
 		var k := _rng.randf()
 		img.set_pixelv(p, Color(0.42, 0.45, 0.66) if k < 0.7 else Color(0.62, 0.64, 0.82))  # tło przygaszone: cele mają się wyróżniać
@@ -199,7 +199,7 @@ func _place_targets() -> void:
 		if info.cat in ["nebula", "deep"]:
 			tg.width = 0.014  # mgławice: węższy zakres ostrości
 		if id == "comet":
-			tg.vel = Vector2.from_angle(_rng.randf() * TAU) * 8.0
+			tg.vel = Vector2.from_angle(_rng.randf() * TAU) * 14.0
 		targets.append(tg)
 	cam = sky_size / 2
 
@@ -282,6 +282,8 @@ func quality() -> int:
 	# var d := absf(f - sweet_now())
 	# var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
 	var q := 100.0 - maxf(0.0, absf(focus_offset()) - green()) * 250.0
+	if Game.has("naped"):  # napęd prowadzi teleskop za obiektem: stabilny obraz, lepszy pomiar
+		q *= 1.25
 	if Game.rain and _clouded(target.pos):
 		q = minf(q, 75 if _big() else 45)  # Newton (większe lustro) widzi przez chmury lepiej
 	return int(clampf(q, 10, 100))
@@ -347,8 +349,12 @@ func _process(dt: float) -> void:
 	for c in clouds:
 		c[0].x = fposmod(c[0].x + 6.0 * dt, sky_size.x)
 	for tg in targets:
-		if tg.has("vel") and not tg.done:
-			tg.pos = (tg.pos + tg.vel * dt).clamp(Vector2(140, 140), sky_size - Vector2(140, 140))
+		if tg.has("vel"):  # kometa sunie przez niebo cały czas (jak powolny meteor) i odbija się od brzegów nieba
+			tg.pos += tg.vel * dt
+			for ax in 2:
+				if tg.pos[ax] < 140.0 or tg.pos[ax] > sky_size[ax] - 140.0:
+					tg.vel[ax] = -tg.vel[ax]
+					tg.pos[ax] = clampf(tg.pos[ax], 140.0, sky_size[ax] - 140.0)
 	cam = cam.clamp(Vector2(R, R) / zoom, sky_size - Vector2(R, R) / zoom)  # okular nigdy nie wychodzi poza niebo (inaczej brzegi tekstury rysują się jako linie)
 	var near := proximity() if state == S.SCAN and hovered.is_empty() else 0.0
 	hum.volume_db = lerpf(hum.volume_db, -30.0 + 30.0 * near if near > 0.02 else -60.0, minf(1.0, dt * 6.0))
@@ -570,7 +576,7 @@ func _click_star() -> void:
 		if (aim + wobble()).distance_to(pts[i]) < 11.0 * snap():
 			lit[i] = true
 			bursts.append({"p": pts[i], "t": 0.0})
-			shake = 0.12
+			shake = 0.0 if Game.has("mikro") else 0.12  # Pokrętło Mikro-Ruchów: kliknięcie gwiazdy nie trzęsie okularem
 			Game.sfx("pencil", _rng.randf_range(0.9, 1.1), -4.0)
 			Game.ding(1.0 + lit.size() * 0.12)
 			if lit.size() == pts.size():
@@ -603,6 +609,7 @@ func _check_all_done() -> void:
 		return
 	_all_told = true
 	_center("Chyba odkryłam już wszystko na dziś.", 5.0)
+	Game.sfx("music/sting_win", 1.0, -4.0, "Music")  # fanfara: całe niebo tej nocy skatalogowane
 	all_done.emit()
 
 
@@ -886,10 +893,20 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 				draw_set_transform(_sh)
 				_glint(s, Color.WHITE, 3.0, a)
 		"comet":
-			var dir: Vector2 = -tg.vel.normalized()
-			for k in 26:
-				draw_circle(s + dir * k * 2.6 * zoom, (4.5 - k * 0.15) * zoom, Color(0.7, 0.9, 1.0, 0.45 - k * 0.016))
-			_glint(s, Color.WHITE, 3.5, a)
+			var dir: Vector2 = -tg.vel.normalized()  # ostry, pikselowy warkocz: jaśniejszy rdzeń, rzedniejące piksele po bokach
+			var side := dir.orthogonal()
+			for k in 40:
+				var q := s + dir * k * 2.0 * zoom
+				var w := int(1 + k / 8)
+				for j in range(-w, w + 1):
+					if absi(j) > 1 and (k + j + int(t * 8.0)) % 3 != 0:
+						continue
+					var al := (0.85 - k * 0.02) * (1.0 - absf(j) / (w + 1.0)) * a
+					if al > 0.02:
+						_px(q.x + side.x * j, q.y + side.y * j, 1, 1, Color(0.75, 0.92, 1.0, al))
+			draw_rect(Rect2((s - Vector2(2, 2)).floor(), Vector2(5, 5)), Color(0.75, 0.92, 1.0, 0.5 * a))
+			draw_rect(Rect2((s - Vector2(1, 1)).floor(), Vector2(3, 3)), Color(1, 1, 0.96, a))
+			_glint(s, Color.WHITE, 3.5, a * (0.85 + 0.15 * sin(t * 6.0)))
 		_:
 			var pts := star_points(tg)
 			if state == S.CONNECT and focused:
@@ -901,8 +918,13 @@ func _draw_target(tg: Dictionary, s: Vector2) -> void:
 					var near := (aim + wobble()).distance_to(pts[i]) < 11.0 * snap()
 					_glint(pts[i], Color("ffcf6b") if on else col, 4.5 if near and not on else 3.5, 1.0 if on else (0.7 + 0.3 * sin(t * 4.0 + i)))
 			else:
+				var done_lit: Dictionary = tg.get("saved", {}).get("lit", {})  # przerwane łączenie (PPM): połączone odcinki zostają na niebie
+				for e in info.edges:
+					if done_lit.has(e[0]) and done_lit.has(e[1]):
+						draw_line(pts[e[0]], pts[e[1]], Color("ffcf6b", 0.8 * a), 1.0)
 				for i in pts.size():
-					_glint(pts[i], col, 3.0 if focused else 2.6, a * (0.85 + 0.15 * sin(t * 3.0 + i)))
+					var on := done_lit.has(i)
+					_glint(pts[i], Color("ffcf6b") if on else col, 3.0 if focused or on else 2.6, a * (0.85 + 0.15 * sin(t * 3.0 + i)))
 
 
 func _draw_crosshair() -> void:

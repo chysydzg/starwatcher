@@ -260,7 +260,7 @@ const OPT = { st_obs1: "st_obs", st_obs2: "st_obs2", st_an1: "st_analiza", st_an
 for (const p of lay) {
   const k = p.name.replace("base_", "");
   if (OPT[k]) p.opt = OPT[k];
-  if (["telescope", "podium", "aux", "legowisko"].includes(k)) p.footcol = true;  // kolider tylko pod stopą (da się przejść za)
+  if (["telescope", "podium", "aux", "legowisko", "st_obs1", "st_obs2", "st_an1", "st_an2", "st_ws1", "montaz"].includes(k)) p.footcol = true;  // kolider tylko pod stopą (da się przejść za)
   if (k === "pogoda") p.nocol = true;
 }
 fs.writeFileSync(out + "/base_layout.json", JSON.stringify(lay, null, 1));

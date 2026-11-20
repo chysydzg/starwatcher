@@ -7,11 +7,11 @@ signal line_shown(line: Dictionary)  # przy każdym następnym oknie (pierwsze p
 
 const WHO := {"jania": ["Jania", "portrait_jania"], "jania_adult": ["Jania", "portrait_jania_adult"], "maciej": ["Maciej", "portrait_maciej"], "maciej_old": ["Maciej", "portrait_maciej_old"],
 	"jania_laugh": ["Jania", "portrait_jania_laugh"], "lili": ["Lili", "portrait_lili"], "myszka": ["Myszka", "portrait_myszka"],
-	"arbjooze": ["Arbjooze", "portrait_arbjooze"]}
+	"arbjooze": ["Józek", "portrait_arbjooze"]}
 ## linia z "cry": true bierze portret ze łzami (portrait_<kto>_cry)
 const CPS := 30.0              # liter na sekundę
-const PORT := Rect2(12, 228, 104, 104)
-const TEXT := Rect2(122, 228, 506, 124)
+const PORT := Rect2(12, 240, 96, 96)    # ramka ciasno wokół portretu 88x88 (wcześniej 104 z dużym marginesem)
+const TEXT := Rect2(114, 246, 514, 90)  # niższe okno: kwestie mają 1–3 linijki
 var lines := []                # [{"who": "jania", "text": "..."}]
 var _i := -1
 var _shown := 0.0
@@ -84,13 +84,13 @@ func _draw_box() -> void:
 		return
 	var who: Array = WHO[lines[_i].who]
 	Game.metal(_box, PORT)
-	var inner := PORT.grow(-6)
+	var inner := PORT.grow(-4)
 	_box.draw_rect(inner, Color("1c2440"))
-	_box.draw_rect(Rect2(inner.position.x, inner.end.y - 30, inner.size.x, 30), Color("232c4c"))  # ciemniejsze tło portretu u dołu
+	_box.draw_rect(Rect2(inner.position.x, inner.end.y - 26, inner.size.x, 26), Color("232c4c"))  # ciemniejsze tło portretu u dołu
 	# portret żyje: oddech (cały biust 1 px w dół, dół przycięty ramką) i mrugnięcie co ok. 3,4 s
 	var d := 1 if fmod(_t, 2.6) > 1.5 else 0
 	var blink := 88 if fmod(_t + 0.7, 3.4) < 0.14 else 0
-	var pos := (inner.position + (inner.size - Vector2(88, 88)) / 2).floor() + Vector2(0, 2 + d)
+	var pos := inner.position + Vector2(0, d)  # portret wypełnia całą ramkę
 	var tex: String = who[1] + ("_cry" if lines[_i].get("cry", false) else "")
 	_box.draw_texture_rect_region(Game.tex(tex), Rect2(pos, Vector2(88, 88 - d)), Rect2(blink, 0, 88, 88 - d))
 	var plate := Rect2(PORT.position.x, PORT.end.y - 2, PORT.size.x, 24)

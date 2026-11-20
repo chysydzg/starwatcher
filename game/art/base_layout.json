@@ -109,7 +109,8 @@
    116,
    191
   ],
-  "opt": "st_obs"
+  "opt": "st_obs",
+  "footcol": true
  },
  {
   "name": "base_st_obs2",
@@ -122,7 +123,8 @@
    116,
    277
   ],
-  "opt": "st_obs2"
+  "opt": "st_obs2",
+  "footcol": true
  },
  {
   "name": "base_st_an1",
@@ -135,7 +137,8 @@
    450,
    337
   ],
-  "opt": "st_analiza"
+  "opt": "st_analiza",
+  "footcol": true
  },
  {
   "name": "base_st_an2",
@@ -148,7 +151,8 @@
    542,
    337
   ],
-  "opt": "st_analiza2"
+  "opt": "st_analiza2",
+  "footcol": true
  },
  {
   "name": "base_st_ws1",
@@ -161,7 +165,8 @@
    626,
    192
   ],
-  "opt": "st_warsztat"
+  "opt": "st_warsztat",
+  "footcol": true
  },
  {
   "name": "base_ekspres",
@@ -228,7 +233,8 @@
    206,
    178
   ],
-  "opt": "montaz_sat"
+  "opt": "montaz_sat",
+  "footcol": true
  },
  {
   "name": "room_box",

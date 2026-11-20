@@ -16,6 +16,9 @@ const TITLE_FS := 8          # Press Start 2P na nagłówki: siatka 125/1000 em 
 const NIGHT_BASE := 60.0   # jedna minuta: krótka, gęsta noc
 const METEOR_INTERVAL := Vector2(40, 60)
 const METEOR_WINDOW := 3.5
+# balans (tools/balance_sim.py, pakiet P2): powtórne pomiary, Wzór Empiryczny
+const REPEAT_VALUE := 0.5  # ponowny pomiar znanego obiektu: połowa ceny i PW
+const WZOR_RATE := 0.25    # Wzór Empiryczny: PW za każdy zarobiony $
 const RAIN_CHANCE := 0.20
 const STORM_CHANCE := 0.35  # część deszczowych nocy to burza z piorunami
 const COMET_NIGHTS := 3
@@ -150,7 +153,7 @@ const SCIENCE := [
 	["szukacz", "Automatyczne Wyszukiwanie", 450, 3, 0, "", "Q/E przeskakuje między obiektami na niebie."],
 	["auto1", "Autofokus DIY I", 500, 3, 0, "", "Wyostrza sam po 1 s bez kręcenia."],
 	["auto2", "Autofokus DIY II", 850, 3, 0, "auto1", "Autofokus ostrzy od razu, bez czekania."],
-	["wzor", "Wzór Empiryczny", 700, 3, 1, "", "+1 PW za każdy zarobiony $."],
+	["wzor", "Wzór Empiryczny", 700, 3, 1, "", "+1 PW za każde zarobione $4."],
 	["notatki", "Udostępnianie Notatek", 1000, 3, 1, "", "+50% wszystkich PW."],
 	["kolekcjonerzy", "Oferty Kolekcjonerów", 600, 3, 1, "instytuty", "Rano 20% szans, że kolekcjoner kupi jedno odkrycie za 250% ceny."],
 	["gleb_pole", "Głębokie Pole Obserwacji", 900, 3, 2, "", "Gwiazdy podwójne i odległe galaktyki (80 do 120 PW)."],
@@ -177,71 +180,69 @@ const SHOP := [
 	["termos", "Termos z Gorącą Czekoladą", 180, 2, 2, "", "Noc trwa 20 s dłużej."],
 	["materac", "Ergonomiczny Materac", 250, 2, 2, "", "+50 PW na początku każdej nocy."],
 	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "+10 obiektów, szersze pole, cena +50%, widzi przez chmury."],
-	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za wykrytym obiektem i trzyma go w kadrze."],
+	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za obiektem: jakość pomiaru +25%."],
 	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Za raport płacą od razu, bez czekania do rana."],
-	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zodiak, mgławice, głębokie niebo, komety, planety: 2x drożej."],
+	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zodiak, mgławice, głębokie niebo, komety, planety: +100% do ceny."],
 	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "Jazz: celownik o 10% szybszy, pole ostrości o 10% szersze."],
 	["certyfikat", "Certyfikat Terenu pod Bazy Kosmiczne", 5000, 3, 2, "manifest", "Działka nad jeziorem pod Twoje Centrum Naukowe (Etap 2)."],
 ]
 const SHOP_PATHS := ["Hardware i Optyka", "Komputer i Biurko", "Pokój i Komfort Jani"]
 
 # ---------------------------------------------------------------- Etap 2 (GDD 13): drzewka, pracownicy, satelity, nowe niebo
-# koszty z GDD x0,5: krótsze noce i ceny z Etapu 1 (balans do poprawki w testach)
+# koszty: GDD x1,25 (pakiet P2, tools/balance_sim.py); U-Howl Heavy $100 000
 const SCIENCE2 := [
-	["kalibracja", "Kalibracja Kopuły", 250, 1, 0, "", "Celownik dużego teleskopu o 20% szybszy."],
-	["filtr_x", "Filtr Promieniowania X", 400, 1, 0, "", "Na niebie pojawiają się czarne dziury."],
-	["spektro", "Spektrometr Podstawowy", 300, 1, 1, "", "Analiza widmowa po wyostrzeniu planet, mgławic, galaktyk i czarnych dziur."],
-	["katalog", "Katalog Linii Absorpcyjnych", 450, 1, 1, "spektro", "Analizy +10% $."],
-	["mentoring", "Mentoring Arbjooze", 200, 1, 2, "", "Pracownicy w Trybie 1 dają +20% PW."],
-	["orbitalna", "Mechanika Orbitalna", 500, 1, 2, "", "Pozwala zlecić budowę satelity (Orbita w AstroOS)."],
-	["wielopunkt", "Wielopunktowa Kalibracja", 1000, 2, 0, "kalibracja", "Na niebie pojawiają się głębokie galaktyki."],
-	["zoom_orbity", "Zoom Bliskiej Orbity", 900, 2, 0, "orbitalna", "Księżyce planet do odkrycia."],
-	["filtry", "Precyzyjne Filtry Pasmowe", 1250, 2, 1, "katalog", "Szersze okno w analizie widmowej. Analizy +25% $."],
-	["auto_widmo", "Automatyczne Porównanie Widm", 1500, 2, 1, "filtry", "Wzorzec widma sam ustawia się blisko, wystarczy potwierdzić."],
-	["protokol", "Protokół Zgłoszeń", 750, 2, 2, "", "Pracownicy zgłaszają odkrycia o 50% częściej."],
-	["szkolenie", "Szkolenie Analityków", 1100, 2, 2, "", "Tryb 2 podnosi jakość pomiarów o dodatkowe 10%."],
-	["mapa_nieba", "Mapa Głębokiego Nieba", 3000, 3, 0, "wielopunkt", "Odległe gromady galaktyk (2x wartość galaktyk)."],
-	["spektro_bh", "Spektroskopia Czarnych Dziur", 3750, 3, 1, "filtr_x", "Analiza czarnej dziury warta 2x więcej."],
-	["siec_sat", "Sieć Satelitarna", 2500, 3, 2, "zoom_orbity", "+2 sloty orbitalne. Satelity komercyjne +25% $."],
-	["autonomia", "Autonomiczne Skanowanie Nocne", 3250, 3, 2, "mentoring", "Tryb 1 działa też za dnia (50%)."],
-	["wniosek", "Wniosek „Program Kosmiczny nad Jeziorem”", 15000, 3, 2, "", "Węzeł przełomowy (dowolne 4 węzły z 3. rzędu). Warunek Etapu 3."],
+	["kalibracja", "Kalibracja Kopuły", 650, 1, 0, "", "Celownik dużego teleskopu o 20% szybszy."],
+	["filtr_x", "Filtr Promieniowania X", 1000, 1, 0, "", "Na niebie pojawiają się czarne dziury."],
+	["spektro", "Spektrometr Podstawowy", 750, 1, 1, "", "Analiza widmowa po wyostrzeniu planet, mgławic, galaktyk i czarnych dziur."],
+	["katalog", "Katalog Linii Absorpcyjnych", 1150, 1, 1, "spektro", "Analizy +10% $."],
+	["mentoring", "Mentoring Józka", 500, 1, 2, "", "Pracownicy w Trybie 1 dają +20% PW."],
+	["orbitalna", "Mechanika Orbitalna", 1250, 1, 2, "", "Pozwala zlecić budowę satelity (Orbita w AstroOS)."],
+	["wielopunkt", "Wielopunktowa Kalibracja", 2500, 2, 0, "kalibracja", "Na niebie pojawiają się głębokie galaktyki."],
+	["zoom_orbity", "Zoom Bliskiej Orbity", 2250, 2, 0, "orbitalna", "Księżyce planet do odkrycia."],
+	["filtry", "Precyzyjne Filtry Pasmowe", 3150, 2, 1, "katalog", "Szersze okno w analizie widmowej. Analizy +25% $."],
+	["auto_widmo", "Automatyczne Porównanie Widm", 3750, 2, 1, "filtry", "Wzorzec widma sam ustawia się blisko, wystarczy potwierdzić."],
+	["protokol", "Protokół Zgłoszeń", 1900, 2, 2, "", "Pracownicy zgłaszają odkrycia o 50% częściej."],
+	["szkolenie", "Szkolenie Analityków", 2750, 2, 2, "", "Tryb 2 podnosi jakość pomiarów o dodatkowe 10%."],
+	["mapa_nieba", "Mapa Głębokiego Nieba", 7500, 3, 0, "wielopunkt", "Odległe gromady galaktyk (2x wartość galaktyk)."],
+	["spektro_bh", "Spektroskopia Czarnych Dziur", 9400, 3, 1, "filtr_x", "Analiza czarnej dziury warta 2x więcej."],
+	["siec_sat", "Sieć Satelitarna", 6250, 3, 2, "zoom_orbity", "+2 sloty orbitalne. Satelity komercyjne +25% $."],
+	["autonomia", "Autonomiczne Skanowanie Nocne", 8150, 3, 2, "mentoring", "Tryb 1 działa też za dnia (50%)."],
+	["wniosek", "Wniosek „Program Kosmiczny nad Jeziorem”", 37500, 3, 2, "", "Węzeł przełomowy (dowolne 4 węzły z 3. rzędu). Warunek Etapu 3."],
 ]
 const SCIENCE2_PATHS := ["Głęboki Kosmos", "Spektroskopia i Analiza", "Zespół i Orbita"]
 const SHOP2 := [
-	["smar", "Smar do Mechanizmu Kopuły", 400, 1, 0, "", "Teleskop chodzi płynniej, celownik mocniej łapie obiekty."],
-	["okular_hr", "Okular Wysokiej Rozdzielczości", 1250, 1, 0, "", "Galaktyki i czarne dziury +20% $."],
-	["antena", "Antena Satelitarna na Dachu", 1500, 1, 1, "", "Łączność z satelitami. Bez niej nie ruszy budowa."],
-	["legowisko", "Legowisko dla Arbjooze", 300, 1, 2, "", "Arbjooze w Trybie 1 +15%."],
-	["st_obs", "Stanowisko Obserwacyjne", 800, 1, 2, "", "Biurko z teleskopem pomocniczym: miejsce dla 1 pracownika w Trybie 1."],
-	["st_analiza", "Biurko Analityka", 600, 1, 2, "", "Monitor i wydruki: miejsce dla 1 pracownika w Trybie 2."],
-	["st_warsztat", "Warsztat Techniczny", 700, 1, 2, "", "Narzędzia i imadło: miejsce dla 1 pracownika w Trybie 3."],
-	["ccd", "Chłodzona Kamera CCD", 3000, 2, 0, "okular_hr", "Jakość pomiaru nigdy poniżej 40%."],
-	["st_obs2", "Drugie Stanowisko Obserwacyjne", 1600, 2, 2, "st_obs", "Miejsce dla kolejnego pracownika w Trybie 1."],
-	["st_analiza2", "Drugie Biurko Analityka", 1200, 2, 2, "st_analiza", "Miejsce dla kolejnego pracownika w Trybie 2."],
-	["montaz_sat", "Stanowisko Montażu Satelitów", 2500, 2, 1, "antena", "Budowa satelity trwa 1 dzień zamiast 2."],
-	["panele", "Panele Słoneczne Gen 2", 1750, 2, 1, "antena", "Satelity naukowe +25% PW."],
-	["pogoda", "Monitor Pogody Kosmicznej", 1500, 2, 1, "antena", "Ostrzega dzień wcześniej przed burzą słoneczną."],
-	["ekspres", "Ekspres do Kawy dla Zespołu", 600, 2, 2, "", "Wszyscy pracownicy +10% wydajności."],
-	["stacja", "Stacja Robocza z 2 Monitorami", 1250, 2, 2, "", "Dysk mieści 20 odkryć więcej."],
-	["umowa_tv", "Umowa Ramowa z AstroTV", 2000, 3, 1, "", "Abonament AstroTV +30%."],
-	["nas", "Macierz Serwerowa NAS / RAID", 750, 3, 2, "stacja", "Dysk mieści 50 odkryć więcej."],
-	["heavy", "Kontrakt Budowlany „U-Howl Heavy”", 50000, 3, 2, "wniosek", "Rozbudowa bazy nad jeziorem. Warunek Etapu 3."],
+	["smar", "Smar do Mechanizmu Kopuły", 1000, 1, 0, "", "Teleskop chodzi płynniej, celownik mocniej łapie obiekty."],
+	["okular_hr", "Okular Wysokiej Rozdzielczości", 3150, 1, 0, "", "Galaktyki i czarne dziury +20% $."],
+	["antena", "Antena Satelitarna na Dachu", 3750, 1, 1, "", "Łączność z satelitami. Bez niej nie ruszy budowa."],
+	["legowisko", "Legowisko dla Józka", 750, 1, 2, "", "Józek w Trybie 1 +15%."],
+	["st_obs", "Stanowisko Obserwacyjne", 2000, 1, 2, "", "Biurko z teleskopem pomocniczym: miejsce dla 1 pracownika w Trybie 1."],
+	["st_analiza", "Biurko Analityka", 1500, 1, 2, "", "Monitor i wydruki: miejsce dla 1 pracownika w Trybie 2."],
+	["st_warsztat", "Warsztat Techniczny", 1750, 1, 2, "", "Narzędzia i imadło: miejsce dla 1 pracownika w Trybie 3."],
+	["ccd", "Chłodzona Kamera CCD", 7500, 2, 0, "okular_hr", "Jakość pomiaru nigdy poniżej 40%."],
+	["st_obs2", "Drugie Stanowisko Obserwacyjne", 4000, 2, 2, "st_obs", "Miejsce dla kolejnego pracownika w Trybie 1."],
+	["st_analiza2", "Drugie Biurko Analityka", 3000, 2, 2, "st_analiza", "Miejsce dla kolejnego pracownika w Trybie 2."],
+	["montaz_sat", "Stanowisko Montażu Satelitów", 6250, 2, 1, "antena", "Budowa satelity trwa 1 dzień zamiast 2."],
+	["panele", "Panele Słoneczne Gen 2", 4400, 2, 1, "antena", "Satelity naukowe +25% PW."],
+	["pogoda", "Monitor Pogody Kosmicznej", 3750, 2, 1, "antena", "Ostrzega dzień wcześniej przed burzą słoneczną."],
+	["ekspres", "Ekspres do Kawy dla Zespołu", 1500, 2, 2, "", "Wszyscy pracownicy +10% wydajności."],
+	["stacja", "Stacja Robocza z 2 Monitorami", 3150, 2, 2, "", "Dysk mieści 20 odkryć więcej."],
+	["umowa_tv", "Umowa Ramowa z AstroTV", 5000, 3, 1, "", "Abonament AstroTV +30%."],
+	["nas", "Macierz Serwerowa NAS / RAID", 1900, 3, 2, "stacja", "Dysk mieści 50 odkryć więcej."],
+	["heavy", "Kontrakt Budowlany „U-Howl Heavy”", 100000, 3, 2, "wniosek", "Rozbudowa bazy nad jeziorem. Warunek Etapu 3."],
 ]
 const COSMETICS := [  # Pokój Jani (sklep Etapu 2, kategoria Pokój): ozdoby do ustawienia w trybie edycji (Tab)
-	["polka", "Półka z Książkami", 150, 1, 3, "", "Ulubione atlasy nieba. Postaw ją w pokoiku."],
-	["dywan", "Okrągły Dywanik", 180, 1, 3, "", "Miękki dywanik w gwiazdki."],
-	["girlanda", "Girlanda Gwiazdek", 120, 1, 3, "", "Ciepłe światełka na ścianę."],
-	["plakat_saturn", "Plakat z Saturnem", 90, 1, 3, "", "Pierścienie na ścianie."],
-	["rakieta", "Model Rakiety", 250, 1, 3, "", "Duży model rakiety na podstawce."],
-	["pluszak", "Pluszowy Kotek", 60, 1, 3, "", "Wygląda trochę jak Arbjooze."],
+	["polka", "Półka z Książkami", 400, 1, 3, "", "Ulubione atlasy nieba. Postaw ją w pokoiku."],
+	["dywan", "Okrągły Dywanik", 450, 1, 3, "", "Miękki dywanik w gwiazdki."],
+	["girlanda", "Girlanda Gwiazdek", 300, 1, 3, "", "Ciepłe światełka na ścianę."],
+	["plakat_saturn", "Plakat z Saturnem", 250, 1, 3, "", "Pierścienie na ścianie."],
+	["rakieta", "Model Rakiety", 650, 1, 3, "", "Duży model rakiety na podstawce."],
+	["pluszak", "Pluszowy Kotek", 150, 1, 3, "", "Wygląda trochę jak Józek."],
 ]
 const SHOP2_PATHS := ["Kopuła i Teleskop", "Orbita i Satelity", "Centrum i Biuro", "Pokój Jani", "Stary sklep (Etap 1)"]
 ## stanowiska pracy (GDD: pracownik musi mieć na czym pracować): ile osób może pracować w danym trybie;
-## Arbjooze ma własne biurko i nie zajmuje stanowiska
+## Józek ma własne biurko i nie zajmuje stanowiska
 const STATIONS := {1: ["st_obs", "st_obs2"], 2: ["st_analiza", "st_analiza2"], 3: ["st_warsztat"]}
 const TRAIT_VAL := {"skrupulatny": 1.0, "szybki": 1.2, "nocny_marek": 0.8, "majsterkowicz": 0.6, "bystre_oko": 1.0}
-# pracownicy: [rekrutacja $, pensja $/tydzień] dla 1. (Arbjooze) … 5.
-const HIRE := [[150, 125], [400, 250], [600, 350], [900, 425], [1250, 500]]
 const STAFF_MAX := 5
 const TRAITS := {"skrupulatny": ["Skrupulatny", "+25% PW w Trybie 1, lepsza analiza"], "szybki": ["Szybki", "+30% tempa pracy"],
 	"nocny_marek": ["Nocny Marek", "+50% w Trybie 1, -10% w Trybie 2"], "majsterkowicz": ["Majsterkowicz", "Tryb 3: +10 s nocy więcej"],
@@ -271,31 +272,31 @@ const SAT_USES := {"nauka": ["Badania naukowe", "+150 PW dziennie"], "astrotv": 
 const SAT_RESALE := 0.6  # sprzedaż na rynku wtórnym: wynajem zwraca się w ~1-2 tygodnie, sprzedaż zawsze ze stratą
 # ciała Etapu 2 (duży teleskop): planety z ciekawostką z analizy widmowej, księżyce, czarne dziury, galaktyki, gromady
 const SKY2 := {
-	"merkury": {"name": "Merkury", "cat": "planet", "req": "", "pw": 70, "price": 150, "col": "b8b0a8", "fact": "Kratery, brak atmosfery."},
-	"saturn": {"name": "Saturn", "cat": "planet", "req": "", "pw": 90, "price": 220, "col": "e8d098", "fact": "Pierścienie z lodu."},
-	"uran": {"name": "Uran", "cat": "planet", "req": "", "pw": 90, "price": 230, "col": "a8e8e8", "fact": "Przechylona oś obrotu."},
-	"neptun": {"name": "Neptun", "cat": "planet", "req": "", "pw": 100, "price": 250, "col": "5a8af0", "fact": "Najsilniejsze wiatry w Układzie."},
-	"fobos": {"name": "Fobos (Mars)", "cat": "moons", "req": "zoom_orbity", "pw": 60, "price": 140, "col": "a89888", "fact": "Rdzawy pył Marsa."},
-	"dejmos": {"name": "Dejmos (Mars)", "cat": "moons", "req": "zoom_orbity", "pw": 60, "price": 140, "col": "b0a090", "fact": "Rdzawy pył Marsa."},
-	"io": {"name": "Io (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 80, "price": 190, "col": "f0d860", "fact": "Wulkany siarkowe."},
-	"europa": {"name": "Europa (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 90, "price": 210, "col": "e8e0d0", "fact": "Lód, a pod nim ocean."},
-	"ganimedes": {"name": "Ganimedes (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 80, "price": 180, "col": "c8b8a8", "fact": "Największy księżyc."},
-	"kallisto": {"name": "Kallisto (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 70, "price": 170, "col": "8a8078", "fact": "Najbardziej pokryty kraterami."},
-	"tytan": {"name": "Tytan (Saturn)", "cat": "moons", "req": "zoom_orbity", "pw": 100, "price": 240, "col": "e0a858", "fact": "Gęsta atmosfera z metanem."},
-	"enceladus": {"name": "Enceladus (Saturn)", "cat": "moons", "req": "zoom_orbity", "pw": 90, "price": 220, "col": "f4f8ff", "fact": "Gejzery lodu."},
-	"miranda": {"name": "Miranda (Uran)", "cat": "moons", "req": "zoom_orbity", "pw": 80, "price": 200, "col": "c0c8d0", "fact": "Poszarpana, jakby sklejona z kawałków."},
-	"tryton": {"name": "Tryton (Neptun)", "cat": "moons", "req": "zoom_orbity", "pw": 100, "price": 240, "col": "e8d8d8", "fact": "Krąży „pod prąd”."},
-	"sgr_a": {"name": "Sagittarius A*", "cat": "blackhole", "req": "filtr_x", "pw": 200, "price": 700, "col": "ffb050", "fact": "Serce naszej Galaktyki."},
-	"cyg_x1": {"name": "Cygnus X-1", "cat": "blackhole", "req": "filtr_x", "pw": 180, "price": 600, "col": "ff9a50", "fact": "Zjada gwiazdę towarzyszkę."},
-	"m87": {"name": "M87*", "cat": "blackhole", "req": "filtr_x", "pw": 220, "price": 800, "col": "ffc060", "fact": "Pierwsza sfotografowana czarna dziura."},
-	"m104": {"name": "Galaktyka Sombrero", "cat": "deep", "req": "wielopunkt", "pw": 150, "price": 450, "col": "f0e0c0", "fact": "Ciemny pas pyłu."},
-	"m51": {"name": "Galaktyka Wir", "cat": "deep", "req": "wielopunkt", "pw": 150, "price": 460, "col": "c8d8ff", "fact": "Dwie zderzające się galaktyki."},
-	"m82": {"name": "Galaktyka Cygaro", "cat": "deep", "req": "wielopunkt", "pw": 140, "price": 430, "col": "ffd0b0", "fact": "Burza narodzin gwiazd."},
-	"virgo": {"name": "Gromada w Pannie", "cat": "deep", "req": "mapa_nieba", "pw": 260, "price": 900, "col": "e0d8ff", "fact": "Ponad tysiąc galaktyk."},
-	"coma": {"name": "Gromada Warkocza", "cat": "deep", "req": "mapa_nieba", "pw": 260, "price": 920, "col": "d8e8ff", "fact": "Ciemna materia trzyma ją razem."},
-	"plejady": {"name": "Plejady (skarb Byka)", "cat": "nebula", "req": "", "pw": 60, "price": 200, "col": "9ac8ff", "fact": "Młode, gorące gwiazdy."},
-	"laguna": {"name": "Mgławica Laguna (skarb Strzelca)", "cat": "nebula", "req": "", "pw": 60, "price": 210, "col": "ff8aa8", "fact": "Wodór świeci na różowo."},
-	"slimak": {"name": "Mgławica Ślimak (skarb Wodnika)", "cat": "nebula", "req": "", "pw": 60, "price": 220, "col": "8ae8d8", "fact": "Oko z gazu umierającej gwiazdy."},
+	"merkury": {"name": "Merkury", "cat": "planet", "req": "", "pw": 35, "price": 75, "col": "b8b0a8", "fact": "Kratery, brak atmosfery."},
+	"saturn": {"name": "Saturn", "cat": "planet", "req": "", "pw": 45, "price": 110, "col": "e8d098", "fact": "Pierścienie z lodu."},
+	"uran": {"name": "Uran", "cat": "planet", "req": "", "pw": 45, "price": 115, "col": "a8e8e8", "fact": "Przechylona oś obrotu."},
+	"neptun": {"name": "Neptun", "cat": "planet", "req": "", "pw": 50, "price": 125, "col": "5a8af0", "fact": "Najsilniejsze wiatry w Układzie."},
+	"fobos": {"name": "Fobos (Mars)", "cat": "moons", "req": "zoom_orbity", "pw": 30, "price": 70, "col": "a89888", "fact": "Rdzawy pył Marsa."},
+	"dejmos": {"name": "Dejmos (Mars)", "cat": "moons", "req": "zoom_orbity", "pw": 30, "price": 70, "col": "b0a090", "fact": "Rdzawy pył Marsa."},
+	"io": {"name": "Io (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 40, "price": 95, "col": "f0d860", "fact": "Wulkany siarkowe."},
+	"europa": {"name": "Europa (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 45, "price": 105, "col": "e8e0d0", "fact": "Lód, a pod nim ocean."},
+	"ganimedes": {"name": "Ganimedes (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 40, "price": 90, "col": "c8b8a8", "fact": "Największy księżyc."},
+	"kallisto": {"name": "Kallisto (Jowisz)", "cat": "moons", "req": "zoom_orbity", "pw": 35, "price": 85, "col": "8a8078", "fact": "Najbardziej pokryty kraterami."},
+	"tytan": {"name": "Tytan (Saturn)", "cat": "moons", "req": "zoom_orbity", "pw": 50, "price": 120, "col": "e0a858", "fact": "Gęsta atmosfera z metanem."},
+	"enceladus": {"name": "Enceladus (Saturn)", "cat": "moons", "req": "zoom_orbity", "pw": 45, "price": 110, "col": "f4f8ff", "fact": "Gejzery lodu."},
+	"miranda": {"name": "Miranda (Uran)", "cat": "moons", "req": "zoom_orbity", "pw": 40, "price": 100, "col": "c0c8d0", "fact": "Poszarpana, jakby sklejona z kawałków."},
+	"tryton": {"name": "Tryton (Neptun)", "cat": "moons", "req": "zoom_orbity", "pw": 50, "price": 120, "col": "e8d8d8", "fact": "Krąży „pod prąd”."},
+	"sgr_a": {"name": "Sagittarius A*", "cat": "blackhole", "req": "filtr_x", "pw": 100, "price": 350, "col": "ffb050", "fact": "Serce naszej Galaktyki."},
+	"cyg_x1": {"name": "Cygnus X-1", "cat": "blackhole", "req": "filtr_x", "pw": 90, "price": 300, "col": "ff9a50", "fact": "Zjada gwiazdę towarzyszkę."},
+	"m87": {"name": "M87*", "cat": "blackhole", "req": "filtr_x", "pw": 110, "price": 400, "col": "ffc060", "fact": "Pierwsza sfotografowana czarna dziura."},
+	"m104": {"name": "Galaktyka Sombrero", "cat": "deep", "req": "wielopunkt", "pw": 75, "price": 225, "col": "f0e0c0", "fact": "Ciemny pas pyłu."},
+	"m51": {"name": "Galaktyka Wir", "cat": "deep", "req": "wielopunkt", "pw": 75, "price": 230, "col": "c8d8ff", "fact": "Dwie zderzające się galaktyki."},
+	"m82": {"name": "Galaktyka Cygaro", "cat": "deep", "req": "wielopunkt", "pw": 70, "price": 215, "col": "ffd0b0", "fact": "Burza narodzin gwiazd."},
+	"virgo": {"name": "Gromada w Pannie", "cat": "deep", "req": "mapa_nieba", "pw": 130, "price": 450, "col": "e0d8ff", "fact": "Ponad tysiąc galaktyk."},
+	"coma": {"name": "Gromada Warkocza", "cat": "deep", "req": "mapa_nieba", "pw": 130, "price": 460, "col": "d8e8ff", "fact": "Ciemna materia trzyma ją razem."},
+	"plejady": {"name": "Plejady (skarb Byka)", "cat": "nebula", "req": "", "pw": 30, "price": 100, "col": "9ac8ff", "fact": "Młode, gorące gwiazdy."},
+	"laguna": {"name": "Mgławica Laguna (skarb Strzelca)", "cat": "nebula", "req": "", "pw": 30, "price": 105, "col": "ff8aa8", "fact": "Wodór świeci na różowo."},
+	"slimak": {"name": "Mgławica Ślimak (skarb Wodnika)", "cat": "nebula", "req": "", "pw": 30, "price": 110, "col": "8ae8d8", "fact": "Oko z gazu umierającej gwiazdy."},
 }
 
 # ---------------------------------------------------------------- stan
@@ -691,13 +692,17 @@ func spectral(cat: String) -> bool:
 
 
 ## wycena wg GDD: bazowa x jakość x popyt x (1 + bonusy) x instytut; zwraca rozbicie
+## cena odkrycia. Bonusy sklepu dodają się w jednej puli (Newton +50%, Licencja +100% za rzadkie, komputer),
+## zamiast mnożyć się przez siebie; ponowny pomiar znanego już obiektu płaci połowę (pierwsze odkrycie w całości)
 func price(entry: Dictionary) -> Dictionary:
-	var base: float = entry.base * (1.5 if has("newton") else 1.0)
+	var base: float = entry.base
 	var bonus := 0.0
-	for p in [["achromat", 0.20], ["lcd", 0.25], ["vga", 0.20], ["astrotax", 0.15], ["modem", 0.10]]:
+	for p in [["achromat", 0.20], ["lcd", 0.25], ["vga", 0.20], ["astrotax", 0.15], ["modem", 0.10], ["newton", 0.50]]:
 		if has(p[0]):
 			bonus += p[1]
-	var inst := 2.0 if has("licencja") and is_rare(entry) else 1.0
+	if has("licencja") and is_rare(entry):
+		bonus += 1.0
+	var inst := REPEAT_VALUE if entry.get("repeat", false) else 1.0
 	var dem: float = demand.get(entry.cat, 1.0)
 	if has("okular_hr") and entry.cat in ["deep", "blackhole"]:
 		bonus += 0.20
@@ -710,6 +715,7 @@ func price(entry: Dictionary) -> Dictionary:
 ## zapis obserwacji do Dziennika; zwraca zdobyte PW albo -1 gdy brak miejsca
 func record(id: String, quality: int, points := 0, replace_oldest := false, spec := false) -> int:
 	var info := obj_info(id)
+	var again := id != "comet" and (moon_done.has(moon_phase()) if id == "moon" else discovered.has(id))  # ponowny pomiar: połowa ceny i PW
 	if has("ccd"):
 		quality = maxi(quality, 40)
 	var s := stored()
@@ -718,7 +724,7 @@ func record(id: String, quality: int, points := 0, replace_oldest := false, spec
 			return -1
 		s[0].lost = true  # nadpisany w pamięci, ale zostaje w historii Dziennika
 	_id_seq += 1
-	journal.append({"uid": _id_seq, "id": id, "name": info.name, "cat": info.cat, "quality": quality, "base": float(info.price), "day": day, "sold": false, "spec": spec})
+	journal.append({"uid": _id_seq, "id": id, "name": info.name, "cat": info.cat, "quality": quality, "base": float(info.price), "day": day, "sold": false, "spec": spec, "repeat": again})
 	reports.erase(id)
 	tonight[id] = true
 	discovered[id] = true
@@ -730,7 +736,7 @@ func record(id: String, quality: int, points := 0, replace_oldest := false, spec
 	var gained: float = info.pw * (1.5 if spec else 1.0)
 	if points > 0:
 		gained += points * ((1 if has("nawyk1") else 0) + (2 if has("nawyk2") else 0))
-	return add_pw(gained)
+	return add_pw(gained * (REPEAT_VALUE if again else 1.0))
 
 
 func sell(entries: Array) -> int:
@@ -745,8 +751,9 @@ func sell(entries: Array) -> int:
 	today.sales = today.get("sales", 0) + sum
 	today.sales_n = today.get("sales_n", 0) + entries.size()
 	if has("wzor"):
-		pw += sum  # Wzór Empiryczny: +1 PW za każdy $
-		today.pw = today.get("pw", 0) + sum
+		var w := int(sum * WZOR_RATE)  # Wzór Empiryczny: PW za zarobione $ (1:1 rozpędzało PW razem z $)
+		pw += w
+		today.pw = today.get("pw", 0) + w
 	changed.emit()
 	return sum
 
@@ -836,6 +843,9 @@ func can_buy_science(row: Array) -> String:
 	var tier3 := table.filter(func(r): return r[3] == 3 and science.has(r[0])).size()
 	if row[3] == 2 and tier1 < 3 or row[3] == 3 and tier2 < 4 or row[0] == "wniosek" and tier3 < 4:
 		return "tier"
+	# drzewko jak drzewo: wyższy rząd ścieżki rośnie z niższego (bez skakania od góry do dołu kolumny)
+	if row[3] > 1 and row[0] != "wniosek" and not table.any(func(r): return r[4] == row[4] and r[3] == row[3] - 1 and science.has(r[0])):
+		return "branch"
 	return "ok" if pw >= row[2] else "cost"
 
 
@@ -847,6 +857,11 @@ func buy_science(row: Array) -> void:
 		comet = {"left": COMET_NIGHTS, "gap": 0, "seed": randi()}
 	changed.emit()
 	toast.emit("Odblokowano: " + row[1], "good")
+
+
+## Etap 1: Manifest kupiony, Certyfikat jeszcze nie – pulpit pokazuje go na środku, a nad komputerem świeci [!]
+func cert_ready() -> bool:
+	return stage == 1 and science.has("manifest") and not shop.has("certyfikat") and not "certyfikat" in parcels
 
 
 func can_buy_shop(row: Array) -> String:
@@ -884,14 +899,14 @@ func _shop_name(id: String) -> String:
 	return id
 
 
-## początek etapu: rano, w środku nowej bazy; Etap 2: Arbjooze jest pierwszym pracownikiem (przyszedł sam)
+## początek etapu: rano, w środku nowej bazy; Etap 2: Józek jest pierwszym pracownikiem (przyszedł sam)
 func start_stage(n: int) -> void:
 	stage = n
 	stage_done = false
 	location = "room"
 	night = false
 	if n == 2 and staff.is_empty():
-		staff.append({"name": "Arbjooze", "kind": "cat", "traits": ["bystre_oko"], "mode": 1, "since": day, "report": ""})
+		staff.append({"name": "Józek", "kind": "cat", "traits": ["bystre_oko"], "mode": 1, "since": day, "report": ""})
 		_roll_candidates()
 	night_left = night_length()
 
@@ -928,19 +943,31 @@ func staff_tick(dt: float) -> void:
 		today.staff_pw = today.get("staff_pw", 0) + add_pw(whole)
 
 
-func hire_cost(i := staff.size()) -> Array:
-	return HIRE[mini(i, HIRE.size() - 1)]
-
-
-## koszt kandydata zależy od tego, jak się przyda: suma wartości cech (rekrutacja $, pensja $/tydzień)
-func cand_cost(c: Dictionary) -> Array:
+## pensja $/dzień (jak w Planet Zoo: bez opłaty za zatrudnienie, sama pensja), zależna od tego, jak się przyda: suma wartości cech
+func wage(c: Dictionary) -> int:
 	var v := 0.0
 	for t in c.traits:
 		v += TRAIT_VAL[t]
-	return [int(round((150 + 300 * v) / 10.0)) * 10, int(round((80 + 140 * v) / 5.0)) * 5]
+	return int(round((60 + 100 * v) / 5.0)) * 5
 
 
-## ile stanowisk danego trybu jest wolnych (bez Arbjooze, który ma swoje biurko)
+func team_wage() -> int:
+	return staff.reduce(func(s, p): return s + wage(p), 0)
+
+
+## czego się spodziewać po pracowniku w danym trybie (karta w HR): krótki opis z liczbą
+func yield_text(p: Dictionary, mode: int) -> String:
+	match mode:
+		1:
+			return "ok. %d PW/noc" % int(night_length() * staff_eff(p, 1) * pw_mult())
+		2:
+			var s := stored()
+			var avg: float = 0.0 if s.is_empty() else s.reduce(func(a, e): return a + price(e).total, 0) / float(s.size())
+			return "ok. +$%d/dzień" % int(mini(8, maxi(s.size(), 4)) * maxf(avg, 150.0) * 0.25 * staff_eff(p, 2))
+	return "+%d s nocy" % (15 + (10 if p.traits.has("majsterkowicz") else 0))
+
+
+## ile stanowisk danego trybu jest wolnych (bez Józka, który ma swoje biurko)
 func free_stations(mode: int, ignore: Dictionary = {}) -> int:
 	var cap := 0
 	for id in STATIONS[mode]:
@@ -951,7 +978,7 @@ func free_stations(mode: int, ignore: Dictionary = {}) -> int:
 	return cap
 
 
-## może zmienić tryb tylko na taki, dla którego jest wolne stanowisko (Arbjooze: zawsze)
+## może zmienić tryb tylko na taki, dla którego jest wolne stanowisko (Józek: zawsze)
 func can_switch(p: Dictionary, mode: int) -> bool:
 	return staff.find(p) == 0 or free_stations(mode, p) > 0
 
@@ -966,12 +993,7 @@ func hire(c: Dictionary) -> String:
 			break
 	if mode == 0:
 		return "Brak wolnego stanowiska. Kup je w sklepie (Biuro)."
-	var cost: Array = cand_cost(c)
-	if money < cost[0]:
-		return "Za mało $."
-	money -= cost[0]
-	today.bought = today.get("bought", []) + [["Rekrutacja: " + c.name, cost[0], "$"]]
-	staff.append({"name": c.name, "kind": c.kind, "traits": c.traits, "mode": mode, "since": day, "report": "", "salary": cost[1]})
+	staff.append({"name": c.name, "kind": c.kind, "traits": c.traits, "mode": mode, "since": day, "report": ""})
 	candidates.erase(c)
 	changed.emit()
 	toast.emit("Nowy pracownik: " + c.name, "good")
@@ -988,7 +1010,7 @@ func _roll_candidates() -> void:
 		candidates.append({"name": STAFF_NAMES[kinds[i]].pick_random(), "kind": kinds[i], "traits": tr.slice(0, randi_range(1, 2))})
 
 
-## rano: Tryb 2 poprawia pomiary, zgłoszenia z nocy, pensje co 7 dni, satelity; wiersze do podsumowania dnia
+## rano: Tryb 2 poprawia pomiary, zgłoszenia z nocy, pensje (codziennie), satelity; wiersze do podsumowania dnia
 func _staff_morning(out: Array) -> void:
 	var stored_now := stored()
 	var fixed := 0
@@ -1006,12 +1028,8 @@ func _staff_morning(out: Array) -> void:
 					p.report = rare.pick_random()
 	if fixed > 0:
 		out.append(["Analiza raportów: %d wpisów" % fixed, 0, "", 0])
-	if not staff.is_empty() and day % 7 == 0:  # pensje: koniec tygodnia, proporcjonalnie do przepracowanych dni
-		var pay := 0
-		for i in staff.size():
-			var p: Dictionary = staff[i]
-			var days := mini(7, day - int(p.since) + 1)
-			pay += int(round(p.get("salary", hire_cost(i)[1]) * days / 7.0))
+	if not staff.is_empty():  # pensje codziennie rano (widać od razu, ile kosztuje zespół)
+		var pay := team_wage()
 		var paid := mini(pay, money)
 		money -= paid
 		debt += pay - paid
@@ -1223,6 +1241,9 @@ func load_game() -> bool:
 			pw = int(pw)
 			_id_seq = int(_id_seq)
 			moon_done = _int_keys(moon_done)
+			for p in staff:  # zapis sprzed zmiany imienia kota
+				if p.name == "Arbjooze":
+					p.name = "Józek"
 			if sky_tonight.is_empty():  # zapis sprzed losowania nieba
 				_roll_sky()
 			changed.emit()
