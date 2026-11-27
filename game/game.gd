@@ -181,7 +181,7 @@ const SHOP := [
 	["termos", "Termos z Gorącą Czekoladą", 180, 2, 2, "", "Noc trwa 20 s dłużej."],
 	["materac", "Ergonomiczny Materac", 250, 2, 2, "", "+50 PW na początku każdej nocy."],
 	["newton", "Teleskop Zwierciadlany Newtona", 750, 3, 0, "", "+10 obiektów, szersze pole, cena +50%, widzi przez chmury."],
-	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za obiektem: jakość pomiaru +25%."],
+	["naped", "Napęd Elektryczny do Montażu", 1200, 3, 0, "montaz", "Teleskop sam podąża za obiektem: pomiary warte +25%."],
 	["isdn", "Szerokopasmowe Łącze ISDN", 1000, 3, 1, "vga", "Za raport płacą od razu, bez czekania do rana."],
 	["licencja", "Licencja Niezależnego Badacza", 1200, 3, 1, "astrotax", "Zodiak, mgławice, głębokie niebo, komety, planety: +100% do ceny."],
 	["radio", "Radio Lampowe z Muzyką Jazzową", 600, 3, 2, "", "Jazz: celownik o 10% szybszy, pole ostrości o 10% szersze."],
@@ -693,12 +693,12 @@ func spectral(cat: String) -> bool:
 
 
 ## wycena wg GDD: bazowa x jakość x popyt x (1 + bonusy) x instytut; zwraca rozbicie
-## cena odkrycia. Bonusy sklepu dodają się w jednej puli (Newton +50%, Licencja +100% za rzadkie, komputer),
+## cena odkrycia. Bonusy sklepu dodają się w jednej puli (Newton +50%, Napęd +25%, Licencja +100% za rzadkie, komputer),
 ## zamiast mnożyć się przez siebie; ponowny pomiar znanego już obiektu płaci połowę (pierwsze odkrycie w całości)
 func price(entry: Dictionary) -> Dictionary:
 	var base: float = entry.base
 	var bonus := 0.0
-	for p in [["achromat", 0.20], ["lcd", 0.25], ["vga", 0.20], ["astrotax", 0.15], ["modem", 0.10], ["newton", 0.50]]:
+	for p in [["achromat", 0.20], ["lcd", 0.25], ["vga", 0.20], ["astrotax", 0.15], ["modem", 0.10], ["newton", 0.50], ["naped", 0.25]]:
 		if has(p[0]):
 			bonus += p[1]
 	if has("licencja") and is_rare(entry):
@@ -1304,11 +1304,28 @@ func _fit() -> void:
 
 ## Słońce z ekranu zmierzchu (też przeprowadzka): tarcza z odblaskiem, poświata w trzech pulsujących pierścieniach;
 ## dusk 0..1 barwi je od żółtego południa do pomarańczowego zachodu
+## tarcze rysowane jako pikselowe tekstury: w scenach z kamerą w pikselach okna (intro, przeprowadzka) też są pikselowe
 func draw_sun(n: CanvasItem, p: Vector2, dusk: float, now: float) -> void:
+	p = p.floor()
 	for k in 3:
-		n.draw_circle(p, 22 + k * 10 + roundf(sin(now * 2.0 + k) * 1.5), Color(1, 0.8, 0.45, 0.16 - k * 0.04))
-	n.draw_circle(p, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
-	n.draw_circle(p + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
+		disc(n, p, 22 + k * 10 + int(roundf(sin(now * 2.0 + k) * 1.5)), Color(1, 0.8, 0.45, 0.16 - k * 0.04))
+	disc(n, p, 15, Color("ffe08a").lerp(Color("ff8a4a"), dusk))
+	disc(n, p + Vector2(-4, -4), 6, Color(1, 1, 0.9, 0.6))
+
+
+var _discs := {}
+
+
+## pełne koło o promieniu r w pikselach gry (jak draw_circle bez wygładzania), środek w p, kolor jako modulacja
+func disc(n: CanvasItem, p: Vector2, r: int, col: Color) -> void:
+	if not _discs.has(r):
+		var img := Image.create(r * 2, r * 2, false, Image.FORMAT_RGBA8)
+		for y in r * 2:
+			for x in r * 2:
+				if (x + 0.5 - r) ** 2 + (y + 0.5 - r) ** 2 <= r * r:
+					img.set_pixel(x, y, Color.WHITE)
+		_discs[r] = ImageTexture.create_from_image(img)
+	n.draw_texture(_discs[r], p - Vector2(r, r), col)
 
 
 ## pikselowy wykrzyknik (nad pracownikami, celami teleskopu, komputerem): żółta kreska i kropka z ciemnym obrysem

@@ -148,13 +148,13 @@ function observatory(closed = false, empty = false, lit = 4, open = true) {  // 
   for (let y = 0; y < 35; y++) for (let x = 0; x < 80; x++) { const u = dome.get(x, y); if (u >>> 24) b.px[y * 80 + x] = u; }
   if (open) for (let y = 18; y < 35; y++) for (let x = 35; x <= 45; x++) if (((x - 40) / 17) ** 2 + ((y - 35) / 16) ** 2 <= 1) b.pset(x, y, night); // otwarta szczelina
   if (!closed && !empty) {
-    const { tube45 } = require("./kit.js");  // teleskop pod 45° (równe schodki), jasna osłona obiektywu
-    tube45(b, 40, 31, 0, 15, 4, steel); tube45(b, 40, 31, 15, 18, 6, white);
+    scopeAt(b, 40, 31, -Math.PI / 4, steel, white);  // ten sam teleskop co na linie żurawia, wychylony pod 45°
   }
-  for (const [i, wx] of [10, 20, 52, 62].entries()) {                                                         // okna: świecą się albo są ciemne
-    for (let y = 43; y < 50; y++) for (let x = wx; x < wx + 7; x++) b.pset(x, y, steel[1]);
-    for (let y = 44; y < 49; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, closed || !(lit === 4 || (lit === 1 && i === 1)) ? night : y > 46 ? warmD : warm);
-    for (let y = 44; y < 49; y++) b.pset(wx + 3, y, steel[1]);
+  for (const wy of [41, 53]) for (const [i, wx] of [10, 20, 52, 62].entries()) {                            // okna w dwóch rzędach (piętro i parter, w skali drzwi): świecą się albo są ciemne
+    const on = !closed && (lit === 4 || (lit === 1 && i === 1 && wy === 53));
+    for (let y = wy; y < wy + 7; y++) for (let x = wx; x < wx + 7; x++) b.pset(x, y, steel[1]);
+    for (let y = wy + 1; y < wy + 6; y++) for (let x = wx + 1; x < wx + 6; x++) b.pset(x, y, on ? (y > wy + 3 ? warmD : warm) : night);
+    for (let y = wy + 1; y < wy + 6; y++) b.pset(wx + 3, y, steel[1]);
   }
   for (let y = 50; y < 64; y++) for (let x = 35; x < 46; x++) b.pset(x, y, x === 35 || x === 45 || y === 50 ? steel[1] : steel[2]); // drzwi
   if (!closed) { b.pset(43, 57, warm); if (lit === 4) for (let x = 38; x < 43; x++) b.pset(x, 48, warm); }                  // klamka, lampka nad drzwiami
@@ -164,7 +164,7 @@ function observatory(closed = false, empty = false, lit = 4, open = true) {  // 
     for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); b.pset(x, y, WOOD[1]); b.pset(x, y + 1, WOOD[0]); b.pset(x, y + 2, WOOD[2]); }
   };
   if (closed) {
-    for (const wx of [10, 20, 52, 62]) { plank(wx - 1, 43, wx + 7, 43); plank(wx - 1, 47, wx + 7, 47); }
+    for (const wy of [41, 53]) for (const wx of [10, 20, 52, 62]) { plank(wx - 1, wy, wx + 7, wy); plank(wx - 1, wy + 4, wx + 7, wy + 4); }
     plank(34, 51, 46, 61); plank(34, 59, 46, 51); plank(34, 55, 46, 55);
   }
   for (let x = 32; x < 49; x++) b.pset(x, 63, white[1]);                                                    // schodek
@@ -224,12 +224,17 @@ function wheel(f) {
   b.pset(6, 6, [90, 60, 20]);
   return P.outline(b, [18, 12, 22]);
 }
-// teleskop wyjęty z kopuły: leżący stożek z pierścieniem obiektywu (wisi na linie żurawia)
+// teleskop obserwatorium: stożek tubusu z pierścieniem obiektywu od punktu (x, y) pod kątem a (0 = w prawo);
+// ten sam rysunek wystaje z kopuły (pod 45°) i wisi na linie żurawia (poziomo)
+function scopeAt(b, x, y, a, steel, white) {
+  const at = (d) => [x + Math.cos(a) * d, y + Math.sin(a) * d];
+  P.solid(b, [P.cap(...at(0), ...at(23), 2.4, 5)], steel, TOP);
+  P.solid(b, [P.cap(...at(24), ...at(26), 5.3, 5.3)], white, TOP);
+}
 function scope() {
   const b = new P.Buf(34, 14), steel = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.14, light: [0.3, 0.78] });
   const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
-  P.solid(b, [P.cap(3, 7, 26, 7, 2.4, 5)], steel, TOP);
-  P.solid(b, [P.cap(27, 7, 29, 7, 5.3, 5.3)], white, TOP);
+  scopeAt(b, 3, 7, 0, steel, white);
   return P.outline(P.smoothEdge(b), [18, 12, 22], { corners: true });
 }
 // drzwi balkonowe zamknięte, takie same jak w pokoju (jasne drewno, 4 szybki, ceglasta płycina);

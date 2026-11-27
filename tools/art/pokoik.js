@@ -107,6 +107,10 @@ savePieces(out, "pokoik");
 const room = JSON.parse(fs.readFileSync(out + "/room_layout.json"));
 const keep = ["room_bed", "room_nightstand", "room_lamp", "room_wardrobe", "room_plant", "room_pufa", "room_basket"];
 const lay = room.filter((p) => keep.includes(p.name)).map((p) => ({ ...p, kind: "floor" }));
+// skrzynka z radiem ze starego pokoju przyjechała do pokoiku: ten sam sprite (kopia room_box.png), ta sama pozycja
+const box = room.find((p) => p.name === "room_box");
+fs.copyFileSync(out + "/room_box.png", out + "/pokoik_skrzynka.png");
+lay.push({ ...box, name: "pokoik_skrzynka", kind: "floor" });
 const KIND = { dywan: "rug", dywan_duzy: "rug", girlanda: "wall", plakat_saturn: "wall" };
 for (const p of JSON.parse(fs.readFileSync(out + "/pokoik_layout.json"))) {
   const k = p.name.replace("pokoik_", "");

@@ -43,6 +43,8 @@ const IDLE_SPOTS := [Vector2(170, 212), Vector2(215, 198), Vector2(262, 222), Ve
 const BALCONY_SPOTS := {"wroc": Rect2(0, 300, 66, 60), "teleskop": Rect2(214, 326, 70, 22), "krzeslo": Rect2(416, 330, 34, 16),
 	"skrzynka": Rect2(472, 330, 32, 14), "kwiatek": Rect2(564, 330, 36, 16)}
 
+## okno i drzwi do laboratorium na ścianie pokoiku (tools/art/pokoik.js, bez ramek): meble i ozdoby ich nie zasłaniają
+const POKOIK_OPENINGS := [Rect2(156, 26, 70, 52), Rect2(524, 30, 34, 84)]
 var room: Node2D
 var balcony: Node2D
 var room_sort: Node2D
@@ -77,6 +79,7 @@ var fade: ColorRect
 var viewport: Control = null
 var face := 0
 var flip := false
+var mobiles := []        # modele układu słonecznego (pokój, pokoik), kręcą się powoli
 var t := 0.0
 var idle_t := 0.0
 var happy_t := 0.0
@@ -150,9 +153,12 @@ func _ready() -> void:
 	_enter(Game.location, true)
 	var first: bool = Game.day == 1 and Game.night and not Game.tips.has("start")  # zaraz po intro
 	create_tween().tween_property(fade, "color:a", 0.0, 2.5 if first else 0.6)
-	if first:
+	if first:  # gra startuje przy okularze teleskopu (nie przy drzwiach): [E] od razu otwiera teleskop
 		Game.tips.start = true
-		_tip("Pierwsza noc. Podejdź do teleskopu od strony okularu i naciśnij " + Game.key("interact") + ".")
+		body.position = Vector2(220, 342)
+		face = 1
+		flip = false
+		_tip("Pierwsza noc. Naciśnij " + Game.key("interact") + ", żeby spojrzeć przez teleskop.")
 	if base and not Game.tips.has("arbjooze"):
 		_arbjooze_arrives()
 
@@ -227,6 +233,8 @@ func _build_room() -> void:
 	room = Node2D.new()
 	add_child(room)
 	room_sort = _scene("base" if base else "room", room)
+	if not base:
+		_mobile(room)
 	var desk: Sprite2D = props.base_desk if base else props.room_desk
 	_sprite("sticky_note", Vector2(386, 103) - desk.position, desk)  # karteczka: Teleskop → Dysk → Komputer
 	props.lcd = _lcd_patch(desk)
@@ -295,10 +303,27 @@ func _light(parent: Node, l: Array) -> PointLight2D:
 
 
 ## Etap 2: pokoik Jani za drzwiami laboratorium – łóżko (sen), lampka nocna i lampa stojąca jak w starym pokoju
+## model układu słonecznego, który Jania złożyła z tatą: wisi na nitce z sufitu obok okna (pokój i pokoik), powoli się kręci
+func _mobile(parent: Node) -> void:
+	var line := ColorRect.new()
+	line.color = Color("d8d0c0")
+	line.position = Vector2(149, 12)
+	line.size = Vector2(1, 24)
+	parent.add_child(line)
+	var s := Sprite2D.new()
+	s.texture = Game.tex("solar_mobile_small")
+	s.hframes = 24
+	s.centered = false
+	s.position = Vector2(127, 35)  # środek obręczy w (149, 42), jak dawny model w tle pokoju
+	parent.add_child(s)
+	mobiles.append(s)
+
+
 func _build_pokoik() -> void:
 	pokoik = Node2D.new()
 	add_child(pokoik)
 	pokoik_sort = _scene("pokoik", pokoik)
+	_mobile(pokoik)
 	_colliders("pokoik", pokoik)
 	var own := [ROOM_LIGHTS[0], ROOM_LIGHTS[3], ROOM_LIGHTS[4], ROOM_LIGHTS[5]].map(func(l): return _light(pokoik, l))
 	own_lights = own
@@ -313,6 +338,7 @@ func _build_pokoik() -> void:
 			sp.reparent(pokoik)
 			pokoik.move_child(sp, pokoik_sort.get_index())
 		_apply_decor(p.name)
+	props.radio.reparent(props.pokoik_skrzynka, false)  # radio przyjechało na swojej skrzynce do pokoiku (przesuwa się z nią)
 
 
 ## pozycja obiektu w pokoiku z zapisu (przesunięcie od miejsca domyślnego i odbicie); kolider i lampy idą razem z nim
@@ -353,6 +379,8 @@ func _decor_ok(n: String) -> bool:
 	var it: Dictionary = decor_items[n]
 	var r: Rect2 = it.rect0
 	r.position += _decor_off(n)
+	if it.kind != "rug" and POKOIK_OPENINGS.any(func(o): return r.intersects(o)):  # nic nie zasłania okna ani drzwi
+		return false
 	if it.kind == "wall":
 		return r.position.y >= 12 and r.end.y <= 104 and r.position.x >= 12 and r.end.x <= 628
 	var bottom := r.end.y + 2
@@ -786,9 +814,11 @@ func _go(where: String) -> void:
 # ---------------------------------------------------------------- pętla
 func _process(dt: float) -> void:
 	t += dt
+	for m in mobiles:
+		m.frame = int(t * 2.0) % 24
 	var pointer: bool = busy or editing or (viewport != null and (not viewport.get("is_telescope") or viewport.get("dialog") != null))  # kursor tylko w okienkach, AstroOS i oknie wyboru w okularze
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pointer else Input.MOUSE_MODE_HIDDEN
-	if viewport or busy:  # przy komputerze, teleskopie i okienkach Jania stoi (inaczej tupanie gra dalej)
+	if viewport or busy or editing:  # przy komputerze, teleskopie, okienkach i w trybie budowania (Tab) Jania stoi (inaczej tupanie gra dalej)
 		jania.set_meta("walking", false)
 	_storm(dt)
 	var under: bool = Game.location == "balcony" and Game.rain and Game.has("parasol") and (
@@ -1743,6 +1773,20 @@ func _w(s: String) -> float:
 	return Game.font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, Game.FS).x
 
 
+## trzy pikselowe ósemki nad grającym radiem: każda wznosi się 18 px, kołysze na boki i blednie, potem od nowa
+func _notes(n: CanvasItem, p: Vector2) -> void:
+	for i in 3:
+		var k := fmod(t * 0.5 + i / 3.0, 1.0)
+		var q := (p + Vector2(roundf(sin(k * TAU + i) * 4.0) + (i - 1) * 5, -roundf(k * 18.0))).floor()
+		var c := Color("ffcf6b", 1.0 - k)
+		var ink := Color("1a1426", 1.0 - k)
+		n.draw_rect(Rect2(q + Vector2(-1, 3), Vector2(5, 4)), ink)  # obrys główki
+		n.draw_rect(Rect2(q + Vector2(2, -4), Vector2(3, 9)), ink)  # obrys laski
+		n.draw_rect(Rect2(q + Vector2(0, 4), Vector2(3, 2)), c)    # główka
+		n.draw_rect(Rect2(q + Vector2(3, -3), Vector2(1, 8)), c)   # laska
+		n.draw_rect(Rect2(q + Vector2(4, -3), Vector2(2, 1)), c)   # chorągiewka
+
+
 func _draw_hud() -> void:
 	var n := hud
 	if viewport and viewport.get("hide_hud"):
@@ -1792,6 +1836,8 @@ func _draw_hud() -> void:
 			Game.bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())
 	if Game.cert_ready() and Game.location == "room":  # Manifest gotowy: nad komputerem czeka Certyfikat Terenu
 		Game.bang(n, Vector2(379, 58 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
+	if props.radio.is_visible_in_tree() and Game.location == ("pokoik" if base else "room"):  # radio gra: nad nim płyną nutki
+		_notes(n, props.radio.global_position + Vector2(9, -2))
 	if props.luggage.visible and Game.location == "room":  # walizki spakowane: kliknij, żeby ruszyć z przeprowadzką
 		Game.bang(n, Vector2(532, 276 - (2.0 if fmod(t, 0.8) < 0.4 else 0.0)))
 	if not speech.is_empty():  # monolog Jani nad głową

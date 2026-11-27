@@ -39,8 +39,20 @@ func _ready() -> void:
 	shot("e2_pokoik")
 	# tryb edycji: podnieś pufę, przesuń, odbij szafkę nocną (lampka idzie za nią)
 	w.busy = false  # test: bez otwartych okienek
+	w.jania.set_meta("walking", true)  # Tab w trakcie chodzenia: Jania staje (bez tupania)
 	w._edit_toggle()
 	assert(w.editing)
+	for i in 2: await get_tree().process_frame
+	assert(not w.jania.get_meta("walking"), "w trybie budowania Jania nie chodzi")
+	for k in w.decor_items:  # domyślne miejsca są poprawne (okno i drzwi wolne)
+		if w.decor_items[k].s.visible:
+			assert(w._decor_ok(k), "domyślne miejsce OK: " + k)
+	Game.decor["room_wardrobe"] = [-400, 0, false]  # szafa pod oknem: okno zasłonięte, nie wolno
+	w._apply_decor("room_wardrobe")
+	assert(not w._decor_ok("room_wardrobe"), "mebel nie zasłania okna")
+	Game.decor["room_wardrobe"] = [0, 0, false]
+	w._apply_decor("room_wardrobe")
+	assert(w.props.radio.get_parent() == w.props.pokoik_skrzynka, "radio stoi na skrzynce w pokoiku")
 	assert(Game._loops["music/build"].playing, "tryb edycji: motyw build")
 	w.hover_item = "room_pufa"
 	w.held = "room_pufa"

@@ -282,8 +282,6 @@ func quality() -> int:
 	# var d := absf(f - sweet_now())
 	# var q := 100.0 - maxf(0.0, d - w / 2.0) * 230.0
 	var q := 100.0 - maxf(0.0, absf(focus_offset()) - green()) * 250.0
-	if Game.has("naped"):  # napęd prowadzi teleskop za obiektem: stabilny obraz, lepszy pomiar
-		q *= 1.25
 	if Game.rain and _clouded(target.pos):
 		q = minf(q, 75 if _big() else 45)  # Newton (większe lustro) widzi przez chmury lepiej
 	return int(clampf(q, 10, 100))
@@ -488,6 +486,7 @@ func _leave() -> void:
 
 func _jump(dir: int) -> void:
 	Game.tips["qe_used"] = true
+	result = {}  # skok Q/E do następnego obiektu: napis o poprzednim odkryciu nie zasłania paska ostrości
 	var open := targets.filter(func(tg): return not tg.done)
 	if open.is_empty():
 		return
@@ -519,6 +518,7 @@ func _lock_or_confirm() -> void:
 			idle_focus = 0.0
 			sharp_t = 0.0
 			state = S.FOCUS
+			result = {}  # pasek ostrości stoi tam, gdzie napis o poprzednim odkryciu
 			if tg.has("saved"):  # powrót do obiektu: ostrość i połączone gwiazdy jak przed wyjściem
 				f = tg.saved.f
 				if tg.saved.connect:

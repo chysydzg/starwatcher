@@ -91,6 +91,19 @@
   "kind": "floor"
  },
  {
+  "name": "pokoik_skrzynka",
+  "x": 575,
+  "y": 295,
+  "base": 330,
+  "foot": [
+   572,
+   312,
+   620,
+   334
+  ],
+  "kind": "floor"
+ },
+ {
   "name": "pokoik_dywan_duzy",
   "x": 217,
   "y": 196,

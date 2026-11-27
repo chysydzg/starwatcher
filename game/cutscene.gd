@@ -353,8 +353,15 @@ func _balcony_day() -> void:
 
 
 ## pokój jak w grze: tło i meble według layoutu, sortowane po podstawie
-func _room(prefix := "room") -> Node2D:
+func _room(prefix := "room", mobile := true) -> Node2D:
 	_spr(prefix, Vector2.ZERO)
+	if mobile and prefix == "room":  # model układu słonecznego wisi już w pokoju (jak w grze: world._mobile)
+		var line := ColorRect.new()
+		line.color = Color("d8d0c0")
+		line.position = Vector2(149, 12)
+		line.size = Vector2(1, 24)
+		sc.add_child(line)
+		_spr("solar_mobile_small", Vector2(127, 35), null, 24).frame = 3
 	var sorter := Node2D.new()
 	sorter.y_sort_enabled = true
 	sc.add_child(sorter)
@@ -395,27 +402,15 @@ func _sc_stars() -> void:  # balkon nocą: tata z profilu patrzy na Janię, kube
 
 
 func _sc_mobile() -> void:  # pokój: tata na krześle wiesza układ słoneczny, Jania patrzy
-	var so := _room()
+	var so := _room("room", false)
 	_spr("room_chair", Vector2(303, 193))
 	var m := _spr("cut_maciej_hang", Vector2(305, 147), null, 2)  # stoi na siedzisku, łapa przy nitce
 	var j := _actor(so, "cut_jania_joy", Vector2(244, 168))
 	_cam(Vector2(300, 180))
-	tick = func(): _breathe(m, 0.0); _breathe(j, 0.8)
-	fx_draw = func():  # model: nitka z sufitu, obręcz, planety krążą wokół Słońca
-		var c := Vector2(352, 162)  # tata trzyma lewy brzeg obręczy
-		fx.draw_line(Vector2(c.x, 0), c, Color("d8d0c0"), 1.0)
-		var pl := [[Color("c8a070"), 3.0], [Color("6a9ae0"), 4.0], [Color("d06a4a"), 3.0], [Color("e0c070"), 5.0], [Color("8ac0d8"), 4.0]]
-		for k in pl.size():
-			var a := st * 0.7 + k * TAU / pl.size()
-			var p := c + Vector2(cos(a) * 26.0, 10.0 + sin(a) * 6.0)
-			fx.draw_line(c + Vector2(cos(a) * 26.0, sin(a) * 6.0), p, Color("d8d0c0"), 1.0)
-			fx.draw_circle(p.floor(), pl[k][1], pl[k][0])
-		var ring := PackedVector2Array()
-		for k in 33:
-			ring.append(c + Vector2(cos(k * TAU / 32) * 26.0, sin(k * TAU / 32) * 6.0))
-		fx.draw_polyline(ring, Color("b0a890"), 1.0)
-		fx.draw_line(c, c + Vector2(0, 7), Color("d8d0c0"), 1.0)  # Słońce wisi na nitce, nie lewituje
-		fx.draw_circle(c + Vector2(0, 12), 6.0, Color("ffd060"))
+	var mob := _spr("solar_mobile", Vector2(317, 153), null, 24)  # model (mobile.js): środek obręczy w (352, 162), tata trzyma jej brzeg
+	tick = func(): _breathe(m, 0.0); _breathe(j, 0.8); mob.frame = int(st * 2.7) % 24
+	fx_draw = func():  # nitka z sufitu do obręczy, 1 piksel gry (pikselowa także przy kamerze w pikselach okna)
+		fx.draw_rect(Rect2(352, 0, 1, 154), Color("d8d0c0"))
 
 
 func _sc_day() -> void:  # balkon za dnia: oboje patrzą na drugi brzeg

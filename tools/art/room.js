@@ -79,14 +79,7 @@ obj(b, 292, 40, 52, 22, (s) => {
   slab(s, 0, 16, 52, 19, R.woodL, 0.7, 0.4, { grain: 0 });
   s.rect(4, 19, 6, 22, R.wood[1]); s.rect(46, 19, 48, 22, R.wood[1]);
 });
-// ---- model układu słonecznego z podstawówki (wisi na ścianie obok łóżka)
-obj(b, 132, 12, 34, 50, (s) => {
-  s.rect(17, 0, 18, 20, R.gray[2]);
-  for (let a = 0; a < 6.28; a += 0.02) { s.pset(17 + Math.cos(a) * 15, 30 + Math.sin(a) * 6, R.beige[2]); s.pset(17 + Math.cos(a) * 9, 30 + Math.sin(a) * 3.6, R.beige[2]); }
-  P.solid(s, [P.ell(17, 30, 4, 4)], R.gold);
-  P.solid(s, [P.ell(3, 31, 2, 2)], R.red); P.solid(s, [P.ell(26, 32, 2.2, 2.2)], R.teal); P.solid(s, [P.ell(30, 27, 1.6, 1.6)], R.beige);
-  P.solid(s, [P.ell(9, 27, 2.5, 2.5)], R.woodL); s.line(5, 28, 13, 26, R.beige[3]);
-}, { outline: false });
+// model układu słonecznego wisi przed ścianą jako animowany sprite (mobile.js, solar_mobile_small), nie w tle
 shadow(b, 56, 190, 44, 6);
 piece("bed", 190, [12, 96, 100, 196], (T) => {
 // ---- łóżko z kołdrą „Gwiezdna Noc” (szersze, krótsze)

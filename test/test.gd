@@ -8,6 +8,7 @@ func _ready() -> void:
 	for i in 30: await get_tree().process_frame
 	var w = get_tree().root.get_node("World")
 	assert(w.name == "World", "world loaded")
+	assert(Game.location == "balcony" and w._nearest() == "teleskop", "pierwsza noc: Jania stoi przy okularze teleskopu")
 	for bg in w.balcony.get_children().slice(0, w.sky_fx.get_index()):  # gwiazdy i odbicie księżyca nad tłami
 		assert(bg is Sprite2D, "pod sky_fx są tylko tła balkonu")
 	assert(w.sky_fx.get_index() >= 1 and w.balcony.get_child(w.sky_fx.get_index() + 1) == w.balcony_sort, "sky_fx tuż pod rekwizytami, nad tłami")
@@ -31,11 +32,16 @@ func _ready() -> void:
 		tel.cam = tg.pos
 		tel.aim = tel.C
 		tel.state = tel.S.SCAN
+		tel._show("Odkryto: poprzedni", "+1 PW")
 		tel._lock_or_confirm()
 		assert(tel.state == tel.S.FOCUS, "locked " + tg.id)
+		assert(tel.result.is_empty(), "napis o poprzednim odkryciu znika przy ostrzeniu nowego obiektu")
 		var off0: float = tel.focus_offset()
 		tel.t += 0.6
 		assert(tel.focus_offset() != off0 and tel.quality() < 96, "znacznik buja się, a start jest poza zielonym")
+		Game.shop["naped"] = true  # napęd podnosi cenę pomiaru, nie wskazanie ostrości (bug: 100% poza zielonym)
+		assert(tel.quality() < 96, "napęd nie zawyża ostrości poza zielonym polem")
+		Game.shop.erase("naped")
 		tel.f = tg.sweet
 		tel._after_focus()
 		if tg.info.has("pts"):

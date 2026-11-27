@@ -74,10 +74,10 @@ if (!CUT) obj(b, 150, 165, 74, 42, (s) => {
   slab(s, 2, 13, 72, 17, g, 0.75, 0.6, { grain: 0 });
   P.solid(s, [P.ell(37, 13, 13, 11)], g, { ambient: 0.4 });
   s.rect(24, 13, 51, 17, g[2]); s.rect(36, 3, 39, 13, [16, 14, 24]);
-  for (const x of [10, 22, 46, 58]) s.rect(x, 22, x + 6, 30, [12, 12, 20]);
-  s.rect(22, 25, 28, 26, g[3]); s.rect(31, 30, 43, 42, [12, 12, 20]); s.rect(56, 34, 72, 42, pine[1]);
+  const { WIN, WIN_Y, boards } = require("./repair.js");  // te same dwa rzędy zabitych okien co na początku remontu
+  for (const y of WIN_Y) for (const x of WIN) { s.rect(x, y, x + 6, y + 6, [12, 12, 20]); boards(s, x, y); }
+  s.rect(31, 30, 43, 42, [12, 12, 20]); s.rect(56, 34, 72, 42, pine[1]);
   const plank = [70, 58, 56], plank2 = [52, 44, 46];
-  for (const x of [10, 22, 46, 58]) { s.rect(x - 1, 23, x + 7, 25, plank); s.rect(x - 1, 27, x + 7, 28, plank2); s.line(x, 29, x + 6, 22, plank2); } // zabite deskami okna
   s.rect(30, 33, 44, 35, plank); s.rect(30, 38, 44, 39, plank2); s.line(31, 41, 43, 31, plank); // zabite drzwi
 }, { lit: [60, 64, 90], shade: [10, 10, 18] });
 

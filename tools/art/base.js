@@ -4,7 +4,7 @@
 // starym teleskopem z balkonu. Okno (x 152) i drzwi wejściowe (x 520) mają geometrię pokoju: szyby, ekran komputera
 // i światła z world.gd pasują bez zmian. Drzwi po lewej prowadzą do pokoiku Jani (pokoik.js).
 const fs = require("fs");
-const { tube45, P, R, slab, obj, shadow, light, piece, savePieces } = require("./kit.js");
+const { tube45, P, R, INK, slab, obj, shadow, light, piece, savePieces } = require("./kit.js");
 const W = 640, H = 360, WALL = 112;
 const out = process.argv[2];
 const b = new P.Buf(W, H);
@@ -200,7 +200,7 @@ for (const [k, x0, y0, hue] of [["st_obs1", 20, 150, 200], ["st_obs2", 20, 236, 
 }
 for (const [k, x0, y0] of [["st_an1", 384, 296], ["st_an2", 476, 296]]) {  // biurka analityków (Tryb 2): monitor, wydruki, kubek
   piece(k, y0 + 41, [x0, y0 + 20, x0 + 66, y0 + 41], (T) => deskAt(T, x0 + 2, y0 + 4, (T) => {
-    obj(T, x0 + 8, y0 - 10, 20, 18, (s) => { slab(s, 0, 0, 20, 14, dark, 0.6, 0.4); s.rect(2, 2, 18, 12, [40, 70, 110]); for (let x = 3; x < 17; x++) s.pset(x, 9 - Math.round(3 * Math.sin(x * 0.7)), [120, 240, 140]); s.rect(8, 14, 12, 18, steel[1]); });
+    obj(T, x0 + 8, y0 - 10, 20, 18, (s) => { slab(s, 0, 0, 20, 14, dark, 0.6, 0.4); s.rect(2, 2, 18, 12, [40, 70, 110]); for (let x = 3; x < 17; x++) s.pset(x, 7 - Math.round(2 * Math.sin(x * 0.7)), [120, 240, 140]); s.rect(8, 14, 12, 18, steel[1]); });  // wykres w ekranie (y 5..9, ekran 2..11)
     obj(T, x0 + 34, y0 + 4, 16, 8, (s) => { s.rect(0, 0, 16, 8, [250, 250, 252]); for (let y = 2; y < 7; y += 2) s.rect(2, y, 13, y + 1, R.gray[1]); });
     obj(T, x0 + 54, y0 + 2, 6, 7, (s) => { s.rect(0, 0, 6, 7, R.red[2]); s.rect(1, 0, 5, 1, [90, 50, 30]); });
   }));
@@ -208,8 +208,10 @@ for (const [k, x0, y0] of [["st_an1", 384, 296], ["st_an2", 476, 296]]) {  // bi
 piece("st_ws1", 192, [560, 172, 626, 192], (T) => {  // warsztat techniczny (Tryb 3): blat, imadło, tablica z narzędziami
   obj(T, 562, 120, 62, 26, (s) => {
     slab(s, 0, 0, 62, 26, steelB, 0.6, 0.4); for (let x = 4; x < 60; x += 4) for (let y = 4; y < 24; y += 4) s.pset(x, y, steelB[0]);
-    s.rect(6, 6, 8, 18, R.red[2]); s.rect(4, 4, 10, 7, R.gray[1]); s.rect(16, 8, 18, 20, R.gold[2]); s.rect(26, 6, 34, 9, R.gray[2]); s.rect(29, 9, 31, 20, R.wood[1]);
-    s.rect(42, 6, 44, 20, steel[1]); s.rect(40, 18, 46, 21, steel[0]); s.rect(52, 8, 56, 12, [250, 200, 50]);
+    const tools = [[6, 6, 8, 18, R.red[2]], [4, 4, 10, 7, R.gray[1]], [16, 8, 18, 20, R.gold[2]], [26, 6, 34, 9, R.gray[2]], [29, 9, 31, 20, R.wood[1]],
+      [42, 6, 44, 20, steel[1]], [40, 18, 46, 21, steel[0]], [52, 8, 56, 12, [250, 200, 50]]];
+    for (const [x0, y0, x1, y1] of tools) s.rect(x0 - 1, y0 - 1, x1 + 1, y1 + 1, INK);  // obrys narzędzi: odcinają się od blachy
+    for (const [x0, y0, x1, y1, c] of tools) s.rect(x0, y0, x1, y1, c);
   });
   obj(T, 562, 150, 62, 40, (s) => {
     slab(s, 0, 0, 62, 12, R.woodL, 1, 0.9); slab(s, 0, 12, 62, 18, R.woodL, 0.33, 0.33);
