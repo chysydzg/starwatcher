@@ -149,7 +149,7 @@ icon("icon_etap", 30, 30, (s) => { // złota gwiazda ETAP 2
   s.poly(pts, R.gold[1]); s.poly(pts.map(([x, y]) => [15 + (x - 15) * 0.55 - 1, 16 + (y - 16) * 0.55 - 2]), R.gold[2]);
 });
 // kategorie sklepu (24x24)
-{ // kategoria Optyka: ten sam teleskop co na balkonie (referencja użytkownika), w dziennych kolorach
+{ // kategoria Optyka: teleskop z referencji użytkownika, w dziennych kolorach
   const ref = P.load(__dirname + "/out/scope_ref.png");
   for (let i = 0; i < ref.px.length; i++) {
     const [r, g, bb] = P.unpack(ref.px[i]), y = Math.floor(i / ref.w);

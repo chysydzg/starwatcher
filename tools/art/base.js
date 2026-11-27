@@ -180,7 +180,7 @@ piece("podium", 336, [300, 326, 344, 338], (T) => {
     slab(s, 0, 0, 48, 10, white, 1, 0.9); slab(s, 2, 10, 46, 32, steel, 0.6, 0.35);
     s.rect(14, 18, 34, 24, R.gold[2]); s.rect(16, 20, 32, 22, R.gold[0]);
   });
-  T.sprite(P.load(out + "/balcony_telescope.png"), 303, 264);
+  T.sprite(require("./kit.js").cheapScope(), 303, 264);  // ten sam co na balkonie, bez nocnego przyciemnienia
 });
 
 // ---- elementy kupowane w Etapie 2 (layout: "opt" = id zakupu; pokazują się po otwarciu paczki)

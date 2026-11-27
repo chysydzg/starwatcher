@@ -106,4 +106,21 @@ const saturn = (s, cx, cy, r, rx, ry, top, bottom, ring) => {
   for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) if (Math.hypot(x - cx, y - cy) < r) s.pset(x, y, y < cy - 2 ? top : bottom);
   for (let a = 0; a < 6.28; a += Math.min(0.05, 1 / rx)) { const x = Math.round(cx + Math.cos(a) * rx), y = Math.round(cy + Math.sin(a) * ry); if (Math.sin(a) > 0 || Math.hypot(x - cx, y - cy) >= r) s.pset(x, y, ring); }
 };
-module.exports = { tube45,  P, R, INK, slab, obj, ink, shadow, light, ramp, BAND, piece, savePieces, saturn };
+// tani refraktor z balkonu (też pamiątka na podium w obserwatorium): biało-szara tuba pod 45° z czarną osłoną przy
+// obiektywie, szary trójnóg o równych schodkach 1:2; bez nocnego przyciemnienia (robi je balcony.js)
+function cheapScope() {
+  const white = P.hueRamp(4, { hue: 214, shift: 22, sat: 0.12, light: [0.52, 0.94] });
+  const gray = P.hueRamp(4, { hue: 220, shift: 14, sat: 0.08, light: [0.34, 0.66] });
+  const blk = P.hueRamp(4, { hue: 230, shift: 10, sat: 0.1, light: [0.08, 0.26] });
+  const leg = P.hueRamp(3, { hue: 220, shift: 10, sat: 0.08, light: [0.28, 0.56] });
+  const sp = new P.Buf(54, 52);
+  sp.line(27, 28, 17, 48, leg[2]); sp.line(28, 28, 38, 48, leg[2]); sp.rect(27, 28, 29, 50, leg[1]);
+  sp.rect(21, 40, 35, 41, leg[0]);
+  sp.rect(15, 48, 19, 50, leg[0]); sp.rect(37, 48, 41, 50, leg[0]);
+  sp.rect(24, 21, 32, 28, gray[2]); sp.rect(24, 21, 32, 22, gray[3]);
+  tube45(sp, 13, 28, 1, 9, 2, gray);                                   // szukacz
+  tube45(sp, 17, 32, -9, -6, 3, blk); tube45(sp, 17, 32, -6, 17, 5, white);
+  tube45(sp, 17, 32, 2, 3, 6, gray); tube45(sp, 17, 32, 17, 22, 6, blk); tube45(sp, 17, 32, 22, 22, 6, blk);
+  return P.trim(ink(sp));
+}
+module.exports = { cheapScope, tube45,  P, R, INK, slab, obj, ink, shadow, light, ramp, BAND, piece, savePieces, saturn };

@@ -138,19 +138,8 @@ for (let x = X0; x < X1; x++) b.pset(x, DECK, R.wood[0]);
 
 // ---- rekwizyty: tani teleskop, leżak z kocem, skrzynka z kubkiem, roślina
 shadow(b, 254, 340, 22, 3);
-{ // tani refraktor: tuba dokładnie pod 45° (kit.tube45), trójnóg o równych schodkach 1:2
-  const { tube45, ink } = require("./kit.js");
-  const blue = P.hueRamp(4, { hue: 222, shift: 20, sat: 0.5, light: [0.3, 0.64] }), blk = P.hueRamp(4, { hue: 230, shift: 10, sat: 0.2, light: [0.1, 0.3] });
-  const leg = P.hueRamp(3, { hue: 226, shift: 10, sat: 0.3, light: [0.22, 0.46] });
-  const sp = new P.Buf(54, 52);
-  sp.line(27, 28, 17, 48, leg[2]); sp.line(28, 28, 38, 48, leg[2]); sp.rect(27, 28, 29, 50, leg[1]);
-  sp.rect(21, 40, 35, 41, leg[0]);
-  sp.rect(15, 48, 19, 50, leg[0]); sp.rect(37, 48, 41, 50, leg[0]);
-  sp.rect(24, 21, 32, 28, blk[2]); sp.rect(24, 21, 32, 22, blk[3]);
-  tube45(sp, 13, 28, 1, 9, 2, blk);                                   // szukacz
-  tube45(sp, 17, 32, -9, -6, 3, blk); tube45(sp, 17, 32, -6, 17, 5, blue);
-  tube45(sp, 17, 32, 2, 3, 6, blk); tube45(sp, 17, 32, 17, 22, 6, blue); tube45(sp, 17, 32, 22, 22, 6, blk);
-  const t = P.trim(ink(sp));
+{ // tani refraktor (kit.cheapScope): ten sam stoi na podium w obserwatorium
+  const t = require("./kit.js").cheapScope();
   piece("telescope", 341, [230, 332, 280, 346], (T) => T.sprite(t, 232, 341 - t.h));
 }
 // Teleskop Newtona (sklep): duża biała tuba na montażu paralaktycznym i statywie (newton.js); gra pokazuje go zamiast refraktora
