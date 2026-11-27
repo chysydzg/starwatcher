@@ -37,6 +37,12 @@ const TUTORIALS := {
 		{"img": "tut/hr_mode", "text": "Najedź na cechę, żeby zobaczyć jej opis. Kliknij tryb, żeby przenieść pracownika do innej pracy."},
 		{"img": "tut/hr_hire", "text": "Kandydaci zmieniają się codziennie. Zatrudnienie jest darmowe, ale każdy potrzebuje stanowiska ze sklepu (Biuro)."},
 	]},
+	"orbita": {"title": "Satelity", "pages": [
+		{"img": "tut/orb_open", "text": "W Orbicie budujesz własne satelity. Potrzebujesz badania Mechanika Orbitalna i anteny ze sklepu."},
+		{"img": "tut/orb_build", "text": "Satelita badawczy daje PW, komercyjny jest tańszy i zarabia $. Budowa trwa 2 dni, potem rakieta wynosi go na orbitę."},
+		{"img": "tut/orb_use", "text": "Na orbicie wybierasz mu zadanie: Nauka (PW), AstroTV albo Sat-Net ($). Sat-Net co 3 dni wymaga serwisu, chyba że ktoś pracuje w Trybie 3."},
+		{"img": "tut/orb_storm", "text": "Burza słoneczna wyłącza satelity na cały dzień. Satelitę możesz też sprzedać, ale rynek wtórny płaci mniej, niż kosztowała budowa."},
+	]},
 	"dlug": {"title": "Konto na minusie", "pages": [
 		{"img": "tut/dlug_hud", "text": "Pensje zespołu schodzą codziennie rano. Gdy zabraknie pieniędzy, konto spada poniżej zera, a kwota robi się czerwona."},
 		{"img": "tut/dlug_strike", "text": "Po 3 dniach bez wypłaty pracownicy przestają pracować (czerwone $? nad głową), po 6 dniach odchodzą. Sprzedaj odkrycia na Giełdzie, żeby wyjść na plus."},

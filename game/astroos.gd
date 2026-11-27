@@ -1071,6 +1071,7 @@ func _portrait(parent: Control, p: Dictionary, pos: Vector2, size := Vector2(44,
 # ---------------------------------------------------------------- Sieć Orbitalna (Etap 2)
 func _orbita() -> void:
 	_bg(Color("10183a"))
+	Game.tutorial_once(self, "orbita")  # pierwsze wejście: jak działają satelity
 	var stars := Control.new()  # Ziemia z naszymi satelitami na orbitach (tylne pół orbity za planetą, przednie przed nią)
 	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stars.size = body.size
@@ -1113,6 +1114,12 @@ func _orbita() -> void:
 		var b := _button(("SATELITA KOMERCYJNY  $%d" if com else "SATELITA BADAWCZY  $%d") % cost, func():
 			var why := Game.build_sat(com)
 			info.text = why if why != "" else "Budowa ruszyła. Satelita poleci za %d dni." % (1 if Game.has("montaz_sat") else 2)
+			if why == "" and not Game.tips.has("sat_build_cut"):  # pierwszy satelita: scenka budowy na rusztowaniu
+				Game.tips.sat_build_cut = true
+				Game.cut_arg = "build"
+				Game.save_game()
+				get_tree().change_scene_to_file("res://game/sat_scene.tscn")
+				return
 			if why == "":
 				Game.ding(1.3)
 				bar.queue_redraw()

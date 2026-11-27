@@ -321,6 +321,7 @@ var science := {}          # id -> true
 var shop := {}             # id -> true (rozpakowane, działa)
 var parcels := []          # dostarczone, czekają na rozpakowanie
 var journal := []          # wpisy Dziennika: wszystkie odkrycia (w pamięci, sprzedane, nadpisane) – historia na stronach
+var cut_arg := ""         # scenka satelity do odegrania (sat_scene.gd): "build" albo "launch:<nazwa>"; bez zapisu
 var history := []          # podsumowania minionych dni (to, co pokazało okienko PODSUMOWANIE)
 var discovered := {}       # id obiektu -> true (Encyklopedia, „zbadane” na niebie)
 var moon_done := {}        # faza -> true
@@ -1079,6 +1080,9 @@ func _staff_morning(out: Array) -> void:
 			st.left -= 1
 			if st.left == 0:
 				toast.emit("Satelita %s na orbicie!" % st.name, "good")
+				if not tips.has("sat_launch_cut"):  # pierwszy start: scenka z rakietą po przebudzeniu
+					tips.sat_launch_cut = true
+					tips.sat_launch_pending = st.name
 			continue
 		if solar:  # burza słoneczna: bez tarczy (Etap 3) dzień bez przychodu
 			continue

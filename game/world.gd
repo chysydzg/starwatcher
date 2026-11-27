@@ -1537,6 +1537,12 @@ func _sleep() -> void:
 			tired_told = false
 			yawned = false
 			_toast("Nowy dzień! " + Game.calendar(), "info")
+			if Game.tips.has("sat_launch_pending"):  # w nocy wystartowała rakieta z pierwszym satelitą: scenka startu
+				Game.cut_arg = "launch:" + Game.tips.sat_launch_pending
+				Game.tips.erase("sat_launch_pending")
+				Game.save_game()
+				get_tree().change_scene_to_file("res://game/sat_scene.tscn")
+				return
 			Game.tutorial_once(self, "shop")))
 
 

@@ -24,6 +24,7 @@ func _ready() -> void:
 	Game.start_stage(2)
 	Game.tips["tut_hr"] = true  # samouczki z nagraniami oglądają rec_hr / rec_dlug; tu gra nie staje w pauzie
 	Game.tips["tut_dlug"] = true
+	Game.tips["tut_orbita"] = true
 	var w: Node = load("res://game/world.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(w)
 	await get_tree().process_frame
