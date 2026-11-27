@@ -54,7 +54,8 @@ func _sky(parent: Node, key: String) -> void:
 	n.draw.connect(func():
 		var c: Array = TOD[key]
 		for k in 12:
-			n.draw_rect(Rect2(-340, -80 + k * 34, 1320, 35), (c[0] as Color).lerp(c[1], k / 11.0)))
+			n.draw_rect(Rect2(-340, -80 + k * 34, 1320, 35), (c[0] as Color).lerp(c[1], k / 11.0))
+		n.draw_rect(Rect2(-340, GROUND + 25, 1320, 200), Color("676c84") * TINT.get(key, Color.WHITE)))  # grunt pod płytą na wyższych ekranach
 
 
 # ---------------------------------------------------------------- budowa
@@ -244,6 +245,7 @@ func _launch(sat_name: String) -> void:
 	var earth := Vector2(430, 250)
 	tick = Callable()
 	fx_draw = func():
+		fx.draw_rect(Rect2(-340, -120, 1320, 640), Color("0b0c1f"))
 		for i in 120:
 			fx.draw_rect(Rect2((i * 97) % 680 - 20, (i * 53) % 380 - 10, 1, 1), Color(1, 1, 1, 0.35 + 0.35 * sin(st * 2.0 + i)))
 		fx.draw_texture_rect_region(Game.tex("os/earth"), Rect2(earth - Vector2(153, 153), Vector2(306, 306)), Rect2(int(st * 4.0) % 32 * 102, 0, 102, 102))
