@@ -988,7 +988,7 @@ func yield_amount(p: Dictionary, mode: int) -> int:
 
 ## zysk z pracownika w trybie: Tryb 1 PW/noc, Tryb 2 $/dzień, Tryb 3 sekundy nocy
 func yield_text(p: Dictionary, mode: int) -> String:
-	return ["~%d PW/noc", "~+$%d/dzień", "+%d s nocy"][mode - 1] % yield_amount(p, mode)
+	return ["%d PW/noc", "+$%d/dzień", "+%d s nocy"][mode - 1] % yield_amount(p, mode)  # szacunek (VT323 nie ma ładnej tyldy)
 
 
 ## tryb, w którym kandydat pokazuje zysk w HR: Majsterkowicz w Trybie 3, reszta w Trybie 1

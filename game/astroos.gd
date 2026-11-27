@@ -963,9 +963,9 @@ const HR_MODE := ["Obserwacje", "Raporty", "Sprzęt"]
 func _zespol() -> void:
 	_bg(Color("eef0e6"))
 	_label(body, "ZESPÓŁ  %d/%d" % [Game.staff.size(), Game.STAFF_MAX], Vector2(10, 4), Color("2a4a2a"))
-	_label(body, "Koszt = pensja, płacona co rano. Zatrudnienie jest darmowe.", Vector2(150, 4), Color("6a6a7a"))
+	_label(body, "Koszt = pensja na dzień, płacona co rano. Zatrudnienie za darmo.", Vector2(110, 4), Color("6a6a7a"))
 	for c in HR_COLS:  # nagłówki kolumn
-		_label(body, c[0] + (" /dzień" if c[0] == "Koszt" else ""), Vector2(c[1] + 8, 26), Color("6a7a6a"))
+		_label(body, c[0], Vector2(c[1] + 8, 26), Color("6a7a6a"))
 	var sc := ScrollContainer.new()
 	sc.position = Vector2(8, 46)
 	sc.size = Vector2(624, 222)
@@ -1024,7 +1024,7 @@ func _zespol() -> void:
 			row.add_child(hb)
 			_label(row, Game.yield_text(c, Game.best_mode(c)), Vector2(HR_COLS[4][1], 10), Color("2a7a3a"))
 	_label(body, "Koszt zespołu: -$%d/dzień" % Game.team_wage(), Vector2(10, 272), Color("c83a2a"))
-	_label(body, "Zysk zespołu: ok. %d PW/noc, ok. +$%d/dzień" % [pw_sum, usd_sum], Vector2(300, 272), Color("2a7a3a"))
+	_label(body, "Zysk zespołu: %d PW/noc, +$%d/dzień" % [pw_sum, usd_sum], Vector2(320, 272), Color("2a7a3a"))
 	_info(Rect2(10, 298, 620, 20), Color("2a3a2a"))
 	info.text = "Konto na minusie: bez wypłaty zespół nie pracuje (%d dni), potem odchodzi (%d dni)." % [Game.STRIKE_DAYS, Game.QUIT_DAYS] if Game.money < 0 else "Najedź na cechę, żeby zobaczyć jej opis. Kliknij tryb, żeby go zmienić."
 

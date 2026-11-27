@@ -42,7 +42,10 @@ func _ready() -> void:
 	var tl: Label = os.body.find_children("*", "Label", true, false).filter(func(l): return Game.TRAITS.values().any(func(t): return t[0] == l.text))[0]
 	var at: Vector2 = tl.get_global_rect().get_center()
 	var mid := crop_at(at + Vector2(120, 30))
-	get_viewport().warp_mouse(at)
+	var mv := InputEventMouseMotion.new()  # najechanie na cechę (okno nagrania bywa zminimalizowane: zdarzenie zamiast myszy)
+	mv.position = at
+	mv.global_position = at
+	Input.parse_input_event(mv)
 	for i in 14:
 		await grab(mid, 0.12, at)
 	var mb: Button = os.body.find_children("*", "Button", true, false).filter(func(b): return b.text in ["Obserwacje", "Raporty", "Sprzęt"])[1]
