@@ -11,6 +11,3 @@ przebicia montażowe jak przy remoncie obserwatorium, satelita składa się cora
 i śrub, w tle ramię robota i fragment dźwigu. Start: wystrzelenie w kosmos i wejście na orbitę.
 Zacząć od rozpisania ujęć (storyboard) i pokazania ich autorowi przed kodem.
 Młotek w blachę słaby w earshot (Clang 0.77, „metal clang” z +0.8): rozważyć nagranie CC0.
-
-## Punkt 13 z listy 27.11
-Teleskop w laboratorium jest identyczny jak na balkonie: przyciemnić czy pokazać Newtona? (czeka na autora)
