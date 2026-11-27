@@ -38,19 +38,22 @@ func _ready() -> void:
 	for i in 16:
 		await grab(right, 0.12)
 	save("hr_table")
-	# 3) dymek cechy, potem klik w tryb (zmiana na następny)
-	var tl: Label = os.body.find_children("*", "Label", true, false).filter(func(l): return Game.TRAITS.values().any(func(t): return t[0] == l.text))[0]
+	# 3) cecha (opis na pasku na dole), potem klik w tryb (zmiana na następny)
+	var tl: Label = os.body.find_children("*", "Label", true, false).filter(func(l): return Game.TRAITS.values().any(func(t): return t[0] == l.text))[-1]
 	var at: Vector2 = tl.get_global_rect().get_center()
-	var mid := crop_at(at + Vector2(120, 30))
-	var mv := InputEventMouseMotion.new()  # najechanie na cechę (okno nagrania bywa zminimalizowane: zdarzenie zamiast myszy)
+	var bot := Rect2i(Vector2i(m.x, m.y + 180), Vector2i(320, 180))  # dolna połowa: wiersz z cechą i pasek z opisem
+	await glide(bot, at + Vector2(90, -40), at, 8)
+	var mv := InputEventMouseMotion.new()  # najechanie (okno nagrania bywa zminimalizowane: zdarzenie zamiast myszy)
 	mv.position = at
 	mv.global_position = at
 	Input.parse_input_event(mv)
-	for i in 14:
-		await grab(mid, 0.12, at)
+	tl.mouse_entered.emit()  # opis cechy na pasku na dole (dymek wymaga prawdziwej myszy nad oknem)
+	for i in 12:
+		await grab(bot, 0.12, at)
 	var mb: Button = os.body.find_children("*", "Button", true, false).filter(func(b): return b.text in ["Obserwacje", "Raporty", "Sprzęt"])[1]
 	var bc: Vector2 = mb.get_global_rect().get_center()
-	await glide(mid, at, bc, 8)
+	var mid := crop_at(bc)
+	await glide(mid, bc + Vector2(-60, 30), bc, 8)
 	await grab(mid, 0.1, bc, true)
 	mb.pressed.emit()
 	await get_tree().process_frame
@@ -60,11 +63,11 @@ func _ready() -> void:
 	# 4) kandydat: zielony ZATRUDNIJ
 	var hb: Button = os.body.find_children("*", "Button", true, false).filter(func(b): return b.text == "ZATRUDNIJ")[0]
 	var hc: Vector2 = hb.get_global_rect().get_center()
-	var low := crop_at(hc + Vector2(60, -20))
-	await glide(low, hc + Vector2(-80, 40), hc, 8)
-	await grab(low, 0.1, hc, true)
+	var hire_r := crop_at(hc + Vector2(60, -20))
+	await glide(hire_r, hc + Vector2(-80, 40), hc, 8)
+	await grab(hire_r, 0.1, hc, true)
 	hb.pressed.emit()
 	for i in 10:
-		await grab(low, 0.12, hc)
+		await grab(hire_r, 0.12, hc)
 	save("hr_hire")
 	Game.quit()

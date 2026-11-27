@@ -956,7 +956,7 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 # ---------------------------------------------------------------- HR i Zespół (Etap 2)
 ## HR jak tabela (Planet Zoo): zespół i kandydaci w jednej przewijanej liście; koszt (pensja, płacona co rano)
 ## na czerwono, zysk na zielono, cechy z opisem w dymku, tryb klikiem zmienia się na następny wolny
-const HR_COLS := [["Pracownik", 52], ["Cechy", 178], ["Tryb", 296], ["Koszt", 404], ["Zysk", 500]]  # x w wierszu (VT323: 8 px na znak)
+const HR_COLS := [["Pracownik", 52], ["Cechy", 194], ["Tryb", 304], ["Koszt", 410], ["Zysk", 470]]  # x w wierszu (VT323: 8 px na znak, imię do 17 znaków)
 const HR_MODE := ["Obserwacje", "Raporty", "Sprzęt"]
 
 
@@ -994,7 +994,7 @@ func _zespol() -> void:
 			Game.changed.emit()
 			_rebuild())
 		mb.position = Vector2(HR_COLS[2][1], 8)
-		mb.size = Vector2(100, 24)
+		mb.size = Vector2(98, 24)
 		mb.tooltip_text = "Tryb %d: %s\n%s\nKliknij, żeby zmienić tryb." % [m, Game.MODES[m - 1], Game.MODE_INFO[m - 1]]
 		row.add_child(mb)
 		_label(row, ("–" if strike else Game.yield_text(p, m)), Vector2(HR_COLS[4][1], 10), Color("c83a2a") if strike else Color("2a7a3a"))
@@ -1012,7 +1012,7 @@ func _zespol() -> void:
 					bar.queue_redraw()
 					_rebuild())
 			hb.position = Vector2(HR_COLS[2][1], 8)
-			hb.size = Vector2(100, 24)
+			hb.size = Vector2(98, 24)
 			if Game.free_stations(1) + Game.free_stations(2) + Game.free_stations(3) == 0:
 				hb.disabled = true
 				hb.text = "BRAK BIURKA"
@@ -1044,6 +1044,7 @@ func _hr_row(list: Control, p: Dictionary, bg: Color, tag: String) -> Panel:
 		var l := _label(row, Game.TRAITS[t][0], Vector2(HR_COLS[1][1], (10 if p.traits.size() == 1 else 2 + k * 16)), Color("4a6a4a"))
 		l.mouse_filter = Control.MOUSE_FILTER_STOP
 		l.tooltip_text = "%s: %s" % Game.TRAITS[t]
+		l.mouse_entered.connect(func(): info.text = "Cecha %s: %s" % Game.TRAITS[t])  # opis też na dole okna
 	_label(row, "-$%d" % Game.wage(p), Vector2(HR_COLS[3][1], 10), Color("c83a2a"))
 	return row
 
