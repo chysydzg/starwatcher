@@ -31,6 +31,10 @@ const TUTORIALS := {
 		{"img": "tut/edit_move", "text": "Kliknij mebel, żeby go podnieść, i kliknij jeszcze raz w nowym miejscu. Czerwony znaczy, że tam się nie zmieści."},
 		{"img": "tut/edit_flip", "text": "{prev_next} obraca mebel. Nowe ozdoby kupisz w sklepie, w dziale Pokój."},
 	]},
+	"dlug": {"title": "Konto na minusie", "pages": [
+		{"img": "tut/dlug_hud", "text": "Pensje zespołu schodzą codziennie rano. Gdy zabraknie pieniędzy, konto spada poniżej zera, a kwota robi się czerwona."},
+		{"img": "tut/dlug_strike", "text": "Po 3 dniach bez wypłaty pracownicy przestają pracować (czerwone $? nad głową), po 6 dniach odchodzą. Sprzedaj odkrycia na Giełdzie, żeby wyjść na plus."},
+	]},
 	"meteor": {"title": "Meteory", "pages": [
 		{"img": "tut/meteor1", "text": "Gdy przelatuje meteor, okular drży. Najedź na niego celownikiem i wciśnij {confirm}, zanim zniknie."},
 		{"img": "tut/meteor2", "text": "Łączysz gwiazdy? {leave} wychodzi z konstelacji, a ona zostaje tak, jak ją zostawisz. Złap meteor i wróć do niej."},

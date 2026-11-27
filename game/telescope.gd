@@ -573,15 +573,21 @@ func _start_spectrum() -> void:
 	Game.tutorial_once(self, "widmo")
 
 
+## okno trafienia; rozwój w drzewku: Filtry tłumią bujanie linii, Ekspozycja wydłuża czas, potem Automatyczne Porównanie
 func _spec_win() -> float:
-	return 0.028 + (0.02 if Game.has("filtry") else 0.0)
+	return 0.028
+
+
+func _spec_time() -> float:
+	return 15.0 if Game.has("ekspozycja") else SPEC_TIME
 
 
 func _spectrum_tick(dt: float) -> void:
 	cam = cam.lerp(target.pos, minf(1.0, dt * 10.0))
 	spec.time += dt
 	var u: float = spec.time * spec.spd + spec.ph
-	spec.goal = clampf(spec.g0 + spec.amp * (sin(u) + 0.5 * sin(u * 2.3 + 1.0)), -0.42, 0.42)
+	var amp: float = spec.amp * (0.6 if Game.has("filtry") else 1.0)
+	spec.goal = clampf(spec.g0 + amp * (sin(u) + 0.5 * sin(u * 2.3 + 1.0)), -0.42, 0.42)
 	if Game.has("auto_widmo"):  # wzorzec sam podąża za liniami (wolniej niż one dryfują przy szybkich obiektach)
 		spec.off = move_toward(spec.off, spec.goal, 0.12 * dt)
 	else:
@@ -601,7 +607,7 @@ func _spectrum_tick(dt: float) -> void:
 		hum.volume_db = -60.0
 		Game.sfx("chimes", 1.0, -4.0)
 		_finish()
-	elif spec.time > SPEC_TIME:
+	elif spec.time > _spec_time():
 		spec_ok = false
 		hum.volume_db = -60.0
 		Game.sfx("miss", 1.0, -4.0)
@@ -987,7 +993,7 @@ func _draw_spectrum() -> void:
 	var hit := absf(spec.off - spec.goal) < _spec_win()
 	_px(r.position.x, r.end.y + 9, r.size.x, 4, Color("2a2a40"))  # pasek dopasowania (jak ostrość: zapełnia się, gdy trafiasz)
 	_px(r.position.x, r.end.y + 9, roundf(r.size.x * spec.lock), 4, Color("8affa0") if hit else Color("4a9a6a"))
-	var left: float = clampf(1.0 - spec.time / SPEC_TIME, 0.0, 1.0)  # czas: cienka kreska nad widmem
+	var left: float = clampf(1.0 - spec.time / _spec_time(), 0.0, 1.0)  # czas: cienka kreska nad widmem
 	_px(r.position.x, r.end.y + 16, roundf(r.size.x * left), 1, Color("ff9a6a") if left < 0.3 else Color("8a90c0"))
 	for l in spec.lines:
 		var gx: float = r.position.x + (l + spec.goal * 0.5) * r.size.x

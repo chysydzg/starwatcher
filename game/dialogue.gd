@@ -82,7 +82,7 @@ func _unhandled_input(e: InputEvent) -> void:
 func _draw_box() -> void:
 	if _i < 0 or _i >= lines.size():
 		return
-	var who: Array = WHO[lines[_i].who]
+	var who: Array = [lines[_i].name, lines[_i].portrait] if lines[_i].has("portrait") else WHO[lines[_i].who]  # pracownicy: imię i portret w linii
 	Game.metal(_box, PORT)
 	var inner := PORT.grow(-4)
 	_box.draw_rect(inner, Color("1c2440"))

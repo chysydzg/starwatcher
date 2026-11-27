@@ -198,7 +198,7 @@ func _certificate() -> void:
 	o.add_child(paper)
 	for it in [["CERTYFIKAT", 36, Color("8a5a10"), Game.font_title, 16], ["Terenu pod Bazy Kosmiczne", 76, INK, Game.font_os, Game.OS_FS],
 			["Niniejszym poświadcza się, że", 112, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["JANIA", 140, Color("2a3a8a"), Game.font_title, 16],
-			["jest właścicielką działki nad jeziorem", 168, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["Dzień %d" % Game.day, 206, Color("5a4a3a"), Game.font_os, Game.OS_FS]]:
+			["jest właścicielką działki nad jeziorem", 168, Color("5a4a3a"), Game.font_os, Game.OS_FS], ["Dzień %d · %s" % [Game.season_day(), Game.SEASONS[Game.season()]], 206, Color("5a4a3a"), Game.font_os, Game.OS_FS]]:
 		var l := Label.new()
 		l.text = it[0]
 		l.add_theme_font_override("font", it[3])
@@ -480,7 +480,7 @@ func _dziennik() -> void:
 
 ## strona jednego dnia: wszystko, co tej nocy trafiło do Dziennika, i podsumowanie dnia
 func _journal_day(d: int) -> void:
-	_label(body, "Dzień %d · %s%s" % [d, Game.day_name(d), "  (dziś)" if d == Game.day else ""], Vector2(44, 2), Color("2a3a8a"))
+	_label(body, "Dzień %d · %s%s" % [Game.season_day(d), Game.day_name(d), "  (dziś)" if d == Game.day else ""], Vector2(44, 2), Color("2a3a8a"))
 	_label(body, "%-30s%-15s%7s  %s" % ["Obiekt", "Kategoria", "Jakość", "Status"], Vector2(44, 24), Color("8a3a3a"))
 	var v := _scroll(body, Rect2(44, 44, 596, 220))
 	var entries := Game.journal.filter(func(e): return int(e.day) == d)
@@ -958,8 +958,8 @@ func _zespol() -> void:
 	_bg(Color("eef0e6"))
 	_label(body, "ZESPÓŁ  %d/%d" % [Game.staff.size(), Game.STAFF_MAX], Vector2(10, 4), Color("2a4a2a"))
 	_label(body, "Koszt zespołu: $%d/dzień (pobierany rano)" % Game.team_wage(), Vector2(200, 4), Color("8a3a2a"))
-	if Game.debt > 0:
-		_label(body, "Zaległe pensje: $%d (zejdą z kolejnych sprzedaży)" % Game.debt, Vector2(250, 4), Color("c83a2a"))
+	if Game.money < 0:
+		_label(body, "Konto na minusie: bez wypłaty zespół przestaje pracować (%d dni), potem odchodzi (%d dni)." % [Game.STRIKE_DAYS, Game.QUIT_DAYS], Vector2(10, 300 - 18), Color("c83a2a"))
 	for i in Game.staff.size():
 		var p: Dictionary = Game.staff[i]
 		var y := 28 + i * 34
@@ -968,11 +968,14 @@ func _zespol() -> void:
 		row.size = Vector2(624, 32)
 		row.add_theme_stylebox_override("panel", _box(Color("ffffff"), Color("8a9a8a")))
 		body.add_child(row)
-		_label(row, p.name + ("  [!]" if p.report != "" else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" else INK)
+		var strike := not Game.working(p)
+		_label(row, p.name + ("  [!]" if p.report != "" else "") + ("  STRAJK" if strike else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" or strike else INK)
 		var tr: String = Game.TRAITS[p.traits[0]][0] + (" +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
 		_label(row, tr, Vector2(186, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
 		_num(row, "$%d/dzień" % Game.wage(p), 380, 5, Color("6a6a7a"))
 		row.tooltip_text = "%s\nPensja: $%d/dzień\nW tym trybie: %s" % [p.name, Game.wage(p), Game.yield_text(p, int(p.mode))]
+		if int(p.get("unpaid", 0)) > 0:
+			row.tooltip_text += "\nBez wypłaty od %d dni%s." % [p.unpaid, " – nie pracuje" if strike else ""]
 		for m in 3:
 			var on: bool = int(p.mode) == m + 1
 			var b := _button("%d" % (m + 1), func():
@@ -1016,6 +1019,9 @@ func _zespol() -> void:
 				_rebuild())
 		hb.position = Vector2(6, 90)
 		hb.size = Vector2(190, 24)
+		hb.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))  # zatrudnij: zielony jak KUP
+		hb.add_theme_stylebox_override("hover", _box(Color("4ad87a"), Color("0a3a1a"), 2))
+		hb.add_theme_color_override("font_color", Color.WHITE)
 		var seat := [1, 2, 3].any(func(m): return Game.free_stations(m) > 0)
 		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or not seat
 		if not seat:
@@ -1058,9 +1064,15 @@ func _orbita() -> void:
 		var now := Time.get_ticks_msec() / 1000.0
 		for i in 70:
 			stars.draw_rect(Rect2((i * 97) % 640, (i * 53) % 318, 1, 1), Color(1, 1, 1, 0.3 + 0.3 * sin(now + i)))
+		var ma := fposmod(now * 0.15, TAU)  # Księżyc: dalej niż satelity, wolniej; za Ziemią chowa się tak jak one
 		for front in [false, true]:
-			if front:
-				stars.draw_texture(Game.tex("os/earth"), ec - Vector2(51, 51))
+			if (sin(ma) > 0) == front:
+				var mp := (ec + Vector2(cos(ma) * 200.0, sin(ma) * 52.0)).floor()
+				Game.disc(stars, mp, 7, Color("f4e8c0"))  # ten sam Księżyc co w okularze: jasna tarcza i kratery
+				for c in [[Vector2(-2, -1), 2], [Vector2(2, 2), 2], [Vector2(1, -3), 1]]:
+					Game.disc(stars, mp + c[0], c[1], Color("dacb9c"))
+			if front:  # Ziemia kręci się wokół nachylonej osi (earth.js: 32 klatki)
+				stars.draw_texture_rect_region(Game.tex("os/earth"), Rect2(ec - Vector2(51, 51), Vector2(102, 102)), Rect2(int(now * 4.0) % 32 * 102, 0, 102, 102))
 			for i in up.size():
 				var rr := Vector2(74 + i * 9, 24 + i * 4)
 				for k in 48:  # kropkowana orbita
@@ -1092,6 +1104,9 @@ func _orbita() -> void:
 		b.position = Vector2(10 + k * 230, 46)
 		b.size = Vector2(222, 26)
 		body.add_child(b)
+	var sell_w := 110.0
+	for st in Game.sats:
+		sell_w = maxf(sell_w, ceilf(Game.font_os.get_string_size("SPRZEDAJ $%d" % Game.sat_value(st), HORIZONTAL_ALIGNMENT_LEFT, -1, Game.OS_FS).x) + 20)
 	for i in Game.sats.size():
 		var st: Dictionary = Game.sats[i]
 		var y := 84 + i * 32
@@ -1118,7 +1133,8 @@ func _orbita() -> void:
 			bar.queue_redraw()
 			_rebuild())
 		sell.position = Vector2(66 + 3 * 90, y)
-		sell.size = Vector2(110, 26)
+		sell.custom_minimum_size = Vector2(sell_w, 26)  # wszystkie „Sprzedaj” tej samej szerokości
+		sell.size = Vector2(sell_w, 26)
 		sell.tooltip_text = "Rynek wtórny płaci %d%% ceny budowy. Wynajem zwraca się szybciej." % int(Game.SAT_RESALE * 100)
 		body.add_child(sell)
 	_info(Rect2(10, 280, 620, 38), Color("c8d8ff"))

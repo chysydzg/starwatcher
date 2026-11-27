@@ -537,6 +537,8 @@ func _build_balcony() -> void:
 
 
 func _refresh() -> void:
+	if Game.money < 0 and base and viewport == null and not busy:  # pierwszy raz na minusie: jak działają pensje
+		Game.tutorial_once(self, "dlug")
 	props.lcd.visible = Game.has("lcd")
 	props.poster.visible = Game.has("plakat")
 	props.radio.visible = Game.has("radio")
@@ -613,33 +615,7 @@ func _toggle_phase() -> void:
 ## okienko z pytaniem Tak/Nie (kursor widać, bo busy)
 func _ask(q: String, yes: Callable) -> void:
 	busy = true
-	var pw := maxf(260.0, ceilf(_w(q)) + 48.0)  # okno rośnie z pytaniem, tekst nie wychodzi za ramkę
-	var p := _panel(Vector2(pw, 92))
-	var l := Label.new()
-	l.text = q
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.size = Vector2(pw, 20)
-	l.position = Vector2(0, 16)
-	p.add_child(l)
-	var close := func(): p.get_parent().queue_free(); busy = false
-	for i in 2:
-		var b := Button.new()
-		b.text = ["TAK", "NIE"][i]
-		b.position = Vector2(pw / 2 - 100 + i * 110, 50)
-		b.custom_minimum_size = Vector2(90, 26)
-		b.pressed.connect(func():
-			close.call()
-			if i == 0:
-				yes.call())
-		p.add_child(b)
-		if i == 0:
-			b.grab_focus.call_deferred()
-		else:
-			b.shortcut = Shortcut.new()  # ESC = NIE
-			var ev := InputEventAction.new()
-			ev.action = "back"
-			ev.pressed = true
-			b.shortcut.events = [ev]
+	Game.ask(top, q, "TAK", "NIE", func(): busy = false; yes.call(), func(): busy = false)
 
 
 ## zmierzch (dawn = false: Słońce zachodzi, wschodzi Księżyc) albo świt (odwrotnie); potem KONTYNUUJ → then
@@ -1107,6 +1083,21 @@ func _chat(n: CanvasItem, p: Vector2) -> void:
 			n.draw_rect(Rect2(p + Vector2(3 + k * 4, 3), Vector2(2, 2)), Color("4a4060"))
 
 
+## dymek nieopłaconego pracownika: czerwone „$?” (jak „...” przy rozmowie, ten sam kształt dymka)
+func _unpaid(n: CanvasItem, p: Vector2) -> void:
+	n.draw_rect(Rect2(p + Vector2(-1, -1), Vector2(16, 11)), Color("1a1426"))
+	n.draw_rect(Rect2(p, Vector2(14, 9)), Color("f4ecdc"))
+	n.draw_rect(Rect2(p + Vector2(3, 9), Vector2(3, 2)), Color("1a1426"))
+	n.draw_rect(Rect2(p + Vector2(4, 9), Vector2(1, 1)), Color("f4ecdc"))
+	var red := Color("d83a2a")
+	for g in [[["###", "#..", "###", "..#", "###"], 3], [["##.", "..#", ".#.", "...", ".#."], 8]]:  # pikselowe „$?” 3x5
+		for y in 5:
+			for x in 3:
+				if g[0][y][x] == "#":
+					n.draw_rect(Rect2(p + Vector2(g[1] + x, 2 + y), Vector2.ONE), red)
+	n.draw_rect(Rect2(p + Vector2(4, 1), Vector2(1, 7)), red)  # kreska dolara
+
+
 ## pracownicy 2-5 przy swoich biurkach (zatrudnieni w AstroOS); puste biurka czekają na kolejnych
 func _place_workers() -> void:
 	for ps in opt_props:  # kupione stanowiska i sprzęt stoją w laboratorium (kolider razem z nimi)
@@ -1138,6 +1129,8 @@ func _place_workers() -> void:
 
 ## zmiana pracownika: Tryb 1 i 3 pracują nocą (Tryb 1 z Autonomią także za dnia), Tryb 2 analizuje za dnia
 func _on_shift(p: Dictionary) -> bool:
+	if not Game.working(p):  # bez wypłaty: nie siada do stanowiska
+		return false
 	var m := int(p.mode)
 	return Game.night and m != 2 or not Game.night and (m == 2 or m == 1 and Game.has("autonomia"))
 
@@ -1169,11 +1162,12 @@ func _wander(w: Sprite2D, p: Dictionary, dt: float) -> void:
 ## pracownik przy biurku: zgłoszenie [!] albo tryb pracy i krótka rozmowa
 func _worker_desk(i: int) -> void:
 	var p: Dictionary = Game.staff[i]
-	if p.report != "":
+	if p.report != "":  # zgłoszenie w okienku rozmowy z portretem pracownika (jak u Józka)
 		var id: String = p.report
 		p.report = ""
 		Game.reports.append(id)
-		_toast("%s: Szefowo, w nocy coś błysnęło! To chyba %s." % [p.name, Game.SKY[id].name], "info")
+		await _talk([{"who": p.kind, "name": p.name, "portrait": "portrait_w_" + p.kind, "text": "Szefowo, w nocy coś błysnęło! To chyba %s. Sprawdzisz?" % Game.SKY[id].name},
+			{"who": "jania", "text": "Niepotwierdzony sygnał. Dziś w nocy go namierzę."}])
 		_toast("Niepotwierdzony sygnał: %s. Nocą sprawdź go teleskopem." % Game.SKY[id].name, "info")
 		return
 	busy = true
@@ -1250,6 +1244,7 @@ func _cat_desk() -> void:
 			if i == 0:
 				cat_wave = true
 				Game.tips.petted = true
+				Game.sfx("purr", randf_range(0.95, 1.05), -2.0)  # mruczenie (tools: snd/purr.py, sprawdzone earshotem)
 				_toast("Mrrrr... Józek mruczy z zadowolenia.", "good")
 				await get_tree().create_timer(1.2).timeout
 				cat_wave = false
@@ -1257,7 +1252,7 @@ func _cat_desk() -> void:
 				_talk([[{"who": "arbjooze", "text": "Szefowo! Mleczko wypite, notatki gotowe. Gwiazdy mogą przychodzić."}],
 					[{"who": "arbjooze", "text": "Ta proteza to chwytak. Mam jeszcze lupę, młoteczek i kubeczek. Na każdą okazję!"}],
 					[{"who": "arbjooze", "text": "W nocy pilnuję pomocniczego teleskopu. Kocie oczy widzą więcej."}],
-					[{"who": "arbjooze", "text": "Wypłata co siedem dni, pamiętam! Ale pracuję dla gwiazd."}]][randi() % 4]))
+					[{"who": "arbjooze", "text": "Pensja co rano, pamiętam! Ale pracuję dla gwiazd."}]][randi() % 4]))
 		p.add_child(b)
 		if i == 0:
 			b.grab_focus.call_deferred()
@@ -1431,7 +1426,9 @@ func _sleep() -> void:
 		rows.append(["Paczka: " + n, 0, "", 0])
 	rows.append_array(s.get("extra", []))  # Etap 2: zespół, pensje, satelity
 	const VIS := 10  # więcej wierszy (dużo zakupów): przewijanie zamiast ucinania okna
-	var h := 52 + clampi(rows.size(), 1, VIS) * 18 + 46
+	var parts: PackedStringArray = s.forecast.replace(". ", ", ").split(", ")  # pogoda, widoczność (i burza słoneczna) w osobnych liniach
+	var fh := maxi(parts.size(), 2) * 16
+	var h := 52 + clampi(rows.size(), 1, VIS) * 18 + 32 + fh
 	var p := _panel(Vector2(400, h))
 	p.position = Vector2(120, floorf((360 - h - 40) / 2.0)) + Game.margin  # okienko na środku, przycisk tuż pod nim
 	var title := Label.new()
@@ -1493,22 +1490,28 @@ func _sleep() -> void:
 		delay += 0.7 if r[3] > 0 else 0.35
 	var line := ColorRect.new()
 	line.color = Color("4a3f6a")
-	line.position = Vector2(14, h - 42)
+	line.position = Vector2(14, h - fh - 28)
 	line.size = Vector2(372, 1)
 	p.add_child(line)
 	var total := Label.new()
 	total.text = "Stan konta:  $%d   ·   %d PW" % [Game.money, Game.pw]
-	total.position = Vector2(14, h - 38)
+	total.position = Vector2(14, h - fh - 24)
 	total.modulate.a = 0.0
 	p.add_child(total)
 	anims.append(p.create_tween())
 	anims[-1].tween_property(total, "modulate:a", 1.0, 0.3).set_delay(delay)
 	anims[-1].tween_callback(Game.sfx.bind("chord"))  # mocniejszy akord przy sumie
-	var fc := Label.new()
-	fc.text = "Prognoza na noc: " + s.forecast
-	fc.position = Vector2(14, h - 22)
-	fc.add_theme_color_override("font_color", Color("a8b0d0"))
-	p.add_child(fc)
+	for k in parts.size():  # po prawej ikona pogody
+		var fc := Label.new()
+		fc.text = ("Prognoza na noc: " if k == 0 else "") + parts[k].trim_suffix(".")
+		fc.position = Vector2(14, h - fh - 6 + k * 16)
+		fc.add_theme_color_override("font_color", Color("a8b0d0"))
+		p.add_child(fc)
+	var icon := TextureRect.new()
+	icon.texture = Game.tex("weather_" + s.get("weather", "storm" if s.forecast.begins_with("burza") else "rain" if s.forecast.begins_with("deszcz") else "sun"))
+	icon.scale = Vector2(2, 2)
+	icon.position = Vector2(400 - 14 - 52, h - fh - 22)
+	p.add_child(icon)
 	var ok := Button.new()
 	ok.text = "KOLEJNY DZIEŃ"
 	ok.custom_minimum_size = Vector2(150, 26)
@@ -1635,9 +1638,16 @@ func _draw_glow() -> void:
 		var r: Rect2 = panes[i]
 		if Game.night:
 			_px(n, r.position.x, r.position.y, r.size.x, r.size.y, Color("141a40"))
-			for k in 4:
-				var a := 0.4 + 0.6 * absf(sin(t * (0.7 + k * 0.3) + i * 1.7 + k))
-				_px(n, r.position.x + 2 + (k * 7 + i * 5) % int(r.size.x - 3), r.position.y + 2 + (k * 5 + i * 3) % int(r.size.y - 3), 1, 1, Color(1, 0.95, 0.8, a))
+			for k in 6:  # gwiazdy w szybie: wyraźnie mrugają, co chwila któraś błyśnie krzyżykiem
+				var ph := t * (1.1 + k * 0.45) + i * 1.7 + k * 2.3
+				var a := clampf(0.15 + 0.85 * absf(sin(ph)), 0.0, 1.0)
+				var q := Vector2(r.position.x + 2 + (k * 7 + i * 5) % int(r.size.x - 4), r.position.y + 2 + (k * 5 + i * 3) % int(r.size.y - 4))
+				var col := Color(1, 0.95, 0.8, a) if k % 3 else Color(0.8, 0.9, 1, a)
+				_px(n, q.x, q.y, 1, 1, col)
+				if fmod(ph, TAU * 2.0) < 0.5:  # błysk: krzyżyk wokół gwiazdy
+					for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+						if r.has_point(q + d):
+							_px(n, q.x + d.x, q.y + d.y, 1, 1, Color(col, a * 0.6))
 		else:
 			_px(n, r.position.x, r.position.y, r.size.x, r.size.y, Color("8cc8f0"))
 			_px(n, r.position.x, r.position.y + r.size.y - 5, r.size.x, 5, Color("a8d8f4"))
@@ -1794,7 +1804,7 @@ func _draw_hud() -> void:
 	var lt := -Game.margin  # rogi ekranu (szeroki ekran: dalej niż scena 640x360)
 	var rt := Vector2(Game.margin.x, -Game.margin.y)
 	Game.metal(n, Rect2(lt + Vector2(4, 4), Vector2(92, 40)))
-	_txt(lt + Vector2(11, 21), "$ %d" % Game.money, Color("ffcf6b"))
+	_txt(lt + Vector2(11, 21), "$ %d" % Game.money, Color("ffcf6b") if Game.money >= 0 else Color("ff5a4a"))  # minus na czerwono
 	_txt(lt + Vector2(11, 37), "PW %d" % Game.pw, Color("6affa0"))
 	var cal := Game.calendar()
 	Game.metal(n, Rect2(rt + Vector2(622 - _w(cal), 4), Vector2(_w(cal) + 14, 24)))
@@ -1831,6 +1841,9 @@ func _draw_hud() -> void:
 					_chat(n, (heads[i] + Vector2(-8, -14)).floor())
 					break
 		for i in mini(heads.size(), Game.staff.size()):
+			if heads[i] != Vector2.ZERO and not Game.working(Game.staff[i]):  # nieopłacony: dymek z czerwonym „$?”
+				_unpaid(n, (heads[i] + Vector2(-9, -16)).floor())
+				continue
 			if Game.staff[i].report == "" or heads[i] == Vector2.ZERO:
 				continue
 			Game.bang(n, (heads[i] + Vector2(-2, -16 - (2.0 if fmod(t + i, 0.8) < 0.4 else 0.0))).floor())

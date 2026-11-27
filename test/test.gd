@@ -9,6 +9,10 @@ func _ready() -> void:
 	var w = get_tree().root.get_node("World")
 	assert(w.name == "World", "world loaded")
 	assert(Game.location == "balcony" and w._nearest() == "teleskop", "pierwsza noc: Jania stoi przy okularze teleskopu")
+	var d0: int = Game.day
+	Game.day = 8  # pierwszy dzień lata: licznik dni pory roku od 1
+	assert(Game.calendar().begins_with("Dzień 1 · Lato"), "nowa pora roku liczy dni od 1: " + Game.calendar())
+	Game.day = d0
 	for bg in w.balcony.get_children().slice(0, w.sky_fx.get_index()):  # gwiazdy i odbicie księżyca nad tłami
 		assert(bg is Sprite2D, "pod sky_fx są tylko tła balkonu")
 	assert(w.sky_fx.get_index() >= 1 and w.balcony.get_child(w.sky_fx.get_index() + 1) == w.balcony_sort, "sky_fx tuż pod rekwizytami, nad tłami")

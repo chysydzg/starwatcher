@@ -14,7 +14,7 @@ var _ui: CanvasLayer
 var _name: Label
 var _desc: Label
 var _row: HBoxContainer
-var _ask: VBoxContainer
+var _ask: Control  # okienko potwierdzenia (Game.ask), null gdy zamknięte
 var _pick := 0
 var _fade: ColorRect
 
@@ -64,11 +64,6 @@ func _ready() -> void:
 	_desc = _label(256, Color("d8d0e8"))
 	var note := _label(300, Color("8a80a8"))
 	note.text = "Logo trafi na budynki, rakiety i kitle. Wybierasz raz."
-	_ask = VBoxContainer.new()
-	_ask.position = Vector2(232, 286)
-	_ask.custom_minimum_size = Vector2(176, 0)
-	_ask.visible = false
-	_ui.add_child(_ask)
 	_fade = ColorRect.new()
 	_fade.color = Color.BLACK
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -94,39 +89,24 @@ func _show(i: int) -> void:
 	_desc.text = LOGOS[i][2]
 
 
-## potwierdzenie: „Tego nie da się zmienić”
+## potwierdzenie w okienku na środku (jak pytania w grze), żeby napisy pod logo się nie mieszały
 func _confirm(i: int) -> void:
 	_show(i)
 	Game.sfx("click")
 	for b in _row.get_children():
 		b.disabled = true
-	for c in _ask.get_children():
-		c.queue_free()
-	var q := Label.new()
-	q.text = "Tego nie da się zmienić. Na pewno?"
-	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_ask.add_child(q)
-	var yes := Button.new()
-	yes.text = "TAK, " + LOGOS[i][1].to_upper()
-	yes.pressed.connect(_choose)
-	_ask.add_child(yes)
-	var no := Button.new()
-	no.text = "WRÓĆ"
-	no.pressed.connect(_back)
-	_ask.add_child(no)
-	_ask.visible = true
-	yes.grab_focus.call_deferred()
+	_ask = Game.ask(_ui, "%s – tego nie da się zmienić. Na pewno?" % LOGOS[i][1], "TAK", "WRÓĆ", _choose, _back)
 
 
 func _back() -> void:
-	_ask.visible = false
+	_ask = null
 	for b in _row.get_children():
 		b.disabled = false
 	_row.get_child(_pick).grab_focus()
 
 
 func _choose() -> void:
-	_ask.visible = false
+	_ask = null
 	Game.sfx("tadam", 1.0, -6.0)
 	Game.logo = LOGOS[_pick][0]
 	Game.start_stage(2)
@@ -134,7 +114,3 @@ func _choose() -> void:
 	await create_tween().tween_property(_fade, "color:a", 1.0, 0.8).finished
 	get_tree().change_scene_to_file("res://game/world.tscn")
 
-
-func _unhandled_input(e: InputEvent) -> void:
-	if e.is_action_pressed("back") and _ask.visible:
-		_back()

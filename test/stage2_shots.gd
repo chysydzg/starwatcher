@@ -93,6 +93,14 @@ func _ready() -> void:
 	Game.changed.emit()
 	await get_tree().create_timer(0.5).timeout
 	shot("e2_report")
+	w._worker_desk(2)  # zgłoszenie pracownika: okienko rozmowy z jego portretem
+	await get_tree().create_timer(1.2).timeout
+	var dlg: Array = w.get_children().filter(func(n): return n.get("lines") != null)
+	assert(dlg.size() == 1 and dlg[0].lines[0].has("portrait"), "zgłoszenie w oknie dialogu z portretem")
+	shot("e2_report_dialog")
+	dlg[0].queue_free()
+	w.busy = false
+	Game.reports.clear()
 	w._interact("komputer")
 	await get_tree().create_timer(1.0).timeout
 	for a in ["zespol", "orbita", "badania", "sklep", "pomoc", "gielda"]:
@@ -137,5 +145,17 @@ func _ready() -> void:
 	await get_tree().create_timer(5.5).timeout
 	assert(Game._loops["music/day2"].playing and Game._loops["music/day2"].volume_db > -10.0, "dzień 2 po przerywniku")
 	assert(not Game._loops.has("music/day") or not Game._loops["music/day"].playing, "pętla Etapu 1 milczy")
+	# pensje bez pieniędzy: konto na minusie, po 3 porankach strajk, po 6 odejście (Józek zostaje)
+	Game.money = 0
+	var n0: int = Game.staff.size()
+	for k in Game.STRIKE_DAYS:
+		Game._staff_morning([])
+	assert(Game.money < 0 and not Game.working(Game.staff[0]), "bez wypłaty zespół nie pracuje")
+	for k in Game.QUIT_DAYS - Game.STRIKE_DAYS:
+		Game._staff_morning([])
+	assert(Game.staff.size() == 1 and Game.staff[0].kind == "cat" and n0 > 1, "nieopłaceni odchodzą, Józek zostaje")
+	Game.money = 99999
+	Game._staff_morning([])
+	assert(Game.working(Game.staff[0]), "po wypłacie znów pracuje")
 	print("MUSIC S2 OK")
 	Game.quit()

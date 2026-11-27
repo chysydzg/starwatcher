@@ -200,11 +200,12 @@ const SCIENCE2 := [
 	["orbitalna", "Mechanika Orbitalna", 1250, 1, 2, "", "Pozwala zlecić budowę satelity (Orbita w AstroOS)."],
 	["wielopunkt", "Wielopunktowa Kalibracja", 2500, 2, 0, "kalibracja", "Na niebie pojawiają się głębokie galaktyki."],
 	["zoom_orbity", "Zoom Bliskiej Orbity", 2250, 2, 0, "kalibracja", "Księżyce planet do odkrycia."],
-	["filtry", "Precyzyjne Filtry Pasmowe", 3150, 2, 1, "katalog", "Szersze okno w analizie widmowej. Analizy +25% $."],
-	["auto_widmo", "Automatyczne Porównanie Widm", 3750, 2, 1, "filtry", "Wzorzec widma sam ustawia się blisko, wystarczy potwierdzić."],
+	["filtry", "Precyzyjne Filtry Pasmowe", 3150, 2, 1, "katalog", "Linie widma bujają się o 40% słabiej. Analizy +25% $."],
+	["ekspozycja", "Dłuższa Ekspozycja", 3500, 2, 1, "filtry", "Analiza widmowa trwa 15 s zamiast 10 s."],
 	["protokol", "Protokół Zgłoszeń", 1900, 2, 2, "mentoring", "Pracownicy zgłaszają odkrycia o 50% częściej."],
 	["szkolenie", "Szkolenie Analityków", 2750, 2, 2, "protokol", "Tryb 2 podnosi jakość pomiarów o dodatkowe 10%."],
 	["mapa_nieba", "Mapa Głębokiego Nieba", 7500, 3, 0, "wielopunkt", "Odległe gromady galaktyk (2x wartość galaktyk)."],
+	["auto_widmo", "Automatyczne Porównanie Widm", 6500, 3, 1, "ekspozycja", "Wzorzec widma sam podąża za liniami, wystarczy pilnować."],
 	["spektro_bh", "Spektroskopia Czarnych Dziur", 9400, 3, 1, "auto_widmo", "Analiza czarnej dziury warta 2x więcej."],
 	["siec_sat", "Sieć Satelitarna", 6250, 3, 2, "orbitalna", "+2 sloty orbitalne. Satelity komercyjne +25% $."],
 	["autonomia", "Autonomiczne Skanowanie Nocne", 8150, 3, 2, "protokol", "Tryb 1 działa też za dnia (50%)."],
@@ -305,7 +306,8 @@ var staff := []             # pracownicy: {name, kind, traits, mode (1-3), since
 var candidates := []        # dzisiejsze CV (3)
 var sats := []              # satelity: {name, use, left (dni budowy), day}
 var reports := []           # zgłoszone przez pracowników odkrycia do weryfikacji teleskopem
-var debt := 0               # niezapłacone pensje: potrącane z kolejnych sprzedaży
+const STRIKE_DAYS := 3      # tyle poranków z rzędu bez wypłaty (konto na minusie) i pracownik przestaje pracować
+const QUIT_DAYS := 6        # a po tylu odchodzi (Józek zostaje, tylko nie pracuje)
 var solar := false          # dziś burza słoneczna (satelity bez tarczy tracą przychód)
 var solar_next := false
 var staff_acc := 0.0        # ułamki PW z pracy nocnej
@@ -502,6 +504,13 @@ func _setup_theme() -> void:
 	theme.set_color("font_color", "Label", Color("f4ecdc"))
 	theme.set_stylebox("panel", "Panel", flat.call(Color(0.1, 0.08, 0.15, 0.94), Color("4a3f6a")))
 	theme.set_stylebox("panel", "PanelContainer", flat.call(Color(0.1, 0.08, 0.15, 0.94), Color("4a3f6a")))
+	var tip: StyleBoxFlat = flat.call(Color(0.08, 0.06, 0.12, 0.97), Color("ffcf6b"))  # dymki (opisy trybów itp.): wyraźny padding i ramka
+	tip.content_margin_left = 10
+	tip.content_margin_right = 10
+	tip.content_margin_top = 7
+	tip.content_margin_bottom = 7
+	theme.set_stylebox("panel", "TooltipPanel", tip)
+	theme.set_color("font_color", "TooltipLabel", Color("f4ecdc"))
 	# suwak głośności: ciemny rowek, złote wypełnienie, gałka jak mały klawisz (pełny obrys 1 px)
 	var track: StyleBoxFlat = flat.call(Color("1a1426"), Color("4a3f6a"))
 	track.set_content_margin_all(2)
@@ -589,8 +598,13 @@ func season_of(d: int) -> int:
 	return floori((d - 1) / 7.0) % 4
 
 
+## dzień pory roku: liczenie zaczyna się od 1 w każdej nowej porze (pora trwa 7 dni)
+func season_day(d := day) -> int:
+	return (d - 1) % 7 + 1
+
+
 func calendar() -> String:
-	return "Dzień %d · %s, rok %d" % [day, SEASONS[season()], floori((day - 1) / 28.0) + 1]
+	return "Dzień %d · %s, rok %d" % [season_day(), SEASONS[season()], floori((day - 1) / 28.0) + 1]
 
 
 func day_name(d := day) -> String:
@@ -604,7 +618,7 @@ func moon_phase() -> int:
 func night_length() -> float:
 	var crew := 0.0  # Tryb 3: każdy pracownik +15 s (Majsterkowicz +10 s więcej), razem maks. +45 s
 	for p in staff:
-		if p.mode == 3:
+		if p.mode == 3 and working(p):
 			crew += 15.0 + (10.0 if p.traits.has("majsterkowicz") else 0.0)
 	return NIGHT_BASE + (15.0 if has("poduszka") else 0.0) + (20.0 if has("termos") else 0.0) + (10.0 if has("nocny1") else 0.0) + (15.0 if has("nocny2") else 0.0) + minf(crew, 45.0)
 
@@ -746,9 +760,7 @@ func sell(entries: Array) -> int:
 		e.paid = price(e).total
 		sum += e.paid
 		e.sold = true
-	var owed := mini(debt, sum)  # zaległe pensje schodzą z kolejnych sprzedaży
-	debt -= owed
-	money += sum - owed
+	money += sum
 	today.sales = today.get("sales", 0) + sum
 	today.sales_n = today.get("sales_n", 0) + entries.size()
 	if has("wzor"):
@@ -921,6 +933,11 @@ func stage2_goals() -> Array:
 
 
 # ---------------------------------------------------------------- pracownicy (GDD 13)
+## pracuje, jeśli dostał wypłatę w ciągu ostatnich STRIKE_DAYS poranków
+func working(p: Dictionary) -> bool:
+	return int(p.get("unpaid", 0)) < STRIKE_DAYS
+
+
 ## wydajność pracownika w danym trybie: cechy, badania i zakupy
 func staff_eff(p: Dictionary, mode: int) -> float:
 	var e := 1.0 + (0.10 if has("ekspres") else 0.0) + (0.30 if p.traits.has("szybki") else 0.0)
@@ -937,7 +954,7 @@ func staff_tick(dt: float) -> void:
 	if staff.is_empty() or (not night and not has("autonomia")):
 		return
 	for p in staff:
-		if p.mode == 1:
+		if p.mode == 1 and working(p):
 			staff_acc += dt * staff_eff(p, 1) * (1.0 if night else 0.5)
 	if staff_acc >= 1.0:
 		var whole := floorf(staff_acc)
@@ -1017,6 +1034,8 @@ func _staff_morning(out: Array) -> void:
 	var stored_now := stored()
 	var fixed := 0
 	for p in staff:
+		if not working(p):  # nieopłacony: nie pracuje
+			continue
 		if p.mode == 2:  # do 8 wpisów na pracownika, +20–30% jakości
 			for e in stored_now.slice(fixed, fixed + 8):
 				e.quality = mini(100, int(e.quality * (1.2 + randf() * 0.1) * staff_eff(p, 2)))
@@ -1030,12 +1049,19 @@ func _staff_morning(out: Array) -> void:
 					p.report = rare.pick_random()
 	if fixed > 0:
 		out.append(["Analiza raportów: %d wpisów" % fixed, 0, "", 0])
-	if not staff.is_empty():  # pensje codziennie rano (widać od razu, ile kosztuje zespół)
+	if not staff.is_empty():  # pensje codziennie rano; brak pieniędzy = konto na minusie, zespół czeka na wypłatę
 		var pay := team_wage()
-		var paid := mini(pay, money)
-		money -= paid
-		debt += pay - paid
+		money -= pay
 		out.append(["Pensje zespołu", pay, "$", -1])
+		for p in staff:
+			p.unpaid = int(p.get("unpaid", 0)) + 1 if money < 0 else 0
+			if p.unpaid == STRIKE_DAYS:
+				out.append(["%s nie pracuje bez wypłaty" % p.name, 0, "", 0])
+		for p in staff.duplicate():
+			if p.unpaid >= QUIT_DAYS and p.kind != "cat":  # Józek zostaje (to jego obserwatorium też)
+				staff.erase(p)
+				out.append(["%s odchodzi: %d dni bez wypłaty" % [p.name, p.unpaid], 0, "", 0])
+				toast.emit("%s odszedł: za długo bez wypłaty." % p.name, "bad")
 	var sat_pw := 0
 	var sat_usd := 0
 	for st in sats:
@@ -1053,7 +1079,7 @@ func _staff_morning(out: Array) -> void:
 				sat_usd += int(160 * (1.3 if has("umowa_tv") else 1.0) * (1.25 if has("siec_sat") else 1.0))
 			"satnet":
 				sat_usd += int(350 * (1.25 if has("siec_sat") else 1.0))
-				if (day - int(st.day)) % 3 == 2 and not staff.any(func(p): return p.mode == 3):
+				if (day - int(st.day)) % 3 == 2 and not staff.any(func(p): return p.mode == 3 and working(p)):
 					sat_usd -= 150  # serwis Sat-Net co 3 dni, chyba że ktoś jest w Trybie 3
 	if sat_pw > 0:
 		out.append(["  w tym satelity naukowe", add_pw(sat_pw), "PW", 1])
@@ -1145,6 +1171,7 @@ func sleep() -> Dictionary:
 	rain_next = randf() < RAIN_CHANCE
 	storm_next = rain_next and randf() < STORM_CHANCE
 	summary.forecast = "burza z piorunami, widoczność mocno utrudniona" if storm_next else ("deszcz, widoczność utrudniona" if rain_next else "pogodnie, dobra widoczność")
+	summary.weather = "storm" if storm_next else ("rain" if rain_next else "sun")  # ikona prognozy w podsumowaniu
 	if stage >= 2:  # pogoda kosmiczna: burza słoneczna co jakiś czas; Monitor ostrzega dzień wcześniej
 		solar = solar_next
 		solar_next = randf() < 0.12
@@ -1194,7 +1221,6 @@ func new_game() -> void:
 	candidates = []
 	sats = []
 	reports = []
-	debt = 0
 	solar = false
 	solar_next = false
 	decor = {}
@@ -1209,7 +1235,7 @@ func new_game() -> void:
 # ---------------------------------------------------------------- zapis
 const SAVED := ["day", "night", "night_left", "money", "pw", "science", "shop", "parcels", "journal", "discovered",
 	"moon_done", "tonight", "demand", "demand_log", "sky_tonight", "analysis", "offer", "today", "rain", "rain_next", "storm", "storm_next", "comet", "tips", "location", "stage_done", "_id_seq", "history", "stage", "logo",
-	"staff", "candidates", "sats", "reports", "debt", "solar", "solar_next", "decor"]
+	"staff", "candidates", "sats", "reports", "solar", "solar_next", "decor"]
 
 
 func has_save() -> bool:
@@ -1239,7 +1265,7 @@ func load_game() -> bool:
 			parcels.append_array(d.get("pending", []))  # zapis sprzed natychmiastowych paczek
 			day = int(day)
 			stage = int(stage)
-			money = int(money)
+			money = int(money) - int(d.get("debt", 0))  # stare zaległe pensje: teraz po prostu minus na koncie
 			pw = int(pw)
 			_id_seq = int(_id_seq)
 			moon_done = _int_keys(moon_done)
@@ -1326,6 +1352,47 @@ func disc(n: CanvasItem, p: Vector2, r: int, col: Color) -> void:
 					img.set_pixel(x, y, Color.WHITE)
 		_discs[r] = ImageTexture.create_from_image(img)
 	n.draw_texture(_discs[r], p - Vector2(r, r), col)
+
+
+## okienko pytania na środku ekranu (przyciemnione tło, panel jak pauza): szerokość według tekstu, ESC = drugi przycisk.
+## Wspólne dla świata (world._ask) i wyboru logo; zwraca przyciemnienie (usuwa się samo po wyborze)
+func ask(parent: Node, q: String, yes_text: String, no_text: String, yes: Callable, no := Callable()) -> Control:
+	var bw := maxf(90.0, maxf(font.get_string_size(yes_text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x, font.get_string_size(no_text, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x) + 24)
+	var pw := maxf(maxf(260.0, ceilf(font.get_string_size(q, HORIZONTAL_ALIGNMENT_LEFT, -1, FS).x) + 48.0), bw * 2 + 50)
+	var dim := ColorRect.new()
+	dim.color = Color(0.06, 0.04, 0.1, 0.7)
+	cover(dim)
+	parent.add_child(dim)
+	var p := Panel.new()
+	p.size = Vector2(pw, 92)
+	p.position = ((Vector2(640, 360) - p.size) / 2).floor() + margin  # dzieci dim: dim zaczyna się w -margin
+	dim.add_child(p)
+	var l := Label.new()
+	l.text = q
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(pw, 20)
+	l.position = Vector2(0, 16)
+	p.add_child(l)
+	for i in 2:
+		var b := Button.new()
+		b.text = [yes_text, no_text][i]
+		b.position = Vector2(pw / 2 - bw - 10 + i * (bw + 20), 50)
+		b.custom_minimum_size = Vector2(bw, 26)
+		b.pressed.connect(func():
+			dim.queue_free()
+			var f: Callable = [yes, no][i]
+			if f.is_valid():
+				f.call())
+		p.add_child(b)
+		if i == 0:
+			b.grab_focus.call_deferred()
+		else:
+			b.shortcut = Shortcut.new()  # ESC = drugi przycisk
+			var ev := InputEventAction.new()
+			ev.action = "back"
+			ev.pressed = true
+			b.shortcut.events = [ev]
+	return dim
 
 
 ## pikselowy wykrzyknik (nad pracownikami, celami teleskopu, komputerem): żółta kreska i kropka z ciemnym obrysem
