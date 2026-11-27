@@ -1321,6 +1321,7 @@ func _arbjooze_arrives() -> void:
 	Game.save_game()
 	busy = false
 	_toast("Nowy pracownik: Józek!", "good")
+	Game.tutorial_once(self, "hr")  # zespół: koszt, zysk, tryby, rekrutacja
 
 
 ## koniec nocy: Jania ziewa raz (zwrócona przodem)

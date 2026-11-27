@@ -31,6 +31,12 @@ const TUTORIALS := {
 		{"img": "tut/edit_move", "text": "Kliknij mebel, żeby go podnieść, i kliknij jeszcze raz w nowym miejscu. Czerwony znaczy, że tam się nie zmieści."},
 		{"img": "tut/edit_flip", "text": "{prev_next} obraca mebel. Nowe ozdoby kupisz w sklepie, w dziale Pokój."},
 	]},
+	"hr": {"title": "Zespół", "pages": [
+		{"img": "tut/hr_open", "text": "Józek to Twój pierwszy pracownik. Zespołem zarządzasz w komputerze, w zakładce HR i Zespół."},
+		{"img": "tut/hr_table", "text": "Koszt to pensja płacona co rano. Zysk to to, co pracownik daje w swoim trybie. Na dole widać bilans całego zespołu."},
+		{"img": "tut/hr_mode", "text": "Najedź na cechę, żeby zobaczyć jej opis. Kliknij tryb, żeby przenieść pracownika do innej pracy."},
+		{"img": "tut/hr_hire", "text": "Kandydaci zmieniają się codziennie. Zatrudnienie jest darmowe, ale każdy potrzebuje stanowiska ze sklepu (Biuro)."},
+	]},
 	"dlug": {"title": "Konto na minusie", "pages": [
 		{"img": "tut/dlug_hud", "text": "Pensje zespołu schodzą codziennie rano. Gdy zabraknie pieniędzy, konto spada poniżej zera, a kwota robi się czerwona."},
 		{"img": "tut/dlug_strike", "text": "Po 3 dniach bez wypłaty pracownicy przestają pracować (czerwone $? nad głową), po 6 dniach odchodzą. Sprzedaj odkrycia na Giełdzie, żeby wyjść na plus."},

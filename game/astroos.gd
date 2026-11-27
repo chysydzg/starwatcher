@@ -954,83 +954,98 @@ func _tooltip(n: Control, at: Vector2, r: Array) -> void:
 
 
 # ---------------------------------------------------------------- HR i Zespół (Etap 2)
+## HR jak tabela (Planet Zoo): zespół i kandydaci w jednej przewijanej liście; koszt (pensja, płacona co rano)
+## na czerwono, zysk na zielono, cechy z opisem w dymku, tryb klikiem zmienia się na następny wolny
+const HR_COLS := [["Pracownik", 52], ["Cechy", 178], ["Tryb", 296], ["Koszt", 404], ["Zysk", 500]]  # x w wierszu (VT323: 8 px na znak)
+const HR_MODE := ["Obserwacje", "Raporty", "Sprzęt"]
+
+
 func _zespol() -> void:
 	_bg(Color("eef0e6"))
 	_label(body, "ZESPÓŁ  %d/%d" % [Game.staff.size(), Game.STAFF_MAX], Vector2(10, 4), Color("2a4a2a"))
-	_label(body, "Koszt zespołu: $%d/dzień (pobierany rano)" % Game.team_wage(), Vector2(200, 4), Color("8a3a2a"))
-	if Game.money < 0:
-		_label(body, "Konto na minusie: bez wypłaty zespół przestaje pracować (%d dni), potem odchodzi (%d dni)." % [Game.STRIKE_DAYS, Game.QUIT_DAYS], Vector2(10, 300 - 18), Color("c83a2a"))
-	for i in Game.staff.size():
-		var p: Dictionary = Game.staff[i]
-		var y := 28 + i * 34
-		var row := Panel.new()
-		row.position = Vector2(8, y)
-		row.size = Vector2(624, 32)
-		row.add_theme_stylebox_override("panel", _box(Color("ffffff"), Color("8a9a8a")))
-		body.add_child(row)
+	_label(body, "Koszt = pensja, płacona co rano. Zatrudnienie jest darmowe.", Vector2(150, 4), Color("6a6a7a"))
+	for c in HR_COLS:  # nagłówki kolumn
+		_label(body, c[0] + (" /dzień" if c[0] == "Koszt" else ""), Vector2(c[1] + 8, 26), Color("6a7a6a"))
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(8, 46)
+	sc.size = Vector2(624, 222)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	body.add_child(sc)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 2)
+	sc.add_child(list)
+	var pw_sum := 0
+	var usd_sum := 0
+	for p in Game.staff:
+		var m := int(p.mode)
 		var strike := not Game.working(p)
-		_label(row, p.name + ("  [!]" if p.report != "" else "") + ("  STRAJK" if strike else ""), Vector2(6, 5), Color("c83a2a") if p.report != "" or strike else INK)
-		var tr: String = Game.TRAITS[p.traits[0]][0] + (" +%d" % (p.traits.size() - 1) if p.traits.size() > 1 else "") if not p.traits.is_empty() else ""
-		_label(row, tr, Vector2(186, 5), Color("4a6a4a"))  # druga cecha jako „+1”: pełne nazwy nie mieszczą się przed pensją
-		_num(row, "$%d/dzień" % Game.wage(p), 380, 5, Color("6a6a7a"))
-		row.tooltip_text = "%s\nPensja: $%d/dzień\nW tym trybie: %s" % [p.name, Game.wage(p), Game.yield_text(p, int(p.mode))]
+		if not strike:
+			pw_sum += Game.yield_amount(p, 1) if m == 1 else 0
+			usd_sum += Game.yield_amount(p, 2) if m == 2 else 0
+		var row := _hr_row(list, p, Color("ffffff"), ("[!] zgłoszenie " if p.report != "" else "") + ("STRAJK" if strike else ""))
 		if int(p.get("unpaid", 0)) > 0:
-			row.tooltip_text += "\nBez wypłaty od %d dni%s." % [p.unpaid, " – nie pracuje" if strike else ""]
-		for m in 3:
-			var on: bool = int(p.mode) == m + 1
-			var b := _button("%d" % (m + 1), func():
-				p.mode = m + 1
-				Game.changed.emit()
-				_rebuild())
-			b.position = Vector2(392 + m * 30, 4)
-			b.disabled = not on and not Game.can_switch(p, m + 1)
-			b.size = Vector2(26, 24)
-			if on:
-				b.add_theme_stylebox_override("normal", _box(Color("8ad88a"), Color("1a5a1a"), 2))
-			b.tooltip_text = Game.MODES[m] + "\n" + Game.MODE_INFO[m]
-			if b.disabled:
-				b.tooltip_text += "\nBrak wolnego stanowiska tego typu (Sklep: Biuro)."
-			b.mouse_entered.connect(func(): info.text = "Tryb %d: %s" % [m + 1, Game.MODES[m]])
-			row.add_child(b)
-		_label(row, ["Obserwacje", "Raporty", "Sprzęt"][int(p.mode) - 1], Vector2(486, 5), Color("2a5a2a"))
-		_portrait(row, p, Vector2(578, 1))
-	var cy := 30 + maxi(1, Game.staff.size()) * 34 + 6
-	_label(body, "KANDYDACI (nowe CV każdego dnia)" if Game.staff.size() < Game.STAFF_MAX else "Zespół w komplecie.", Vector2(10, cy), Color("2a4a2a"))
-	for i in Game.candidates.size() if Game.staff.size() < Game.STAFF_MAX else 0:
-		var c: Dictionary = Game.candidates[i]
-		var card := Panel.new()
-		card.position = Vector2(8 + i * 210, cy + 24)
-		card.size = Vector2(202, 118)
-		card.add_theme_stylebox_override("panel", _box(Color("fffbe8"), Color("a89a6a")))
-		body.add_child(card)
-		_label(card, c.name, Vector2(6, 2))
-		_portrait(card, c, Vector2(4, 22), Vector2(60, 62))
-		for k in c.traits.size():
-			_label(card, Game.TRAITS[c.traits[k]][0], Vector2(70, 18 + k * 16), Color("6a5a2a"))
-		_label(card, "$%d/dzień" % Game.wage(c), Vector2(70, 52), Color("2a7a3a"))
-		_label(card, Game.yield_text(c, 1), Vector2(70, 68), Color("2a5a8a"))
-		var hb := _button("ZATRUDNIJ", func():
-			var why := Game.hire(c)
-			if why != "":
-				info.text = why
+			row.tooltip_text = "Bez wypłaty od %d dni%s." % [p.unpaid, " – nie pracuje" if strike else ""]
+		var mb := _button(HR_MODE[m - 1], func():  # klik: następny tryb z wolnym stanowiskiem
+			for k in [1, 2]:
+				var nm: int = (m - 1 + k) % 3 + 1
+				if Game.can_switch(p, nm):
+					p.mode = nm
+					break
+			Game.changed.emit()
+			_rebuild())
+		mb.position = Vector2(HR_COLS[2][1], 8)
+		mb.size = Vector2(100, 24)
+		mb.tooltip_text = "Tryb %d: %s\n%s\nKliknij, żeby zmienić tryb." % [m, Game.MODES[m - 1], Game.MODE_INFO[m - 1]]
+		row.add_child(mb)
+		_label(row, ("–" if strike else Game.yield_text(p, m)), Vector2(HR_COLS[4][1], 10), Color("c83a2a") if strike else Color("2a7a3a"))
+	if Game.staff.size() < Game.STAFF_MAX:
+		var head := _label(list, "KANDYDACI (nowe CV każdego dnia)", Vector2.ZERO, Color("2a4a2a"))
+		head.custom_minimum_size = Vector2(600, 22)
+		for c in Game.candidates:
+			var row := _hr_row(list, c, Color("fffbe8"), "")
+			var hb := _button("ZATRUDNIJ", func():
+				var why := Game.hire(c)
+				if why != "":
+					info.text = why
+				else:
+					Game.ding(1.3)
+					bar.queue_redraw()
+					_rebuild())
+			hb.position = Vector2(HR_COLS[2][1], 8)
+			hb.size = Vector2(100, 24)
+			if Game.free_stations(1) + Game.free_stations(2) + Game.free_stations(3) == 0:
+				hb.disabled = true
+				hb.text = "BRAK BIURKA"
+				hb.tooltip_text = "Pracownik potrzebuje stanowiska: kup biurko lub warsztat w sklepie (Biuro)."
 			else:
-				Game.ding(1.3)
-				bar.queue_redraw()
-				_rebuild())
-		hb.position = Vector2(6, 90)
-		hb.size = Vector2(190, 24)
-		hb.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))  # zatrudnij: zielony jak KUP
-		hb.add_theme_stylebox_override("hover", _box(Color("4ad87a"), Color("0a3a1a"), 2))
-		hb.add_theme_color_override("font_color", Color.WHITE)
-		var seat := [1, 2, 3].any(func(m): return Game.free_stations(m) > 0)
-		hb.disabled = Game.staff.size() >= Game.STAFF_MAX or not seat
-		if not seat:
-			hb.text = "BRAK STANOWISKA"
-			hb.tooltip_text = "Pracownik potrzebuje stanowiska: kup biurko lub warsztat w sklepie (Biuro)."
-		card.add_child(hb)
-		card.mouse_entered.connect(func(): info.text = "  ".join(c.traits.map(func(k): return Game.TRAITS[k][0] + ": " + Game.TRAITS[k][1])))
+				hb.add_theme_stylebox_override("normal", _box(Color("2ab85a"), Color("0a3a1a"), 2))  # zatrudnij: zielony jak KUP
+				hb.add_theme_stylebox_override("hover", _box(Color("4ad87a"), Color("0a3a1a"), 2))
+				hb.add_theme_color_override("font_color", Color.WHITE)
+			row.add_child(hb)
+			_label(row, Game.yield_text(c, Game.best_mode(c)), Vector2(HR_COLS[4][1], 10), Color("2a7a3a"))
+	_label(body, "Koszt zespołu: -$%d/dzień" % Game.team_wage(), Vector2(10, 272), Color("c83a2a"))
+	_label(body, "Zysk zespołu: ok. %d PW/noc, ok. +$%d/dzień" % [pw_sum, usd_sum], Vector2(300, 272), Color("2a7a3a"))
 	_info(Rect2(10, 298, 620, 20), Color("2a3a2a"))
-	info.text = "Tryb zmienisz przyciskami 1-3. Pensje schodzą rano, zatrudnienie jest za darmo."
+	info.text = "Konto na minusie: bez wypłaty zespół nie pracuje (%d dni), potem odchodzi (%d dni)." % [Game.STRIKE_DAYS, Game.QUIT_DAYS] if Game.money < 0 else "Najedź na cechę, żeby zobaczyć jej opis. Kliknij tryb, żeby go zmienić."
+
+
+## wiersz tabeli HR: portret, imię (z dopiskiem), cechy (każda z opisem w dymku), koszt na czerwono
+func _hr_row(list: Control, p: Dictionary, bg: Color, tag: String) -> Panel:
+	var row := Panel.new()
+	row.custom_minimum_size = Vector2(612, 40)
+	row.add_theme_stylebox_override("panel", _box(bg, Color("8a9a8a")))
+	list.add_child(row)
+	_portrait(row, p, Vector2(1, 4))
+	_label(row, p.name, Vector2(HR_COLS[0][1], 2 if tag != "" else 10), INK)
+	if tag != "":  # zgłoszenie / strajk pod imieniem
+		_label(row, tag, Vector2(HR_COLS[0][1], 18), Color("c83a2a"))
+	for k in p.traits.size():  # cechy jedna pod drugą; każda osobno łapie myszkę i pokazuje opis
+		var t: String = p.traits[k]
+		var l := _label(row, Game.TRAITS[t][0], Vector2(HR_COLS[1][1], (10 if p.traits.size() == 1 else 2 + k * 16)), Color("4a6a4a"))
+		l.mouse_filter = Control.MOUSE_FILTER_STOP
+		l.tooltip_text = "%s: %s" % Game.TRAITS[t]
+	_label(row, "-$%d" % Game.wage(p), Vector2(HR_COLS[3][1], 10), Color("c83a2a"))
+	return row
 
 
 ## portret pracownika: kadr twarzy z portretu rozmowy (88x88, tools/art/staff.js; Józek ma własny) w ramce `size`

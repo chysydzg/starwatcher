@@ -975,15 +975,25 @@ func team_wage() -> int:
 
 
 ## czego się spodziewać po pracowniku w danym trybie (karta w HR): krótki opis z liczbą
-func yield_text(p: Dictionary, mode: int) -> String:
+func yield_amount(p: Dictionary, mode: int) -> int:
 	match mode:
 		1:
-			return "ok. %d PW/noc" % int(night_length() * staff_eff(p, 1) * pw_mult())
+			return int(night_length() * staff_eff(p, 1) * pw_mult())
 		2:
 			var s := stored()
 			var avg: float = 0.0 if s.is_empty() else s.reduce(func(a, e): return a + price(e).total, 0) / float(s.size())
-			return "ok. +$%d/dzień" % int(mini(8, maxi(s.size(), 4)) * maxf(avg, 150.0) * 0.25 * staff_eff(p, 2))
-	return "+%d s nocy" % (15 + (10 if p.traits.has("majsterkowicz") else 0))
+			return int(mini(8, maxi(s.size(), 4)) * maxf(avg, 150.0) * 0.25 * staff_eff(p, 2))
+	return 15 + (10 if p.traits.has("majsterkowicz") else 0)
+
+
+## zysk z pracownika w trybie: Tryb 1 PW/noc, Tryb 2 $/dzień, Tryb 3 sekundy nocy
+func yield_text(p: Dictionary, mode: int) -> String:
+	return ["~%d PW/noc", "~+$%d/dzień", "+%d s nocy"][mode - 1] % yield_amount(p, mode)
+
+
+## tryb, w którym kandydat pokazuje zysk w HR: Majsterkowicz w Trybie 3, reszta w Trybie 1
+func best_mode(c: Dictionary) -> int:
+	return 3 if c.traits.has("majsterkowicz") else 1
 
 
 ## ile stanowisk danego trybu jest wolnych (bez Józka, który ma swoje biurko)
